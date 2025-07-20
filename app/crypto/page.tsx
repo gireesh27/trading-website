@@ -18,6 +18,7 @@ import {
   TrendingUp,
   TrendingDown,
   Activity,
+  RefreshCw,
   DollarSign,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -37,6 +38,7 @@ const CRYPTO_SYMBOLS = [
   "LINK-USD",
   "UNI-USD",
 ];
+import CountUp from "react-countup";
 
 interface CryptoData {
   symbol: string;
@@ -44,11 +46,13 @@ interface CryptoData {
   price: number;
   change: number;
   changePercent: number;
+  change24h?: number;
   volume: number;
-  marketCap?: number;
+  marketCap: number; 
   high: number;
   low: number;
   rank?: number;
+  dominance?: number;
 }
 
 export default function CryptoPage() {
@@ -80,18 +84,12 @@ export default function CryptoPage() {
         async (symbol): Promise<CryptoData | null> => {
           try {
             const response = await fetch(`/api/market/lookup?symbol=${symbol}`);
-
-            if (!response.ok) {
+            if (!response.ok)
               throw new Error(`HTTP error! status: ${response.status}`);
-            }
 
             const data = await response.json();
             const result = data.chart?.result?.[0];
-
-            if (!result) {
-              console.warn(`[Crypto API] No chart result for ${symbol}`);
-              return null;
-            }
+            if (!result) return null;
 
             const meta = result.meta;
             const quote = result.indicators?.quote?.[0];
@@ -101,22 +99,49 @@ export default function CryptoPage() {
               !quote ||
               !Array.isArray(timestamps) ||
               timestamps.length === 0 ||
-              !quote.close ||
-              !quote.close.length
+              !quote.close?.length
             ) {
-              console.warn(`Invalid data structure for ${symbol}, skipping...`);
               return null;
             }
 
             const latestIndex = timestamps.length - 1;
             const previousIndex = Math.max(0, latestIndex - 1);
 
-            const currentPrice =
-              quote.close[latestIndex] ?? meta.regularMarketPrice ?? 0;
-            const previousClose =
-              quote.close[previousIndex] ?? meta.previousClose ?? currentPrice;
-            const change = currentPrice - previousClose;
-            const changePercent = (change / previousClose) * 100;
+            const currentPrice = parseFloat(
+              (
+                quote.close[latestIndex] ??
+                meta.regularMarketPrice ??
+                0
+              ).toFixed(2)
+            );
+            const previousClose = parseFloat(
+              (
+                quote.close[previousIndex] ??
+                meta.previousClose ??
+                currentPrice
+              ).toFixed(2)
+            );
+            const change = parseFloat(
+              (currentPrice - previousClose).toFixed(2)
+            );
+            const changePercent = parseFloat(
+              ((change / previousClose) * 100).toFixed(2)
+            );
+
+            // Calculate 24h change using 24th previous candle if available
+            const change24h =
+              latestIndex >= 24 && quote.close?.[latestIndex - 24] != null
+                ? parseFloat(
+                    (
+                      quote.close[latestIndex] - quote.close[latestIndex - 24]
+                    ).toFixed(2)
+                  )
+                : 0;
+
+            const volume = quote.volume?.[latestIndex] ?? 0;
+            const marketCap =
+              meta.marketCap ??
+              (volume && currentPrice ? volume * currentPrice : null);
 
             return {
               symbol: symbol.replace("-USD", ""),
@@ -125,8 +150,9 @@ export default function CryptoPage() {
               price: currentPrice,
               change,
               changePercent,
-              volume: quote.volume?.[latestIndex] ?? 0,
-              marketCap: meta.marketCap,
+              change24h,
+              volume,
+              marketCap,
               high:
                 meta.regularMarketDayHigh ??
                 quote.high?.[latestIndex] ??
@@ -154,7 +180,19 @@ export default function CryptoPage() {
         .map((result) => result.value)
         .filter((crypto): crypto is CryptoData => crypto !== null);
 
-      setCryptoData(validCrypto);
+      const totalMarketCap = validCrypto.reduce(
+        (sum, c) => sum + (c.marketCap || 0),
+        0
+      );
+
+      const cryptoWithDominance = validCrypto.map((crypto) => ({
+        ...crypto,
+        dominance: crypto.marketCap
+          ? parseFloat(((crypto.marketCap / totalMarketCap) * 100).toFixed(2))
+          : 0,
+      }));
+
+      setCryptoData(cryptoWithDominance);
     } catch (error) {
       console.error("Error fetching crypto data:", error);
     }
@@ -204,7 +242,8 @@ export default function CryptoPage() {
   };
 
   // Format large numbers
-  const formatLargeNumber = (num: number): string => {
+  const formatLargeNumber = (num: number | null | undefined): string => {
+    if (!num || isNaN(num)) return "N/A";
     if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
     if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
     if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
@@ -284,7 +323,6 @@ export default function CryptoPage() {
               </div>
             </CardContent>
           </Card>
-
           <Card className="bg-gray-800 border-gray-700">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -298,15 +336,14 @@ export default function CryptoPage() {
               </div>
             </CardContent>
           </Card>
-
           <Card className="bg-gray-800 border-gray-700">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-400 text-sm">Gainers</p>
                   <p className="text-green-500 text-lg font-semibold">
-                    {marketStats.gainers}
-                  </p>
+                    <CountUp end={marketStats.gainers} duration={1.5} />
+                  </p>{" "}
                 </div>
                 <TrendingUp className="h-8 w-8 text-green-500" />
               </div>
@@ -319,8 +356,8 @@ export default function CryptoPage() {
                 <div>
                   <p className="text-gray-400 text-sm">Losers</p>
                   <p className="text-red-500 text-lg font-semibold">
-                    {marketStats.losers}
-                  </p>
+                    <CountUp end={marketStats.losers} duration={1.5} />
+                  </p>{" "}
                 </div>
                 <TrendingDown className="h-8 w-8 text-red-500" />
               </div>
@@ -345,6 +382,7 @@ export default function CryptoPage() {
             </TabsTrigger>
           </TabsList>
 
+          {/* OVERVIEW TAB */}
           <TabsContent value="overview">
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader className="flex flex-row items-center justify-between">
@@ -424,7 +462,11 @@ export default function CryptoPage() {
 
                         <div className="flex items-center justify-between">
                           <span className="text-white text-lg font-bold">
-                            ${crypto.price.toLocaleString()}
+                            $
+                            {crypto.price.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: crypto.price < 1 ? 6 : 2,
+                            })}
                           </span>
                           <span
                             className={`text-sm ${
@@ -485,6 +527,7 @@ export default function CryptoPage() {
             </Card>
           </TabsContent>
 
+          {/* TABLE TAB */}
           <TabsContent value="table">
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
@@ -492,29 +535,34 @@ export default function CryptoPage() {
                   Cryptocurrency Table
                 </CardTitle>
               </CardHeader>
-
               <CardContent>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-700">
-                        <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                        <th className="text-left py-3 px-4 text-gray-400">
                           Rank
                         </th>
-                        <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                        <th className="text-left py-3 px-4 text-gray-400">
                           Name
                         </th>
-                        <th className="text-right py-3 px-4 text-gray-400 font-medium">
+                        <th className="text-right py-3 px-4 text-gray-400">
                           Price
                         </th>
-                        <th className="text-right py-3 px-4 text-gray-400 font-medium">
+                        <th className="text-right py-3 px-4 text-gray-400">
                           24h Change
                         </th>
-                        <th className="text-right py-3 px-4 text-gray-400 font-medium">
+                        <th className="text-right py-3 px-4 text-gray-400">
                           Volume
                         </th>
-                        <th className="text-right py-3 px-4 text-gray-400 font-medium">
+                        <th className="text-right py-3 px-4 text-gray-400">
                           Market Cap
+                        </th>
+                        <th className="text-right py-3 px-4 text-gray-400">
+                          24h High
+                        </th>
+                        <th className="text-right py-3 px-4 text-gray-400">
+                          24h Low
                         </th>
                       </tr>
                     </thead>
@@ -525,90 +573,54 @@ export default function CryptoPage() {
                           className="border-b border-gray-700 hover:bg-gray-700 cursor-pointer transition-colors"
                           onClick={() => selectStock(crypto.symbol + "-USD")}
                         >
-                          <td className="py-3 px-4">
-                            <div className="flex items-center space-x-2">
-                              <span className="text-gray-400 text-sm">
-                                #{crypto.rank || index + 1}
-                              </span>
-                            </div>
+                          <td className="py-3 px-4 text-gray-400">
+                            #{crypto.rank || index + 1}
                           </td>
-
-                          <td className="py-3 px-4">
-                            <div className="flex items-center space-x-3">
-                              <div>
-                                <div className="flex items-center space-x-2">
-                                  <span className="text-white font-semibold">
-                                    {crypto.symbol}
-                                  </span>
-                                  {crypto.rank && crypto.rank <= 3 && (
-                                    <Badge
-                                      variant="secondary"
-                                      className={`text-xs ${
-                                        crypto.rank === 1
-                                          ? "bg-yellow-600"
-                                          : crypto.rank === 2
-                                          ? "bg-gray-500"
-                                          : "bg-orange-600"
-                                      }`}
-                                    >
-                                      #{crypto.rank}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <span className="text-gray-400 text-sm">
-                                  {crypto.name}
-                                </span>
-                              </div>
-                            </div>
-                          </td>
-
-                          <td className="py-3 px-4 text-right">
-                            <span className="text-white font-semibold">
-                              $
-                              {crypto.price.toLocaleString(undefined, {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: crypto.price < 1 ? 6 : 2,
-                              })}
+                          <td className="py-3 px-4 text-white font-semibold">
+                            {crypto.symbol}{" "}
+                            <span className="block text-xs text-gray-400">
+                              {crypto.name}
                             </span>
                           </td>
-
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex flex-col items-end">
-                              <span
-                                className={`font-medium ${
-                                  crypto.changePercent >= 0
-                                    ? "text-green-500"
-                                    : "text-red-500"
-                                }`}
-                              >
-                                {crypto.changePercent >= 0 ? "+" : ""}
-                                {crypto.changePercent.toFixed(2)}%
-                              </span>
-                              <span
-                                className={`text-sm ${
-                                  crypto.change >= 0
-                                    ? "text-green-400"
-                                    : "text-red-400"
-                                }`}
-                              >
-                                {crypto.change >= 0 ? "+" : ""}$
-                                {crypto.change.toFixed(2)}
-                              </span>
-                            </div>
+                          <td className="py-3 px-4 text-right text-white">
+                            ${crypto.price.toFixed(2)}
                           </td>
-
                           <td className="py-3 px-4 text-right">
-                            <span className="text-white">
-                              {formatLargeNumber(crypto.volume)}
+                            <span
+                              className={`font-medium ${
+                                crypto.changePercent >= 0
+                                  ? "text-green-500"
+                                  : "text-red-500"
+                              }`}
+                            >
+                              {crypto.changePercent >= 0 ? "+" : ""}
+                              {crypto.changePercent.toFixed(2)}%
+                            </span>
+                            <br />
+                            <span
+                              className={`text-sm ${
+                                crypto.change >= 0
+                                  ? "text-green-400"
+                                  : "text-red-400"
+                              }`}
+                            >
+                              {crypto.change >= 0 ? "+" : ""}$
+                              {crypto.change.toFixed(2)}
                             </span>
                           </td>
-
-                          <td className="py-3 px-4 text-right">
-                            <span className="text-white">
-                              {crypto.marketCap
-                                ? formatLargeNumber(crypto.marketCap)
-                                : "N/A"}
-                            </span>
+                          <td className="py-3 px-4 text-right text-white">
+                            {formatLargeNumber(crypto.volume)}
+                          </td>
+                          <td className="py-3 px-4 text-right text-white">
+                            {crypto.marketCap
+                              ? formatLargeNumber(crypto.marketCap)
+                              : "N/A"}
+                          </td>
+                          <td className="py-3 px-4 text-right text-green-400">
+                            ${crypto.high.toFixed(2)}
+                          </td>
+                          <td className="py-3 px-4 text-right text-red-400">
+                            ${crypto.low.toFixed(2)}
                           </td>
                         </tr>
                       ))}
@@ -620,34 +632,10 @@ export default function CryptoPage() {
                     filteredAndSortedData.length === 0 && (
                       <div className="text-center py-8">
                         <p className="text-gray-400">
-                          No cryptocurrencies found matching your search.
+                          No cryptocurrencies found.
                         </p>
                       </div>
                     )}
-
-                  {isLoading && (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-                      <p className="text-gray-400 mt-2">
-                        Loading cryptocurrency data...
-                      </p>
-                    </div>
-                  )}
-
-                  {error && (
-                    <div className="text-center py-8">
-                      <p className="text-red-400 mb-4">{error}</p>
-                      <Button
-                        onClick={() => {
-                          refreshData();
-                          fetchCryptoData();
-                        }}
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        Retry
-                      </Button>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -787,7 +775,7 @@ export default function CryptoPage() {
             </CardContent>
           </Card>
         )}
-       <FooterTime/>
+        <FooterTime />
       </div>
     </div>
   );

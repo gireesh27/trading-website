@@ -31,6 +31,7 @@ import {
   AlertTriangle,
   Newspaper,
   Shield,
+  AlarmClock,
 } from "lucide-react"
 
 export function MainNav() {
@@ -47,12 +48,15 @@ export function MainNav() {
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: Home },
     { href: "/markets", label: "Markets", icon: BarChart3 },
+    { href: "/crypto", label: "Crypto", icon: PieChart},
+   
     { href: "/community", label: "Community", icon:Newspaper  },
     { href: "/portfolio", label: "Portfolio", icon: PieChart },
     { href: "/wallet", label: "Wallet", icon: Wallet },
     { href: "/watchlist", label: "Watchlist", icon: BarChart3 },
     { href: "/alerts", label: "Alerts", icon: AlertTriangle },
     { href: "/news", label: "News", icon: Newspaper },
+     { href: "/orders", label: "Orders", icon: AlarmClock },
   ]
 
   return (

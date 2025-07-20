@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { MainNav } from "@/components/main-nav";
-import { AdvancedChart } from "@/components/advanced-chart";
 import { OrderBook } from "@/components/order-book";
 import { EnhancedTradingInterface } from "@/components/enhanced-trading-interface";
 import { useMarketData } from "@/contexts/enhanced-market-data-context";
@@ -11,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useTrading } from "@/contexts/trading-context";
-import { Stock } from "@/types/trading-types"; // Assuming Stock type is defined here
 import { AdvancedTradingChart } from "@/components/advanced-trading-chart";
 import {
   ArrowLeft,
@@ -25,12 +23,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-// Define a type for the stock data for better type safety
-interface OrderBookProps {
-  symbol: string;
-  bids: OrderBookEntry[];
-  asks: OrderBookEntry[];
-}
 interface OrderBookEntry {
   price: number;
   quantity: number;

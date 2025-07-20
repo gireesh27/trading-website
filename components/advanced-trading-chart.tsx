@@ -6,9 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { createContext, useContext, ReactNode } from "react";
-import { CandlestickData } from "lightweight-charts";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   LineChart,
   Line,
@@ -35,11 +33,9 @@ import {
   RotateCcw,
   Crosshair,
   TrendingUpIcon,
-  Minus, // Keep Minus as it's used for OHLC chart type
+  Minus,
 } from "lucide-react"
 import { useMarketData } from "@/contexts/enhanced-market-data-context"
-import { TechnicalIndicators } from "@/contexts/enhanced-market-data-context"
-import { Star, StarOff } from "lucide-react"
 import { Chart as ChartJS, LineElement, CategoryScale, LinearScale, PointElement } from "chart.js"
 import { Stock } from "@/types/trading-types"
 

@@ -1,16 +1,14 @@
 "use client";
 
 import { MainNav } from "@/components/main-nav";
-import { MarketTicker } from "@/components/market-ticker";
 import {
   useMarketData,
-  MarketDataProvider,
+  
 } from "@/contexts/enhanced-market-data-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button, ButtonProps } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { Search, Filter, TrendingUp, TrendingDown } from "lucide-react";
+import { Search, TrendingUp, TrendingDown } from "lucide-react";
 import { useState } from "react";
 
 export default function MarketsPage() {

@@ -12,7 +12,6 @@ import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdvancedTradingChart } from "@/components/advanced-trading-chart";
 import { useWatchlist } from "@/contexts/watchlist-context";
-import { Time, CandlestickData } from "lightweight-charts";
 import { Stock } from "@/types/trading-types";
 
 // Local fallback type for candlestick data

@@ -18,7 +18,7 @@ import {
   RefreshCw,
 } from "lucide-react"
 
-interface NewsItem {
+export interface NewsItem {
   id: string
   title: string
   summary: string

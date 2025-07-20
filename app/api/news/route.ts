@@ -1,13 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-const FINNHUB_API_KEY = process.env.NEXT_PUBLIC_FINNHUB_API_KEY
+const NEWS_API_KEY = process.env.NEXT_PUBLIC_NEWS_API_KEY
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const category = searchParams.get("category") || "general"
 
-    const response = await fetch(`https://finnhub.io/api/v1/news?category=${category}&token=${FINNHUB_API_KEY}`)
+    const response = await fetch(`https://finnhub.io/api/v1/news?category=${category}&token=${NEWS_API_KEY}`)
 
     const data = await response.json()
 

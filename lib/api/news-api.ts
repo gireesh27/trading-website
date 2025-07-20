@@ -2,6 +2,7 @@ const NEWS_API_KEY = process.env.NEXT_PUBLIC_NEWS_API_KEY
 const FINNHUB_API_KEY = process.env.NEXT_PUBLIC_FINNHUB_API_KEY
 
 export interface NewsItem {
+  image: string
   id: string
   title: string
   summary: string
@@ -17,7 +18,7 @@ class NewsAPI {
   async getMarketNews(category: string = 'general'): Promise<NewsItem[]> {
     try {
       const response = await fetch(
-        `https://finnhub.io/api/v1/news?category=${category}&token=${FINNHUB_API_KEY}`
+        `https://finnhub.io/api/v1/news?category=${category}&token=${NEWS_API_KEY}`
       )
       const data = await response.json()
 
@@ -41,7 +42,7 @@ class NewsAPI {
   async getCryptoNews(): Promise<NewsItem[]> {
     try {
       const response = await fetch(
-        `https://finnhub.io/api/v1/news?category=crypto&token=${FINNHUB_API_KEY}`
+        `https://finnhub.io/api/v1/news?category=crypto&token=${NEWS_API_KEY}`
       )
       const data = await response.json()
 
@@ -69,7 +70,7 @@ class NewsAPI {
       const to = new Date()
 
       const response = await fetch(
-        `https://finnhub.io/api/v1/company-news?symbol=${symbol}&from=${from.toISOString().split('T')[0]}&to=${to.toISOString().split('T')[0]}&token=${FINNHUB_API_KEY}`
+        `https://finnhub.io/api/v1/company-news?symbol=${symbol}&from=${from.toISOString().split('T')[0]}&to=${to.toISOString().split('T')[0]}&token=${NEWS_API_KEY}`
       )
       const data = await response.json()
 

@@ -1,11 +1,8 @@
 "use client";
 import { MainNav } from "@/components/main-nav";
-import { MarketTicker } from "@/components/market-ticker";
 import FooterTime from "./FooterTime";
 import {
   useMarketData,
-  formatIndicatorData,
-  MarketDataProvider,
 } from "@/contexts/enhanced-market-data-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

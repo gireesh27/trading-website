@@ -303,7 +303,9 @@ export default function EnhancedTradePage() {
                 <div>
                   <p className="text-sm text-gray-400">Volume</p>
                   <p className="text-lg font-bold text-white">
-                    {stockData.volume.toLocaleString()}
+                    {stockData.volume
+                      ? stockData.volume.toLocaleString()
+                      : "N/A"}
                   </p>
                 </div>
                 <Volume2 className="h-5 w-5 text-blue-500" />

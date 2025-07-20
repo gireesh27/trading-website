@@ -1,5 +1,4 @@
 const NEWS_API_KEY = process.env.NEXT_PUBLIC_NEWS_API_KEY
-const FINNHUB_API_KEY = process.env.NEXT_PUBLIC_FINNHUB_API_KEY
 
 export interface NewsItem {
   image: string

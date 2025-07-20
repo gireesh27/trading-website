@@ -1,5 +1,5 @@
-// Replace Finnhub with Alpha Vantage
-const ALPHA_VANTAGE_API_KEY = process.env.NEXT_PUBLIC_ALPHA_VANTAGE_API_KEY || "083KOTWN718U3GFJ";
+const FINNHUB_API_KEY =
+  process.env.NEXT_PUBLIC_FINNHUB_API_KEY
 
 export interface StockQuote {
   symbol: string;
@@ -26,36 +26,28 @@ export interface ChartData {
 }
 
 class StockAPI {
-  // Get real-time stock quote from Alpha Vantage
   async getStockQuote(symbol: string): Promise<StockQuote> {
     try {
       const response = await fetch(
-        `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`
+        `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`
       );
-      const json = await response.json();
+      const data = await response.json();
 
-      // **Robust Error Handling**
-      if (json["Note"] || json["Information"] || json["Error Message"]) {
-        const message = json["Note"] || json["Information"] || json["Error Message"];
-        throw new Error(`Alpha Vantage API Error: ${message}`);
-      }
-      
-      const data = json["Global Quote"];
-      if (!data || Object.keys(data).length === 0) {
-        throw new Error(`No quote data returned for ${symbol}. This could be due to an invalid symbol or API limits.`);
+      if (!data || !data.c) {
+        throw new Error(`No quote data returned for ${symbol}.`);
       }
 
       return {
-        symbol: data["01. symbol"],
-        name: data["01. symbol"],
-        price: parseFloat(data["05. price"]),
-        change: parseFloat(data["09. change"]),
-        changePercent: parseFloat(data["10. change percent"].replace('%', '')),
-        volume: parseInt(data["06. volume"]),
-        high: parseFloat(data["03. high"]),
-        low: parseFloat(data["04. low"]),
-        open: parseFloat(data["02. open"]),
-        previousClose: parseFloat(data["08. previous close"]),
+        symbol,
+        name: symbol,
+        price: data.c,
+        change: data.d,
+        changePercent: data.dp,
+        volume: data.v,
+        high: data.h,
+        low: data.l,
+        open: data.o,
+        previousClose: data.pc,
       };
     } catch (error) {
       console.error(`Error fetching stock quote for ${symbol}:`, error);
@@ -72,37 +64,31 @@ class StockAPI {
     return await Promise.all(promises);
   }
 
-  // Get historical chart data
-  async getChartData(symbol: string, timeframe: string = '1D'): Promise<ChartData[]> {
+  // ✅ Get historical chart data from Finnhub
+  async getChartData(symbol: string, timeframe: string = "1D"): Promise<ChartData[]> {
     try {
+      const now = Math.floor(Date.now() / 1000);
+      const oneMonthAgo = now - 30 * 24 * 60 * 60;
+
+      const resolution = timeframe === "1D" ? "D" : "60"; // D for daily, 60 for hourly
       const response = await fetch(
-        `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&outputsize=compact&apikey=${ALPHA_VANTAGE_API_KEY}`
+        `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=${resolution}&from=${oneMonthAgo}&to=${now}&token=${FINNHUB_API_KEY}`
       );
-      const json = await response.json();
-      
-      // **DEFINITIVE FIX: Robust Error Handling**
-      if (json["Note"] || json["Information"] || json["Error Message"]) {
-        const message = json["Note"] || json["Information"] || json["Error Message"];
-        throw new Error(`Alpha Vantage API Error: ${message}`);
+      const data = await response.json();
+
+      if (data.s !== "ok") {
+        throw new Error(`Failed to fetch chart data for ${symbol}. Status: ${data.s}`);
       }
 
-      const series = json["Time Series (Daily)"];
-      if (!series) {
-        // This log will now only be hit if the API returns a valid but empty object,
-        // which could indicate a temporary issue or a symbol with no historical data.
-        console.warn(`No "Time Series (Daily)" data found for ${symbol}, though no explicit API error was returned.`);
-        return [];
-      }
-
-      return Object.entries(series).map(([date, values]: [string, any]) => ({
-        time: date,
-        timestamp: new Date(date),
-        open: parseFloat(values["1. open"]),
-        high: parseFloat(values["2. high"]),
-        low: parseFloat(values["3. low"]),
-        close: parseFloat(values["4. close"]),
-        volume: parseInt(values["6. volume"]),
-      })).reverse();
+      return data.t.map((timestamp: number, index: number) => ({
+        time: new Date(timestamp * 1000).toISOString(),
+        timestamp: new Date(timestamp * 1000),
+        open: data.o[index],
+        high: data.h[index],
+        low: data.l[index],
+        close: data.c[index],
+        volume: data.v[index],
+      }));
     } catch (error) {
       console.error(`Error fetching chart data for ${symbol}:`, error);
       return [];

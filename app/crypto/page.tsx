@@ -21,23 +21,7 @@ import {
   RefreshCw,
   DollarSign,
 } from "lucide-react";
-import { useState, useEffect } from "react";
-
-// Crypto symbols to track
-const CRYPTO_SYMBOLS = [
-  "BTC-USD",
-  "ETH-USD",
-  "BNB-USD",
-  "XRP-USD",
-  "ADA-USD",
-  "SOL-USD",
-  "DOGE-USD",
-  "DOT-USD",
-  "AVAX-USD",
-  "MATIC-USD",
-  "LINK-USD",
-  "UNI-USD",
-];
+import { useState, useEffect, useCallback } from "react";
 import CountUp from "react-countup";
 
 interface CryptoData {
@@ -48,7 +32,7 @@ interface CryptoData {
   changePercent: number;
   change24h?: number;
   volume: number;
-  marketCap: number; 
+  marketCap: number;
   high: number;
   low: number;
   rank?: number;
@@ -57,7 +41,7 @@ interface CryptoData {
 
 export default function CryptoPage() {
   const {
-    stocks,
+    // `stocks` is removed as it was unused
     selectedStock,
     candlestickData,
     technicalIndicators,
@@ -73,152 +57,108 @@ export default function CryptoPage() {
     "price" | "change" | "volume" | "marketCap"
   >("marketCap");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [cryptoData, setCryptoData] = useState<CryptoData[]>([]);
-  const [activeTab, setActiveTab] = useState("overview");
 
-  // Fetch crypto data
-  // Update the fetchCryptoData function
-  const fetchCryptoData = async () => {
-    try {
-      const cryptoPromises = CRYPTO_SYMBOLS.map(
-        async (symbol): Promise<CryptoData | null> => {
-          try {
-            const response = await fetch(`/api/market/lookup?symbol=${symbol}`);
-            if (!response.ok)
-              throw new Error(`HTTP error! status: ${response.status}`);
+  const ITEMS_PER_PAGE = 12;
+  const [overviewPage, setOverviewPage] = useState(1);
+  const [tablePage, setTablePage] = useState(1);
+  const [activeTab, setActiveTab] = useState<"overview" | "table">("overview");
 
-            const data = await response.json();
-            const result = data.chart?.result?.[0];
-            if (!result) return null;
+  const [allCryptoData, setAllCryptoData] = useState<CryptoData[]>([]);
+  const [loadingPage, setLoadingPage] = useState(false);
+  const [hasMoreData, setHasMoreData] = useState(true);
+  // New state for handling fetch-specific errors
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-            const meta = result.meta;
-            const quote = result.indicators?.quote?.[0];
-            const timestamps = result.timestamp;
+  const fetchCryptoData = useCallback(
+    async (page: number, replace: boolean = false) => {
+      setLoadingPage(true);
+      if (replace) {
+        setFetchError(null); // Clear previous errors on a fresh load
+      }
+      try {
+        const response = await fetch(
+          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&sparkline=false&price_change_percentage=24h`
+        );
 
-            if (
-              !quote ||
-              !Array.isArray(timestamps) ||
-              timestamps.length === 0 ||
-              !quote.close?.length
-            ) {
-              return null;
-            }
-
-            const latestIndex = timestamps.length - 1;
-            const previousIndex = Math.max(0, latestIndex - 1);
-
-            const currentPrice = parseFloat(
-              (
-                quote.close[latestIndex] ??
-                meta.regularMarketPrice ??
-                0
-              ).toFixed(2)
-            );
-            const previousClose = parseFloat(
-              (
-                quote.close[previousIndex] ??
-                meta.previousClose ??
-                currentPrice
-              ).toFixed(2)
-            );
-            const change = parseFloat(
-              (currentPrice - previousClose).toFixed(2)
-            );
-            const changePercent = parseFloat(
-              ((change / previousClose) * 100).toFixed(2)
-            );
-
-            // Calculate 24h change using 24th previous candle if available
-            const change24h =
-              latestIndex >= 24 && quote.close?.[latestIndex - 24] != null
-                ? parseFloat(
-                    (
-                      quote.close[latestIndex] - quote.close[latestIndex - 24]
-                    ).toFixed(2)
-                  )
-                : 0;
-
-            const volume = quote.volume?.[latestIndex] ?? 0;
-            const marketCap =
-              meta.marketCap ??
-              (volume && currentPrice ? volume * currentPrice : null);
-
-            return {
-              symbol: symbol.replace("-USD", ""),
-              name:
-                meta.longName || meta.shortName || symbol.replace("-USD", ""),
-              price: currentPrice,
-              change,
-              changePercent,
-              change24h,
-              volume,
-              marketCap,
-              high:
-                meta.regularMarketDayHigh ??
-                quote.high?.[latestIndex] ??
-                currentPrice,
-              low:
-                meta.regularMarketDayLow ??
-                quote.low?.[latestIndex] ??
-                currentPrice,
-              rank: getCryptoRank(symbol),
-            };
-          } catch (error) {
-            console.error(`Error fetching ${symbol}:`, error);
-            return null;
-          }
+        if (!response.ok) {
+          throw new Error("Failed to fetch crypto data");
         }
-      );
 
-      const results = await Promise.allSettled(cryptoPromises);
+        const data = await response.json();
+        
+        if (data.length < ITEMS_PER_PAGE) {
+          setHasMoreData(false);
+        }
 
-      const validCrypto = results
-        .filter(
-          (result): result is PromiseFulfilledResult<CryptoData | null> =>
-            result.status === "fulfilled"
-        )
-        .map((result) => result.value)
-        .filter((crypto): crypto is CryptoData => crypto !== null);
+        const mapped: CryptoData[] = data.map((coin: any) => ({
+          symbol: coin.symbol.toUpperCase(),
+          name: coin.name,
+          price: coin.current_price,
+          change: coin.price_change_24h,
+          changePercent: coin.price_change_percentage_24h,
+          volume: coin.total_volume,
+          marketCap: coin.market_cap,
+          high: coin.high_24h,
+          low: coin.low_24h,
+          rank: coin.market_cap_rank,
+        }));
 
-      const totalMarketCap = validCrypto.reduce(
-        (sum, c) => sum + (c.marketCap || 0),
-        0
-      );
+        setAllCryptoData((prev) => {
+          if (replace) {
+            return mapped;
+          } else {
+            const existingSymbols = new Set(prev.map((crypto) => crypto.symbol));
+            const newData = mapped.filter(
+              (crypto) => !existingSymbols.has(crypto.symbol)
+            );
+            return [...prev, ...newData];
+          }
+        });
+      } catch (error) {
+        console.error("Error fetching crypto data:", error);
+        // Set the specific error message for the UI
+        setFetchError("Failed to fetch crypto data. Please try again later.");
+      } finally {
+        setLoadingPage(false);
+      }
+    },
+    []
+  );
 
-      const cryptoWithDominance = validCrypto.map((crypto) => ({
-        ...crypto,
-        dominance: crypto.marketCap
-          ? parseFloat(((crypto.marketCap / totalMarketCap) * 100).toFixed(2))
-          : 0,
-      }));
+  useEffect(() => {
+    fetchCryptoData(1, true);
+  }, [fetchCryptoData]);
 
-      setCryptoData(cryptoWithDominance);
-    } catch (error) {
-      console.error("Error fetching crypto data:", error);
-    }
-  };
+  // New useEffect to reset pagination when search or sort changes
+  useEffect(() => {
+    setOverviewPage(1);
+    setTablePage(1);
+  }, [searchTerm, sortBy, sortOrder]);
 
-  // Get crypto rank (simplified)
-  const getCryptoRank = (symbol: string): number => {
-    const ranks: { [key: string]: number } = {
-      "BTC-USD": 1,
-      "ETH-USD": 2,
-      "BNB-USD": 3,
-      "XRP-USD": 4,
-      "ADA-USD": 5,
-      "SOL-USD": 6,
-      "DOGE-USD": 7,
-      "DOT-USD": 8,
-      "AVAX-USD": 9,
-      "MATIC-USD": 10,
-      "LINK-USD": 11,
-      "UNI-USD": 12,
-    };
-    return ranks[symbol] || 999;
-  };
+  const handleOverviewPageChange = useCallback(
+    (newPage: number) => {
+      setOverviewPage(newPage);
+      const requiredDataLength = newPage * ITEMS_PER_PAGE;
+      if (allCryptoData.length < requiredDataLength && hasMoreData) {
+        const pagesToFetch = Math.ceil(
+          (requiredDataLength - allCryptoData.length) / ITEMS_PER_PAGE
+        );
+        const startPage = Math.ceil(allCryptoData.length / ITEMS_PER_PAGE) + 1;
+        for (let i = 0; i < pagesToFetch; i++) {
+          fetchCryptoData(startPage + i, false);
+        }
+      }
+    },
+    [allCryptoData.length, hasMoreData, fetchCryptoData]
+  );
 
-  // Filter and sort crypto data
-  const filteredAndSortedData = cryptoData
+  const handleTableLoadMore = useCallback(() => {
+    const nextPage = Math.ceil(allCryptoData.length / ITEMS_PER_PAGE) + 1;
+    setTablePage((prev) => prev + 1);
+    fetchCryptoData(nextPage, false);
+  }, [allCryptoData.length, fetchCryptoData]);
+  
+  const filteredAndSortedData = allCryptoData
     .filter(
       (crypto) =>
         crypto.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -230,18 +170,27 @@ export default function CryptoPage() {
       return sortOrder === "desc" ? bValue - aValue : aValue - bValue;
     });
 
-  // Calculate market stats
+  const overviewData = filteredAndSortedData.slice(
+    (overviewPage - 1) * ITEMS_PER_PAGE,
+    overviewPage * ITEMS_PER_PAGE
+  );
+
+  const tableData = filteredAndSortedData.slice(0, tablePage * ITEMS_PER_PAGE);
+
+  const totalPages = Math.ceil(filteredAndSortedData.length / ITEMS_PER_PAGE);
+  const canLoadMoreTable =
+    tablePage * ITEMS_PER_PAGE < filteredAndSortedData.length || hasMoreData;
+
   const marketStats = {
-    totalMarketCap: cryptoData.reduce(
+    totalMarketCap: allCryptoData.reduce(
       (sum, crypto) => sum + (crypto.marketCap || 0),
       0
     ),
-    totalVolume: cryptoData.reduce((sum, crypto) => sum + crypto.volume, 0),
-    gainers: cryptoData.filter((crypto) => crypto.changePercent > 0).length,
-    losers: cryptoData.filter((crypto) => crypto.changePercent < 0).length,
+    totalVolume: allCryptoData.reduce((sum, crypto) => sum + crypto.volume, 0),
+    gainers: allCryptoData.filter((crypto) => crypto.changePercent > 0).length,
+    losers: allCryptoData.filter((crypto) => crypto.changePercent < 0).length,
   };
 
-  // Format large numbers
   const formatLargeNumber = (num: number | null | undefined): string => {
     if (!num || isNaN(num)) return "N/A";
     if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
@@ -251,18 +200,19 @@ export default function CryptoPage() {
     return `$${num.toFixed(2)}`;
   };
 
-  useEffect(() => {
-    fetchCryptoData();
-
-    // Refresh crypto data every 30 seconds
-    const interval = setInterval(fetchCryptoData, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  const handleRefresh = useCallback(() => {
+    setFetchError(null); // Clear errors on refresh
+    setAllCryptoData([]);
+    setOverviewPage(1);
+    setTablePage(1);
+    setHasMoreData(true);
+    refreshData();
+    fetchCryptoData(1, true);
+  }, [refreshData, fetchCryptoData]);
 
   return (
     <div className="min-h-screen bg-[#131722]">
       <MainNav />
-
       <div className="container mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
@@ -272,7 +222,6 @@ export default function CryptoPage() {
             </h1>
             <p className="text-gray-400">Live crypto prices and market data</p>
           </div>
-
           <div className="flex items-center space-x-4 mt-4 md:mt-0">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -283,7 +232,6 @@ export default function CryptoPage() {
                 className="pl-10 bg-gray-800 border-gray-700 text-white"
               />
             </div>
-
             <Button
               variant="outline"
               className="border-gray-700 text-gray-300 bg-transparent"
@@ -295,15 +243,16 @@ export default function CryptoPage() {
               <Filter className="h-4 w-4 mr-2" />
               Sort {sortOrder === "desc" ? "↓" : "↑"}
             </Button>
-
             <Button
-              onClick={() => {
-                refreshData();
-                fetchCryptoData();
-              }}
+              onClick={handleRefresh}
               className="bg-blue-600 hover:bg-blue-700"
+              disabled={loadingPage}
             >
-              Refresh
+              {loadingPage ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                "Refresh"
+              )}
             </Button>
           </div>
         </div>
@@ -343,13 +292,12 @@ export default function CryptoPage() {
                   <p className="text-gray-400 text-sm">Gainers</p>
                   <p className="text-green-500 text-lg font-semibold">
                     <CountUp end={marketStats.gainers} duration={1.5} />
-                  </p>{" "}
+                  </p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-green-500" />
               </div>
             </CardContent>
           </Card>
-
           <Card className="bg-gray-800 border-gray-700">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -357,7 +305,7 @@ export default function CryptoPage() {
                   <p className="text-gray-400 text-sm">Losers</p>
                   <p className="text-red-500 text-lg font-semibold">
                     <CountUp end={marketStats.losers} duration={1.5} />
-                  </p>{" "}
+                  </p>
                 </div>
                 <TrendingDown className="h-8 w-8 text-red-500" />
               </div>
@@ -366,7 +314,10 @@ export default function CryptoPage() {
         </div>
 
         {/* Main Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as "overview" | "table")}
+        >
           <TabsList className="bg-gray-800 border-gray-700">
             <TabsTrigger
               value="overview"
@@ -403,124 +354,105 @@ export default function CryptoPage() {
                   ))}
                 </div>
               </CardHeader>
-
               <CardContent>
-                {isLoading ? (
+                {isLoading && allCryptoData.length === 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {[...Array(6)].map((_, i) => (
                       <div key={i} className="animate-pulse">
-                        <div className="bg-gray-700 h-24 rounded-lg"></div>
+                        <div className="bg-gray-700 h-40 rounded-lg"></div>
                       </div>
                     ))}
                   </div>
-                ) : error ? (
+                ) : (error || fetchError) ? ( // Check both context error and fetchError
                   <div className="text-center py-8">
-                    <p className="text-red-400 mb-4">{error}</p>
-                    <Button
-                      onClick={() => {
-                        refreshData();
-                        fetchCryptoData();
-                      }}
-                    >
-                      Retry
-                    </Button>
+                    <p className="text-red-400 mb-4">{fetchError || error}</p>
+                    <Button onClick={handleRefresh}>Retry</Button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredAndSortedData.map((crypto) => (
-                      <div
-                        key={crypto.symbol}
-                        className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-colors cursor-pointer"
-                        onClick={() => selectStock(crypto.symbol + "-USD")}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-2">
-                            <h3 className="text-white font-semibold">
-                              {crypto.symbol}
-                            </h3>
-                            {crypto.rank && crypto.rank <= 10 && (
-                              <Badge variant="secondary" className="text-xs">
-                                #{crypto.rank}
-                              </Badge>
-                            )}
-                          </div>
-                          <div
-                            className={`text-sm font-medium ${
-                              crypto.changePercent >= 0
-                                ? "text-green-500"
-                                : "text-red-500"
-                            }`}
-                          >
-                            {crypto.changePercent >= 0 ? "+" : ""}
-                            {crypto.changePercent.toFixed(2)}%
-                          </div>
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {overviewData.map((crypto) => (
+                        <div
+                         key={`${crypto.symbol}-${crypto.rank || crypto.name}`}
+                          className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-colors cursor-pointer"
+                          onClick={() => selectStock(crypto.symbol + "-USD")}
+                        >
+                           <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                                <h3 className="text-white font-semibold">
+                                {crypto.name} ({crypto.symbol})
+                                </h3>
+                                {crypto.rank && crypto.rank <= 10 && (
+                                <Badge variant="secondary" className="text-xs">
+                                    #{crypto.rank}
+                                </Badge>
+                                )}
+                            </div>
+                            <div
+                                className={`text-sm font-medium ${
+                                crypto.changePercent >= 0
+                                    ? "text-green-500"
+                                    : "text-red-500"
+                                }`}
+                            >
+                                {crypto.changePercent >= 0 ? "+" : ""}
+                                {crypto.changePercent.toFixed(2)}%
+                            </div>
+                            </div>
+                            <div className="flex items-center justify-between mt-2">
+                            <span className="text-white text-lg font-bold">
+                                $
+                                {crypto.price.toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: crypto.price < 1 ? 6 : 2,
+                                })}
+                            </span>
+                            </div>
+                            <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-400">
+                            <div>
+                                <span className="block">Volume</span>
+                                <span className="text-white">
+                                {formatLargeNumber(crypto.volume)}
+                                </span>
+                            </div>
+                            <div>
+                                <span className="block">Market Cap</span>
+                                <span className="text-white">
+                                {crypto.marketCap
+                                    ? formatLargeNumber(crypto.marketCap)
+                                    : "N/A"}
+                                </span>
+                            </div>
+                            </div>
+                            <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-400">
+                            <div>
+                                <span className="block">24h High</span>
+                                <span className="text-green-400">
+                                ${crypto.high.toFixed(2)}
+                                </span>
+                            </div>
+                            <div>
+                                <span className="block">24h Low</span>
+                                <span className="text-red-400">
+                                ${crypto.low.toFixed(2)}
+                                </span>
+                            </div>
+                            </div>
                         </div>
-
-                        <p className="text-gray-400 text-sm mb-2">
-                          {crypto.name}
+                      ))}
+                    </div>
+                    {!loadingPage && overviewData.length === 0 && (
+                      <div className="text-center py-8">
+                        <p className="text-gray-400">
+                          No cryptocurrencies found matching your search.
                         </p>
-
-                        <div className="flex items-center justify-between">
-                          <span className="text-white text-lg font-bold">
-                            $
-                            {crypto.price.toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: crypto.price < 1 ? 6 : 2,
-                            })}
-                          </span>
-                          <span
-                            className={`text-sm ${
-                              crypto.change >= 0
-                                ? "text-green-500"
-                                : "text-red-500"
-                            }`}
-                          >
-                            {crypto.change >= 0 ? "+" : ""}$
-                            {crypto.change.toFixed(2)}
-                          </span>
-                        </div>
-
-                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-400">
-                          <div>
-                            <span className="block">Volume</span>
-                            <span className="text-white">
-                              {formatLargeNumber(crypto.volume)}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="block">Market Cap</span>
-                            <span className="text-white">
-                              {crypto.marketCap
-                                ? formatLargeNumber(crypto.marketCap)
-                                : "N/A"}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-400">
-                          <div>
-                            <span className="block">24h High</span>
-                            <span className="text-green-400">
-                              ${crypto.high.toFixed(2)}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="block">24h Low</span>
-                            <span className="text-red-400">
-                              ${crypto.low.toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
                       </div>
-                    ))}
-                  </div>
+                    )}
+                  </>
                 )}
-
-                {!isLoading && !error && filteredAndSortedData.length === 0 && (
-                  <div className="text-center py-8">
-                    <p className="text-gray-400">
-                      No cryptocurrencies found matching your search.
-                    </p>
+                {loadingPage && allCryptoData.length > 0 && (
+                  <div className="flex justify-center mt-4">
+                    <RefreshCw className="h-6 w-6 animate-spin text-blue-500" />
                   </div>
                 )}
               </CardContent>
@@ -536,111 +468,121 @@ export default function CryptoPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-700">
-                        <th className="text-left py-3 px-4 text-gray-400">
-                          Rank
-                        </th>
-                        <th className="text-left py-3 px-4 text-gray-400">
-                          Name
-                        </th>
-                        <th className="text-right py-3 px-4 text-gray-400">
-                          Price
-                        </th>
-                        <th className="text-right py-3 px-4 text-gray-400">
-                          24h Change
-                        </th>
-                        <th className="text-right py-3 px-4 text-gray-400">
-                          Volume
-                        </th>
-                        <th className="text-right py-3 px-4 text-gray-400">
-                          Market Cap
-                        </th>
-                        <th className="text-right py-3 px-4 text-gray-400">
-                          24h High
-                        </th>
-                        <th className="text-right py-3 px-4 text-gray-400">
-                          24h Low
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredAndSortedData.map((crypto, index) => (
-                        <tr
-                          key={crypto.symbol}
-                          className="border-b border-gray-700 hover:bg-gray-700 cursor-pointer transition-colors"
-                          onClick={() => selectStock(crypto.symbol + "-USD")}
-                        >
-                          <td className="py-3 px-4 text-gray-400">
-                            #{crypto.rank || index + 1}
-                          </td>
-                          <td className="py-3 px-4 text-white font-semibold">
-                            {crypto.symbol}{" "}
-                            <span className="block text-xs text-gray-400">
-                              {crypto.name}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-right text-white">
-                            ${crypto.price.toFixed(2)}
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <span
-                              className={`font-medium ${
-                                crypto.changePercent >= 0
-                                  ? "text-green-500"
-                                  : "text-red-500"
-                              }`}
-                            >
-                              {crypto.changePercent >= 0 ? "+" : ""}
-                              {crypto.changePercent.toFixed(2)}%
-                            </span>
-                            <br />
-                            <span
-                              className={`text-sm ${
-                                crypto.change >= 0
-                                  ? "text-green-400"
-                                  : "text-red-400"
-                              }`}
-                            >
-                              {crypto.change >= 0 ? "+" : ""}$
-                              {crypto.change.toFixed(2)}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-right text-white">
-                            {formatLargeNumber(crypto.volume)}
-                          </td>
-                          <td className="py-3 px-4 text-right text-white">
-                            {crypto.marketCap
-                              ? formatLargeNumber(crypto.marketCap)
-                              : "N/A"}
-                          </td>
-                          <td className="py-3 px-4 text-right text-green-400">
-                            ${crypto.high.toFixed(2)}
-                          </td>
-                          <td className="py-3 px-4 text-right text-red-400">
-                            ${crypto.low.toFixed(2)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-
-                  {!isLoading &&
-                    !error &&
-                    filteredAndSortedData.length === 0 && (
+                {(error || fetchError) ? (
+                  <div className="text-center py-8">
+                    <p className="text-red-400 mb-4">{fetchError || error}</p>
+                    <Button onClick={handleRefresh}>Retry</Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-gray-700">
+                            <th className="text-left py-3 px-4 text-gray-400">#</th>
+                            <th className="text-left py-3 px-4 text-gray-400">Name</th>
+                            <th className="text-right py-3 px-4 text-gray-400">Price</th>
+                            <th className="text-right py-3 px-4 text-gray-400">24h Change</th>
+                            <th className="text-right py-3 px-4 text-gray-400">Volume</th>
+                            <th className="text-right py-3 px-4 text-gray-400">Market Cap</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {isLoading && allCryptoData.length === 0 ? (
+                            [...Array(ITEMS_PER_PAGE)].map((_, i) => (
+                              <tr key={i} className="border-b border-gray-800 animate-pulse">
+                                <td className="py-4 px-4"><div className="h-4 bg-gray-700 rounded w-1/2"></div></td>
+                                <td className="py-4 px-4"><div className="h-4 bg-gray-700 rounded"></div></td>
+                                <td className="py-4 px-4 text-right"><div className="h-4 bg-gray-700 rounded w-3/4 ml-auto"></div></td>
+                                <td className="py-4 px-4 text-right"><div className="h-4 bg-gray-700 rounded w-1/2 ml-auto"></div></td>
+                                <td className="py-4 px-4 text-right"><div className="h-4 bg-gray-700 rounded w-3/4 ml-auto"></div></td>
+                                <td className="py-4 px-4 text-right"><div className="h-4 bg-gray-700 rounded w-3/4 ml-auto"></div></td>
+                              </tr>
+                            ))
+                          ) : tableData.length > 0 ? (
+                            tableData.map((crypto) => (
+                              <tr
+                                key={`${crypto.symbol}-${crypto.rank || crypto.name}`}
+                                className="border-b border-gray-700 hover:bg-gray-700 cursor-pointer transition-colors"
+                                onClick={() => selectStock(crypto.symbol + "-USD")}
+                              >
+                                <td className="py-3 px-4 text-gray-400">{crypto.rank}</td>
+                                <td className="py-3 px-4 text-white font-semibold">
+                                  {crypto.name}
+                                  <span className="block text-xs text-gray-400">{crypto.symbol}</span>
+                                </td>
+                                <td className="py-3 px-4 text-right text-white">${crypto.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: crypto.price < 1 ? 6 : 2})}</td>
+                                <td className={`py-3 px-4 text-right font-medium ${crypto.changePercent >= 0 ? "text-green-500" : "text-red-500"}`}>
+                                  {crypto.changePercent >= 0 ? "+" : ""}{crypto.changePercent.toFixed(2)}%
+                                </td>
+                                <td className="py-3 px-4 text-right text-white">{formatLargeNumber(crypto.volume)}</td>
+                                <td className="py-3 px-4 text-right text-white">{formatLargeNumber(crypto.marketCap)}</td>
+                              </tr>
+                            ))
+                          ) : null}
+                        </tbody>
+                      </table>
+                    </div>
+                    {!loadingPage && tableData.length === 0 && !fetchError && (
                       <div className="text-center py-8">
-                        <p className="text-gray-400">
-                          No cryptocurrencies found.
-                        </p>
+                        <p className="text-gray-400">No cryptocurrencies found.</p>
                       </div>
                     )}
-                </div>
+                    {loadingPage && allCryptoData.length > 0 && (
+                      <div className="flex justify-center mt-4">
+                        <RefreshCw className="h-6 w-6 animate-spin text-blue-500" />
+                      </div>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Overview Pagination */}
+        {activeTab === "overview" && !fetchError && (
+          <div className="flex justify-center items-center mt-6 space-x-4 text-white">
+            <Button
+              variant="outline"
+              onClick={() => handleOverviewPageChange(overviewPage - 1)}
+              disabled={overviewPage === 1 || loadingPage}
+              className="border-gray-700 text-gray-300 bg-transparent hover:bg-gray-700"
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-gray-400">Page {overviewPage} of {totalPages || 1}</span>
+            <Button
+              variant="outline"
+              onClick={() => handleOverviewPageChange(overviewPage + 1)}
+              disabled={overviewPage >= totalPages || loadingPage}
+              className="border-gray-700 text-gray-300 bg-transparent hover:bg-gray-700"
+            >
+              Next
+            </Button>
+          </div>
+        )}
+
+        {/* Table Load More */}
+        {activeTab === "table" && canLoadMoreTable && !fetchError &&(
+          <div className="flex justify-center mt-6">
+            <Button
+              variant="default"
+              onClick={handleTableLoadMore}
+              disabled={loadingPage}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {loadingPage ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                "Load More"
+              )}
+            </Button>
+          </div>
+        )}
 
         {/* Selected Crypto Details */}
         {selectedStock && selectedStock.symbol.includes("-USD") && (
@@ -667,7 +609,6 @@ export default function CryptoPage() {
                 </div>
               </CardTitle>
             </CardHeader>
-
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-gray-700 rounded-lg p-4">
@@ -683,21 +624,18 @@ export default function CryptoPage() {
                     {selectedStock.change.toFixed(2)}
                   </p>
                 </div>
-
                 <div className="bg-gray-700 rounded-lg p-4">
                   <p className="text-gray-400 text-sm">Volume</p>
                   <p className="text-white text-lg font-semibold">
                     {formatLargeNumber(selectedStock.volume)}
                   </p>
                 </div>
-
                 <div className="bg-gray-700 rounded-lg p-4">
                   <p className="text-gray-400 text-sm">24h High</p>
                   <p className="text-green-400 text-lg font-semibold">
                     ${selectedStock.high.toFixed(2)}
                   </p>
                 </div>
-
                 <div className="bg-gray-700 rounded-lg p-4">
                   <p className="text-gray-400 text-sm">24h Low</p>
                   <p className="text-red-400 text-lg font-semibold">
@@ -705,7 +643,6 @@ export default function CryptoPage() {
                   </p>
                 </div>
               </div>
-
               {candlestickData.length > 0 && (
                 <div className="mt-6">
                   <h3 className="text-white text-lg font-semibold mb-4">
@@ -725,7 +662,6 @@ export default function CryptoPage() {
                   </div>
                 </div>
               )}
-
               {technicalIndicators && (
                 <div className="mt-6">
                   <h3 className="text-white text-lg font-semibold mb-4">
@@ -740,7 +676,6 @@ export default function CryptoPage() {
                         ]?.toFixed(2) ?? "N/A"}
                       </p>
                     </div>
-
                     <div className="bg-gray-700 rounded-lg p-3">
                       <p className="text-gray-400 text-sm">SMA (20)</p>
                       <p className="text-white font-semibold">
@@ -750,7 +685,6 @@ export default function CryptoPage() {
                         ]?.toFixed(2) ?? "N/A"}
                       </p>
                     </div>
-
                     <div className="bg-gray-700 rounded-lg p-3">
                       <p className="text-gray-400 text-sm">EMA (12)</p>
                       <p className="text-white font-semibold">
@@ -760,11 +694,10 @@ export default function CryptoPage() {
                         ]?.toFixed(2) ?? "N/A"}
                       </p>
                     </div>
-
                     <div className="bg-gray-700 rounded-lg p-3">
                       <p className="text-gray-400 text-sm">MACD</p>
                       <p className="text-white font-semibold">
-                        {technicalIndicators.macd?.macd?.[
+                        {technicalIndicators.macd?.line?.[
                           technicalIndicators.macd.line.length - 1
                         ]?.toFixed(4) ?? "N/A"}
                       </p>
@@ -775,6 +708,7 @@ export default function CryptoPage() {
             </CardContent>
           </Card>
         )}
+
         <FooterTime />
       </div>
     </div>

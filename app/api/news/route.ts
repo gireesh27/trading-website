@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-const FINNHUB_API_KEY = "d1suqcpr01qhe5rc7ov0d1suqcpr01qhe5rc7ovg"
+const FINNHUB_API_KEY = process.env.NEXT_PUBLIC_FINNHUB_API_KEY 
 
 export async function GET(request: NextRequest) {
   try {

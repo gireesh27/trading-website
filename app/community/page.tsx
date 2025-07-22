@@ -1,293 +1,231 @@
-"use client"
+"use client";
 
-import type React from "react"
+import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { MainNav } from "@/components/main-nav";
+import { formatDistanceToNow } from "date-fns";
 
-import { MainNav } from "@/components/main-nav"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Search, MessageCircle, ThumbsUp, TrendingUp, Users } from "lucide-react"
-import { useState, useEffect } from "react"
-import { useAuth } from "@/contexts/auth-context"
-
-interface Discussion {
-  id: string
-  title: string
-  content: string
-  author: string
-  timestamp: string
-  likes: number
-  replies: number
-  category: string
-}
+type RedditPost = {
+  id: string;
+  title: string;
+  author: string;
+  url: string;
+  selftext: string;
+  created_utc: number;
+  permalink: string;
+};
 
 export default function CommunityPage() {
-  const [discussions, setDiscussions] = useState<Discussion[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [newPost, setNewPost] = useState({ title: "", content: "", category: "General" })
-  const [isLoading, setIsLoading] = useState(true)
-  const { user } = useAuth()
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const currentPage = parseInt(searchParams.get("page") || "1");
+
+  const [posts, setPosts] = useState<RedditPost[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<RedditPost[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+
+  // Comment form state
+  const [commentTitle, setCommentTitle] = useState("");
+  const [commentDescription, setCommentDescription] = useState("");
 
   useEffect(() => {
-    // Mock discussions data
-    const mockDiscussions: Discussion[] = [
-      {
-        id: "1",
-        title: "What are your thoughts on the current market rally?",
-        content:
-          "The markets have been performing exceptionally well this quarter. What factors do you think are driving this growth?",
-        author: "TradingPro",
-        timestamp: "2024-01-15T10:30:00Z",
-        likes: 24,
-        replies: 12,
-        category: "Market Analysis",
-      },
-      {
-        id: "2",
-        title: "Best strategies for crypto trading in 2024",
-        content: "Looking for advice on cryptocurrency trading strategies. What has worked well for you this year?",
-        author: "CryptoEnthusiast",
-        timestamp: "2024-01-15T09:15:00Z",
-        likes: 18,
-        replies: 8,
-        category: "Cryptocurrency",
-      },
-      {
-        id: "3",
-        title: "Portfolio diversification tips for beginners",
-        content:
-          "New to investing and looking for guidance on how to properly diversify my portfolio. Any suggestions?",
-        author: "NewInvestor",
-        timestamp: "2024-01-15T08:45:00Z",
-        likes: 31,
-        replies: 15,
-        category: "Beginner",
-      },
-    ]
+    const fetchPosts = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/reddit?page=${currentPage}&limit=10`);
+        if (!res.ok) throw new Error("Failed to fetch posts");
 
-    setTimeout(() => {
-      setDiscussions(mockDiscussions)
-      setIsLoading(false)
-    }, 1000)
-  }, [])
+        const data = await res.json();
+        setPosts(data.posts);
+        setFilteredPosts(data.posts);
+        setTotalPages(data.totalPages);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filteredDiscussions = discussions.filter(
-    (discussion) =>
-      discussion.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      discussion.content.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+    fetchPosts();
+  }, [currentPage]);
 
-  const handleSubmitPost = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!user) return
+  // Filter and sort
+  useEffect(() => {
+    let filtered = posts.filter(
+      (post) =>
+        post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        post.selftext.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-    const newDiscussion: Discussion = {
-      id: Date.now().toString(),
-      title: newPost.title,
-      content: newPost.content,
-      author: user.name,
-      timestamp: new Date().toISOString(),
-      likes: 0,
-      replies: 0,
-      category: newPost.category,
+    filtered.sort((a, b) =>
+      sortOrder === "desc"
+        ? b.created_utc - a.created_utc
+        : a.created_utc - b.created_utc
+    );
+
+    setFilteredPosts(filtered);
+  }, [searchTerm, posts, sortOrder]);
+
+  const goToPage = (page: number) => {
+    router.push(`/community?page=${page}`);
+  };
+
+  const handleCommentSubmit = () => {
+    if (commentTitle && commentDescription) {
+      alert("Comment submitted (not saved)!");
+      setCommentTitle("");
+      setCommentDescription("");
     }
-
-    setDiscussions([newDiscussion, ...discussions])
-    setNewPost({ title: "", content: "", category: "General" })
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-[#131722]">
+    <div className="min-h-screen bg-[#131722] text-white">
       <MainNav />
 
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-2">Community</h1>
-            <p className="text-gray-400">Connect with traders and share insights</p>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-1">💬 Recent Discussions</h1>
+            <p className="text-gray-400 text-sm">Latest posts from r/algotrading</p>
           </div>
 
-          <div className="relative mt-4 md:mt-0">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
             <Input
               placeholder="Search discussions..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-gray-800 border-gray-700 text-white"
+              className="bg-gray-800 border border-gray-700 text-white w-full sm:w-64"
             />
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+              className="bg-gray-800 border border-gray-700 text-white px-3 py-2 rounded text-sm"
+            >
+              <option value="desc">Newest First</option>
+              <option value="asc">Oldest First</option>
+            </select>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            {/* New Post Form */}
-            {user && (
-              <Card className="bg-gray-800 border-gray-700 mb-6">
-                <CardHeader>
-                  <CardTitle className="text-white">Start a Discussion</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSubmitPost} className="space-y-4">
-                    <Input
-                      placeholder="Discussion title..."
-                      value={newPost.title}
-                      onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
-                      className="bg-gray-700 border-gray-600 text-white"
-                      required
-                    />
-                    <Textarea
-                      placeholder="Share your thoughts..."
-                      value={newPost.content}
-                      onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
-                      className="bg-gray-700 border-gray-600 text-white"
-                      rows={3}
-                      required
-                    />
-                    <div className="flex items-center justify-between">
-                      <select
-                        value={newPost.category}
-                        onChange={(e) => setNewPost({ ...newPost, category: e.target.value })}
-                        className="bg-gray-700 border-gray-600 text-white rounded px-3 py-2"
-                      >
-                        <option value="General">General</option>
-                        <option value="Market Analysis">Market Analysis</option>
-                        <option value="Cryptocurrency">Cryptocurrency</option>
-                        <option value="Beginner">Beginner</option>
-                        <option value="Technical Analysis">Technical Analysis</option>
-                      </select>
-                      <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                        Post Discussion
-                      </Button>
-                    </div>
-                  </form>
-                </CardContent>
-              </Card>
+        {loading ? (
+          <p className="text-center text-gray-400">Loading posts...</p>
+        ) : error ? (
+          <p className="text-center text-red-500">Error: {error}</p>
+        ) : (
+          <>
+            {/* Posts */}
+            <div className="grid grid-cols-1 gap-6">
+              {filteredPosts.map((post) => (
+                <Card
+                  key={post.id}
+                  className="bg-gray-800 border border-gray-700 rounded-xl shadow hover:shadow-lg transition"
+                >
+                  <CardHeader className="border-b border-gray-700 pb-2">
+                    <CardTitle className="text-base sm:text-lg md:text-xl font-semibold break-words">
+                      {post.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-3">
+                    <p className="text-sm text-gray-400 mb-2">
+                      Posted by <span className="text-white">u/{post.author}</span> •{" "}
+                      {formatDistanceToNow(new Date(post.created_utc * 1000), {
+                        addSuffix: true,
+                      })}
+                    </p>
+
+                    {post.selftext ? (
+                      <p className="text-gray-300 text-sm mb-4 line-clamp-5 break-words">
+                        {post.selftext}
+                      </p>
+                    ) : (
+                      <p className="text-gray-500 italic mb-4">No content available</p>
+                    )}
+
+                    <a
+                      href={post.permalink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:underline text-sm"
+                    >
+                      🔗 Read More on Reddit →
+                    </a>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {filteredPosts.length > 0 && (
+              <div className="flex flex-wrap justify-center items-center gap-3 mt-10">
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  className="px-4 py-2 bg-gray-700 text-white rounded disabled:opacity-40 text-sm"
+                >
+                  ⬅ Prev
+                </button>
+
+                <span className="text-sm text-gray-300">
+                  Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
+                </span>
+
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                  className="px-4 py-2 bg-gray-700 text-white rounded disabled:opacity-40 text-sm"
+                >
+                  Next ➡
+                </button>
+              </div>
             )}
 
-            {/* Discussions List */}
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <MessageCircle className="h-5 w-5 mr-2" />
-                  Recent Discussions
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="space-y-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="animate-pulse">
-                        <div className="bg-gray-700 h-24 rounded-lg"></div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {filteredDiscussions.map((discussion) => (
-                      <div
-                        key={discussion.id}
-                        className="p-4 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
-                            {discussion.category}
-                          </span>
-                          <span className="text-xs text-gray-400">{formatDate(discussion.timestamp)}</span>
-                        </div>
-                        <h3 className="text-white font-medium mb-2">{discussion.title}</h3>
-                        <p className="text-gray-300 text-sm mb-3">{discussion.content}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-400">by {discussion.author}</span>
-                          <div className="flex items-center space-x-4 text-xs text-gray-400">
-                            <div className="flex items-center">
-                              <ThumbsUp className="h-3 w-3 mr-1" />
-                              {discussion.likes}
-                            </div>
-                            <div className="flex items-center">
-                              <MessageCircle className="h-3 w-3 mr-1" />
-                              {discussion.replies}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+            {/* Add Comment */}
+            <div className="mt-12 border-t border-gray-700 pt-6">
+              <h2 className="text-xl font-semibold mb-4">📝 Add a Comment</h2>
 
-          <div className="space-y-6">
-            {/* Community Stats */}
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white">Community Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Users className="h-4 w-4 text-blue-500 mr-2" />
-                    <span className="text-gray-300">Active Members</span>
-                  </div>
-                  <span className="text-white font-medium">12,543</span>
+              <div className="space-y-4">
+                <Input
+                  placeholder="Comment title..."
+                  value={commentTitle}
+                  onChange={(e) => setCommentTitle(e.target.value)}
+                  className="bg-gray-800 border border-gray-700 text-white"
+                />
+                <Textarea
+                  placeholder="Share your thoughts..."
+                  value={commentDescription}
+                  onChange={(e) => setCommentDescription(e.target.value)}
+                  rows={4}
+                  className="bg-gray-800 border border-gray-700 text-white"
+                />
+                <div className="flex gap-4">
+                  <Button onClick={handleCommentSubmit} className="bg-blue-600 hover:bg-blue-700">
+                    Submit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setCommentTitle("");
+                      setCommentDescription("");
+                    }}
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  >
+                    Cancel
+                  </Button>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <MessageCircle className="h-4 w-4 text-green-500 mr-2" />
-                    <span className="text-gray-300">Discussions</span>
-                  </div>
-                  <span className="text-white font-medium">1,234</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <TrendingUp className="h-4 w-4 text-purple-500 mr-2" />
-                    <span className="text-gray-300">Online Now</span>
-                  </div>
-                  <span className="text-white font-medium">892</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Popular Categories */}
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white">Popular Categories</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-2 bg-gray-700 rounded">
-                    <span className="text-gray-300">Market Analysis</span>
-                    <span className="text-xs text-gray-400">234 posts</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 bg-gray-700 rounded">
-                    <span className="text-gray-300">Cryptocurrency</span>
-                    <span className="text-xs text-gray-400">189 posts</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 bg-gray-700 rounded">
-                    <span className="text-gray-300">Beginner</span>
-                    <span className="text-xs text-gray-400">156 posts</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 bg-gray-700 rounded">
-                    <span className="text-gray-300">Technical Analysis</span>
-                    <span className="text-xs text-gray-400">98 posts</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
-  )
+  );
 }

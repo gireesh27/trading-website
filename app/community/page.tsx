@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { MainNav } from "@/components/main-nav";
 import { formatDistanceToNow } from "date-fns";
+import { MessageCircle } from "lucide-react";
 
-type RedditPost = {
+interface RedditPost {
   id: string;
   title: string;
   author: string;
@@ -17,36 +17,37 @@ type RedditPost = {
   selftext: string;
   created_utc: number;
   permalink: string;
-};
+}
 
 export default function CommunityPage() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const currentPage = parseInt(searchParams.get("page") || "1");
-
   const [posts, setPosts] = useState<RedditPost[]>([]);
-  const [filteredPosts, setFilteredPosts] = useState<RedditPost[]>([]);
-  const [totalPages, setTotalPages] = useState(1);
+  const [allPosts, setAllPosts] = useState<RedditPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
-
-  // Comment form state
+  const [visibleCount, setVisibleCount] = useState(10);
   const [commentTitle, setCommentTitle] = useState("");
   const [commentDescription, setCommentDescription] = useState("");
+  const [showMobileComment, setShowMobileComment] = useState(false);
+
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/reddit?page=${currentPage}&limit=10`);
+        const res = await fetch(`/api/reddit?page=1&limit=1000`);
         if (!res.ok) throw new Error("Failed to fetch posts");
 
         const data = await res.json();
-        setPosts(data.posts);
-        setFilteredPosts(data.posts);
-        setTotalPages(data.totalPages);
+        let sorted = data.posts.sort((a: RedditPost, b: RedditPost) =>
+          sortOrder === "desc"
+            ? b.created_utc - a.created_utc
+            : a.created_utc - b.created_utc
+        );
+        setAllPosts(sorted);
+        setPosts(sorted.slice(0, 10));
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -55,34 +56,44 @@ export default function CommunityPage() {
     };
 
     fetchPosts();
-  }, [currentPage]);
+  }, [sortOrder]);
 
-  // Filter and sort
   useEffect(() => {
-    let filtered = posts.filter(
-      (post) =>
-        post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        post.selftext.toLowerCase().includes(searchTerm.toLowerCase())
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setPosts((prev) => {
+            const nextItems = allPosts.slice(prev.length, prev.length + 10);
+            return [...prev, ...nextItems];
+          });
+        }
+      },
+      { threshold: 1 }
     );
 
-    filtered.sort((a, b) =>
-      sortOrder === "desc"
-        ? b.created_utc - a.created_utc
-        : a.created_utc - b.created_utc
-    );
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
 
-    setFilteredPosts(filtered);
-  }, [searchTerm, posts, sortOrder]);
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [allPosts]);
 
-  const goToPage = (page: number) => {
-    router.push(`/community?page=${page}`);
-  };
+  const filteredPosts = posts.filter(
+    (post) =>
+      post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.selftext.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleCommentSubmit = () => {
     if (commentTitle && commentDescription) {
       alert("Comment submitted (not saved)!");
       setCommentTitle("");
       setCommentDescription("");
+      setShowMobileComment(false);
     }
   };
 
@@ -90,142 +101,138 @@ export default function CommunityPage() {
     <div className="min-h-screen bg-[#131722] text-white">
       <MainNav />
 
-      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold mb-1">💬 Recent Discussions</h1>
-            <p className="text-gray-400 text-sm">Latest posts from r/algotrading</p>
+      <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-6">
+        <div>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+            <div>
+              <h1 className="text-2xl font-bold">💬 Recent Discussions</h1>
+              <p className="text-gray-400 text-sm">Latest posts from r/algotrading</p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center gap-2">
+              <Input
+                placeholder="Search discussions..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-gray-800 border-gray-700 text-white w-full sm:w-64"
+              />
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+                className="bg-gray-800 border-gray-700 text-white rounded px-3 py-2 text-sm"
+              >
+                <option value="desc">Newest First</option>
+                <option value="asc">Oldest First</option>
+              </select>
+            </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
-            <Input
-              placeholder="Search discussions..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-gray-800 border border-gray-700 text-white w-full sm:w-64"
-            />
-            <select
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
-              className="bg-gray-800 border border-gray-700 text-white px-3 py-2 rounded text-sm"
-            >
-              <option value="desc">Newest First</option>
-              <option value="asc">Oldest First</option>
-            </select>
-          </div>
-        </div>
-
-        {loading ? (
-          <p className="text-center text-gray-400">Loading posts...</p>
-        ) : error ? (
-          <p className="text-center text-red-500">Error: {error}</p>
-        ) : (
-          <>
-            {/* Posts */}
-            <div className="grid grid-cols-1 gap-6">
+          {loading ? (
+            <p className="text-gray-400">Loading posts...</p>
+          ) : error ? (
+            <p className="text-red-500">Error: {error}</p>
+          ) : (
+            <div className="grid gap-4">
               {filteredPosts.map((post) => (
-                <Card
-                  key={post.id}
-                  className="bg-gray-800 border border-gray-700 rounded-xl shadow hover:shadow-lg transition"
-                >
-                  <CardHeader className="border-b border-gray-700 pb-2">
-                    <CardTitle className="text-base sm:text-lg md:text-xl font-semibold break-words">
-                      {post.title}
-                    </CardTitle>
+                <Card key={post.id} className="bg-gray-800 border-gray-700">
+                  <CardHeader>
+                    <CardTitle>{post.title}</CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-3">
+                  <CardContent>
                     <p className="text-sm text-gray-400 mb-2">
-                      Posted by <span className="text-white">u/{post.author}</span> •{" "}
-                      {formatDistanceToNow(new Date(post.created_utc * 1000), {
-                        addSuffix: true,
-                      })}
+                      Posted by u/{post.author} • {formatDistanceToNow(new Date(post.created_utc * 1000), { addSuffix: true })}
                     </p>
-
                     {post.selftext ? (
-                      <p className="text-gray-300 text-sm mb-4 line-clamp-5 break-words">
-                        {post.selftext}
-                      </p>
+                      <p className="text-gray-300 text-sm mb-2 line-clamp-5">{post.selftext}</p>
                     ) : (
-                      <p className="text-gray-500 italic mb-4">No content available</p>
+                      <p className="italic text-gray-500">No description provided.</p>
                     )}
-
                     <a
                       href={post.permalink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline text-sm"
+                      className="text-blue-500 hover:underline"
                     >
                       🔗 Read More on Reddit →
                     </a>
                   </CardContent>
                 </Card>
               ))}
+              <div ref={loadMoreRef} className="h-10"></div>
             </div>
+          )}
+        </div>
 
-            {/* Pagination */}
-            {filteredPosts.length > 0 && (
-              <div className="flex flex-wrap justify-center items-center gap-3 mt-10">
-                <button
-                  onClick={() => goToPage(currentPage - 1)}
-                  disabled={currentPage <= 1}
-                  className="px-4 py-2 bg-gray-700 text-white rounded disabled:opacity-40 text-sm"
-                >
-                  ⬅ Prev
-                </button>
-
-                <span className="text-sm text-gray-300">
-                  Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
-                </span>
-
-                <button
-                  onClick={() => goToPage(currentPage + 1)}
-                  disabled={currentPage >= totalPages}
-                  className="px-4 py-2 bg-gray-700 text-white rounded disabled:opacity-40 text-sm"
-                >
-                  Next ➡
-                </button>
-              </div>
-            )}
-
-            {/* Add Comment */}
-            <div className="mt-12 border-t border-gray-700 pt-6">
-              <h2 className="text-xl font-semibold mb-4">📝 Add a Comment</h2>
-
+        {/* Comment Section Sticky on Desktop */}
+        <div className="hidden md:block sticky top-24 h-fit">
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageCircle className="w-4 h-4" /> Add a Comment
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="space-y-4">
                 <Input
-                  placeholder="Comment title..."
+                  placeholder="Title"
                   value={commentTitle}
                   onChange={(e) => setCommentTitle(e.target.value)}
-                  className="bg-gray-800 border border-gray-700 text-white"
+                  className="bg-gray-700 text-white"
                 />
                 <Textarea
-                  placeholder="Share your thoughts..."
+                  placeholder="Write your comment here..."
                   value={commentDescription}
                   onChange={(e) => setCommentDescription(e.target.value)}
+                  className="bg-gray-700 text-white"
                   rows={4}
-                  className="bg-gray-800 border border-gray-700 text-white"
                 />
                 <div className="flex gap-4">
-                  <Button onClick={handleCommentSubmit} className="bg-blue-600 hover:bg-blue-700">
-                    Submit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setCommentTitle("");
-                      setCommentDescription("");
-                    }}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                  >
-                    Cancel
-                  </Button>
+                  <Button onClick={handleCommentSubmit} className="bg-blue-600 hover:bg-blue-700">Comment</Button>
+                  <Button variant="outline" className="border-gray-600 text-white" onClick={() => { setCommentTitle(""); setCommentDescription(""); }}>Cancel</Button>
                 </div>
               </div>
-            </div>
-          </>
-        )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
+
+      {/* Floating comment button and popup for mobile */}
+      <div className="fixed bottom-6 right-6 md:hidden z-50">
+        <Button
+          className="bg-blue-600 hover:bg-blue-700 rounded-full p-3 shadow-lg"
+          onClick={() => setShowMobileComment(true)}
+        >
+          <MessageCircle className="w-5 h-5" />
+        </Button>
+      </div>
+
+      {showMobileComment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-gray-900 p-6 rounded-lg w-[90%] max-w-md">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <MessageCircle className="w-4 h-4" /> Add a Comment
+            </h3>
+            <div className="space-y-4">
+              <Input
+                placeholder="Title"
+                value={commentTitle}
+                onChange={(e) => setCommentTitle(e.target.value)}
+                className="bg-gray-700 text-white"
+              />
+              <Textarea
+                placeholder="Write your comment here..."
+                value={commentDescription}
+                onChange={(e) => setCommentDescription(e.target.value)}
+                className="bg-gray-700 text-white"
+                rows={4}
+              />
+              <div className="flex gap-4 justify-end">
+                <Button onClick={handleCommentSubmit} className="bg-blue-600 hover:bg-blue-700">Comment</Button>
+                <Button variant="outline" className="border-gray-600 text-white" onClick={() => setShowMobileComment(false)}>Cancel</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

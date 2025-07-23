@@ -1,18 +1,18 @@
+// auth-context.tsx
 "use client"
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react"
-import { useToast } from "@/components/ui/use-toast"
+import { createContext, useContext } from "react"
+import { signIn, signOut, useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-
-interface User {
-  id: string
-  email: string
-  name: string
-  isVerified: boolean
-}
+import { useToast } from "@/components/ui/use-toast"
 
 interface AuthContextType {
-  user: User | null
+  user: {
+    id?: string
+    name?: string | null
+    email?: string | null
+    image?: string | null
+  } | null
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
   signup: (email: string, password: string, name: string) => Promise<void>
@@ -22,110 +22,119 @@ interface AuthContextType {
   loginWithTwitter: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | null>(null)
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const { toast } = useToast()
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { data: session, status } = useSession()
   const router = useRouter()
-
-  useEffect(() => {
-    // Check for a saved user session on initial load
-    try {
-      const savedUser = localStorage.getItem("tradeview-user")
-      if (savedUser) {
-        setUser(JSON.parse(savedUser))
-      }
-    } catch (error) {
-      console.error("Failed to parse user from localStorage", error)
-      localStorage.removeItem("tradeview-user")
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  const handleAuthSuccess = (userData: User) => {
-    setUser(userData)
-    localStorage.setItem("tradeview-user", JSON.stringify(userData))
-    toast({
-      title: "Success",
-      description: `Welcome back, ${userData.name}!`,
-    })
-    router.push("/dashboard")
-  }
+  const { toast } = useToast()
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true)
-    // Mock API call
-    const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-    });
-    const data = await response.json();
-    if (data.success) {
-        handleAuthSuccess(data.user)
+    const res = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    })
+
+    if (res?.ok && res.url) {
+      toast({ title: "Success", description: "Logged in successfully." })
+      router.push("/dashboard")
     } else {
-        toast({ title: "Login Failed", description: data.message, variant: "destructive" })
+      toast({
+        title: "Login failed",
+        description: res?.error || "Invalid credentials",
+        variant: "destructive",
+      })
     }
-    setIsLoading(false)
-  }
-  
-  const signup = async (email: string, password: string, name: string) => {
-    setIsLoading(true)
-    // Mock API call
-    const response = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, name }),
-    });
-    const data = await response.json();
-     if (data.success) {
-        handleAuthSuccess(data.user)
-    } else {
-        toast({ title: "Signup Failed", description: data.message, variant: "destructive" })
-    }
-    setIsLoading(false)
   }
 
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem("tradeview-user")
-    router.push("/auth")
+  const signup = async (email: string, password: string, name: string) => {
+    const res = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, name }),
+    })
+
+    const data = await res.json()
+    if (data.success) {
+      toast({ title: "Account created", description: "Logging in..." })
+      await login(email, password)
+    } else {
+      toast({
+        title: "Signup failed",
+        description: data.message || "Something went wrong",
+        variant: "destructive",
+      })
+    }
   }
-  
-  // --- Social Logins (Mock Implementations) ---
+
   const loginWithGoogle = async () => {
-    setIsLoading(true)
-    // In a real app, you would use Firebase Auth or NextAuth.js
-    toast({ title: "Signing in with Google..." })
-    setTimeout(() => {
-        const mockUser = { id: "google123", email: "user@google.com", name: "Google User", isVerified: true };
-        handleAuthSuccess(mockUser);
-        setIsLoading(false);
-    }, 1500);
+    const res = await signIn("google", {
+      callbackUrl: "/dashboard",
+      redirect: false,
+    })
+    if (res?.ok && res.url) {
+      router.push(res.url)
+    } else {
+      toast({ title: "Google sign-in failed", variant: "destructive" })
+    }
   }
 
   const loginWithGithub = async () => {
-    toast({ title: "Coming Soon!", description: "GitHub sign-in is not yet implemented." })
+    const res = await signIn("github", {
+      callbackUrl: "/dashboard",
+      redirect: false,
+    })
+    if (res?.ok && res.url) {
+      router.push(res.url)
+    } else {
+      toast({ title: "GitHub sign-in failed", variant: "destructive" })
+    }
   }
 
   const loginWithTwitter = async () => {
-    toast({ title: "Coming Soon!", description: "Twitter sign-in is not yet implemented." })
+    const res = await signIn("twitter", {
+      callbackUrl: "/dashboard",
+      redirect: false,
+    })
+    if (res?.ok && res.url) {
+      router.push(res.url)
+    } else {
+      toast({ title: "Twitter sign-in failed", variant: "destructive" })
+    }
+  }
+
+  const logout = () => {
+    signOut({ callbackUrl: "/auth" })
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, signup, logout, loginWithGoogle, loginWithGithub, loginWithTwitter }}>
+    <AuthContext.Provider
+      value={{
+        user: session?.user
+          ? {
+              id: (session.user as any).id ?? "",
+              name: session.user.name,
+              email: session.user.email,
+              image: session.user.image,
+            }
+          : null,
+        isLoading: status === "loading",
+        login,
+        signup,
+        logout,
+        loginWithGoogle,
+        loginWithGithub,
+        loginWithTwitter,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
 }
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
-  }
+  if (!context) throw new Error("useAuth must be used within AuthProvider")
   return context
 }

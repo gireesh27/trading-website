@@ -52,27 +52,27 @@ export default function DashboardPage() {
   }, [marketData, selectedStock, selectStock]);
 
   // Fetch candlestick data on selected stock change
-  useEffect(() => {
-    if (selectedStock) {
-      const fetchData = async () => {
-        const rawData = await getCandlestickData(selectedStock.symbol, "1D");
+  // useEffect(() => {
+  //   if (selectedStock) {
+  //     const fetchData = async () => {
+  //       const rawData = await getCandlestickData(selectedStock.symbol, "1D");
 
-        if (rawData && Array.isArray(rawData)) {
-          const transformedData: CandlestickPoint[] = rawData.map((item) => ({
-            time: new Date(item.timestamp).toISOString(),
-            open: item.open,
-            high: item.high,
-            low: item.low,
-            close: item.close,
-          }));
+  //       if (rawData && Array.isArray(rawData)) {
+  //         const transformedData: CandlestickPoint[] = rawData.map((item) => ({
+  //           time: new Date(item.timestamp).toISOString(),
+  //           open: item.open,
+  //           high: item.high,
+  //           low: item.low,
+  //           close: item.close,
+  //         }));
 
-          setCandlestickData(transformedData);
-        }
-      };
+  //         setCandlestickData(transformedData);
+  //       }
+  //     };
 
-      fetchData();
-    }
-  }, [selectedStock, getCandlestickData]);
+  //     fetchData();
+  //   }
+  // }, [selectedStock, getCandlestickData]);
 
   if (authLoading || !user) {
     return (
@@ -100,7 +100,7 @@ export default function DashboardPage() {
           <div className="lg:col-span-2 space-y-6">
             <PortfolioSummary />
 
-            {selectedStock && (
+            {/* {selectedStock && (
               <Card className="bg-gray-800 border-gray-700">
                 <CardHeader>
                   <CardTitle className="text-white">
@@ -124,7 +124,7 @@ export default function DashboardPage() {
                   />
                 </CardContent>
               </Card>
-            )}
+            )} */}
 
             <NewsWidget />
           </div>

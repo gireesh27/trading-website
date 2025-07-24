@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   createContext,
@@ -7,101 +7,101 @@ import {
   useEffect,
   type ReactNode,
   useCallback,
-} from "react"
-import { useAuth } from "./auth-context"
-import { useToast } from "@/components/ui/use-toast"
-import { useMarketData } from "./enhanced-market-data-context"
+} from "react";
+import { useAuth } from "./auth-context";
+import { useToast } from "@/components/ui/use-toast";
+import { useMarketData } from "./enhanced-market-data-context";
 
 // ✅ Data Interfaces
 export interface Position {
-  id: string
-  symbol: string
-  name: string
-  quantity: number
-  avgPrice: number
-  currentPrice: number
-  totalValue: number
-  gainLoss: number
-  gainLossPercent: number
-  type: "long" | "short"
-  openDate: string
+  id: string;
+  symbol: string;
+  name: string;
+  quantity: number;
+  avgPrice: number;
+  currentPrice: number;
+  totalValue: number;
+  gainLoss: number;
+  gainLossPercent: number;
+  type: "long" | "short";
+  openDate: string;
 }
 export interface Order {
-  id: string
-  symbol: string
-  type: "buy" | "sell"
-  orderType: "market" | "limit" | "stop"
-  quantity: number
-  price?: number
-  stopPrice?: number
-  status: "pending" | "filled" | "cancelled" | "partial"
-  createdAt: string
-  filledAt?: string
-  filledQuantity?: number
+  id: string;
+  symbol: string;
+  type: "buy" | "sell";
+  orderType: "market" | "limit" | "stop";
+  quantity: number;
+  price?: number;
+  stopPrice?: number;
+  status: "pending" | "filled" | "cancelled" | "partial";
+  createdAt: string;
+  filledAt?: string;
+  filledQuantity?: number;
 }
 export interface Transaction {
-  id: string
-  symbol: string
-  type: "buy" | "sell"
-  quantity: number
-  price: number
-  total: number
-  fees: number
-  date: string
+  id: string;
+  symbol: string;
+  type: "buy" | "sell";
+  quantity: number;
+  price: number;
+  total: number;
+  fees: number;
+  date: string;
 }
 export interface Portfolio {
-  totalValue: number
-  totalGainLoss: number
-  totalGainLossPercent: number
-  availableCash: number
-  positions: Position[]
-  dayChange: number
-  dayChangePercent: number
+  totalValue: number;
+  totalGainLoss: number;
+  totalGainLossPercent: number;
+  availableCash: number;
+  positions: Position[];
+  dayChange: number;
+  dayChangePercent: number;
 }
 export interface OrderBookEntry {
-  price: number
-  quantity: number
-  total: number
+  price: number;
+  quantity: number;
+  total: number;
 }
 
 // ✅ Context Type
 interface TradingContextType {
-  portfolio: Portfolio
-  orders: Order[]
-  transactions: Transaction[]
-  bids: OrderBookEntry[]
-  asks: OrderBookEntry[]
-  selectedStock: any
-  isLoading: boolean
+  portfolio: Portfolio;
+  orders: Order[];
+  transactions: Transaction[];
+  bids: OrderBookEntry[];
+  asks: OrderBookEntry[];
+  selectedStock: any;
+  isLoading: boolean;
   placeOrder: (
     symbol: string,
     quantity: number,
     price: number,
     side: "buy" | "sell",
     type: "market" | "limit"
-  ) => Promise<boolean>
+  ) => Promise<boolean>;
   placeBuyOrder: (
     symbol: string,
     quantity: number,
     price: number
-  ) => Promise<boolean>
+  ) => Promise<boolean>;
   placeSellOrder: (
     symbol: string,
     quantity: number,
     price: number
-  ) => Promise<boolean>
-  cancelOrder: (orderId: string) => Promise<boolean>
-  fetchOrders: () => void
-  updatePortfolio: () => void
-  getPositionBySymbol: (symbol: string) => Position | undefined
+  ) => Promise<boolean>;
+  cancelOrder: (orderId: string) => Promise<boolean>;
+  fetchOrders: () => void;
+  updatePortfolio: () => void;
+  getPositionBySymbol: (symbol: string) => Position | undefined;
 }
 
-const TradingContext = createContext<TradingContextType | undefined>(undefined)
+const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
 export function TradingProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth()
-  const { toast } = useToast()
-  const { stocks } = useMarketData()
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { stocks } = useMarketData();
 
   const [portfolio, setPortfolio] = useState<Portfolio>({
     totalValue: 100000,
@@ -111,57 +111,62 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     positions: [],
     dayChange: 0,
     dayChangePercent: 0,
-  })
-  const [orders, setOrders] = useState<Order[]>([])
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [bids, setBids] = useState<OrderBookEntry[]>([])
-  const [asks, setAsks] = useState<OrderBookEntry[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  });
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [bids, setBids] = useState<OrderBookEntry[]>([]);
+  const [asks, setAsks] = useState<OrderBookEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const selectedStock = stocks.find((s: { symbol: string }) => s.symbol === "AAPL")
+  const selectedStock = stocks.find(
+    (s: { symbol: string }) => s.symbol === "AAPL"
+  );
 
   const fetchTradingData = useCallback(async () => {
-    if (!user) return
-    setIsLoading(true)
+    if (!user) return;
+    setIsLoading(true);
 
+    // const headers = {
+    //   "Content-Type": "application/json" as const,
+    //   "x-user-id": user.id,
+    // };
     const headers = {
-      "Content-Type": "application/json",
-      "x-user-id": user.id,
-    }
+      "x-user-id": "user_123", // Replace with dynamic user if using auth
+    };
 
     try {
       const endpoints = [
         fetch("/api/trading/portfolio", { headers }),
         fetch("/api/trading/orders", { headers }),
         fetch("/api/trading/transactions", { headers }),
-      ]
+      ];
 
-      const responses = await Promise.all(endpoints)
+      const responses = await Promise.all(endpoints);
 
       for (const res of responses) {
         if (!res.ok || res.headers.get("content-type")?.includes("text/html")) {
-          throw new Error("Invalid JSON or endpoint not found")
+          throw new Error("Invalid JSON or endpoint not found");
         }
       }
 
       const [portfolioData, ordersData, transactionsData] = await Promise.all(
         responses.map((r) => r.json())
-      )
+      );
 
-      if (portfolioData.success) setPortfolio(portfolioData.data)
-      if (ordersData.success) setOrders(ordersData.data)
-      if (transactionsData.success) setTransactions(transactionsData.data)
+      if (portfolioData.success) setPortfolio(portfolioData.data);
+      if (ordersData.success) setOrders(ordersData.data);
+      if (transactionsData.success) setTransactions(transactionsData.data);
     } catch (error: any) {
-      console.error("Failed to fetch trading data:", error.message)
+      console.error("Failed to fetch trading data:", error.message);
       toast({
         title: "Error",
         description: "Could not load your trading data.",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [user, toast])
+  }, [user, toast]);
 
   const placeOrder = async (
     symbol: string,
@@ -175,69 +180,72 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         title: "Not Authenticated",
         description: "You must be logged in to place an order.",
         variant: "destructive",
-      })
-      return false
+      });
+      return false;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
     try {
       const response = await fetch("/api/trading/orders", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "x-user-id": user.id,
+          "Content-Type": "application/json" as const,
+          "x-user-id": user.id || "",
         },
         body: JSON.stringify({ symbol, quantity, price, side, type }),
-      })
+      });
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Failed to place order")
+        throw new Error(result.error || "Failed to place order");
       }
 
       toast({
         title: "Success",
         description: `Order placed for ${symbol}`,
-      })
+      });
 
-      await fetchTradingData()
-      return true
+      await fetchTradingData();
+      return true;
     } catch (error: any) {
       toast({
         title: "Order Failed",
         description: error.message,
         variant: "destructive",
-      })
-      return false
+      });
+      return false;
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const placeBuyOrder = (symbol: string, quantity: number, price: number) =>
-    placeOrder(symbol, quantity, price, "buy", "limit")
+    placeOrder(symbol, quantity, price, "buy", "limit");
 
   const placeSellOrder = (symbol: string, quantity: number, price: number) =>
-    placeOrder(symbol, quantity, price, "sell", "limit")
+    placeOrder(symbol, quantity, price, "sell", "limit");
 
   const cancelOrder = async (orderId: string): Promise<boolean> => {
     // Stub - replace with actual cancel logic
-    toast({ title: "Cancel not implemented", description: "To be added later" })
-    return false
-  }
+    toast({
+      title: "Cancel not implemented",
+      description: "To be added later",
+    });
+    return false;
+  };
 
   const getPositionBySymbol = (symbol: string) => {
     return portfolio.positions.find(
       (pos) => pos.symbol.toLowerCase() === symbol.toLowerCase()
-    )
-  }
+    );
+  };
 
   useEffect(() => {
     if (user) {
-      fetchTradingData()
+      fetchTradingData();
     }
-  }, [user, fetchTradingData])
+  }, [user, fetchTradingData]);
 
   return (
     <TradingContext.Provider
@@ -260,11 +268,12 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     >
       {children}
     </TradingContext.Provider>
-  )
+  );
 }
 
 export function useTrading() {
-  const context = useContext(TradingContext)
-  if (!context) throw new Error("useTrading must be used within a TradingProvider")
-  return context
+  const context = useContext(TradingContext);
+  if (!context)
+    throw new Error("useTrading must be used within a TradingProvider");
+  return context;
 }

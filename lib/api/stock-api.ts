@@ -1,5 +1,9 @@
-const FINNHUB_API_KEY =
-  process.env.NEXT_PUBLIC_FINNHUB_API_KEY
+// ✅ Using Finnhub for stock quotes
+// ✅ Using Yahoo Finance via RapidAPI for chart data
+
+const FINNHUB_API_KEY = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
+const YAHOO_API_HOST = "apidojo-yahoo-finance-v1.p.rapidapi.com";
+const YAHOO_API_KEY = process.env.NEXT_PUBLIC_RAPIDAPI_KEY;
 
 export interface StockQuote {
   symbol: string;
@@ -16,8 +20,8 @@ export interface StockQuote {
 }
 
 export interface ChartData {
-  time: string | number | Date;
-  timestamp: Date;
+  time: string;
+  timestamp: number;
   open: number;
   high: number;
   low: number;
@@ -26,15 +30,21 @@ export interface ChartData {
 }
 
 class StockAPI {
+  // ✅ Real-time Quote from Finnhub
   async getStockQuote(symbol: string): Promise<StockQuote> {
     try {
-      const response = await fetch(
+      const res = await fetch(
         `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`
       );
-      const data = await response.json();
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} - ${res.statusText}`);
+      }
+
+      const data = await res.json();
 
       if (!data || !data.c) {
-        throw new Error(`No quote data returned for ${symbol}.`);
+        throw new Error("Invalid quote data from Finnhub");
       }
 
       return {
@@ -49,9 +59,9 @@ class StockAPI {
         open: data.o,
         previousClose: data.pc,
       };
-    } catch (error) {
-      console.error(`Error fetching stock quote for ${symbol}:`, error);
-      throw error;
+    } catch (err) {
+      console.error("Error fetching quote from Finnhub:", err);
+      throw err;
     }
   }
 
@@ -60,37 +70,57 @@ class StockAPI {
   }
 
   async getMultipleQuotes(symbols: string[]): Promise<StockQuote[]> {
-    const promises = symbols.map((symbol) => this.getStockQuote(symbol));
-    return await Promise.all(promises);
+    const promises = symbols.map((s) => this.getStockQuote(s));
+    return Promise.all(promises);
   }
 
-  // ✅ Get historical chart data from Finnhub
-  async getChartData(symbol: string, timeframe: string = "1D"): Promise<ChartData[]> {
+  // ✅ Chart data from Yahoo via RapidAPI
+  async getChartData(symbol: string, timeframe: string = "1d"): Promise<ChartData[]> {
     try {
-      const now = Math.floor(Date.now() / 1000);
-      const oneMonthAgo = now - 30 * 24 * 60 * 60;
+      const intervalMap: Record<string, string> = {
+        "1m": "1m",
+        "5m": "5m",
+        "15m": "15m",
+        "30m": "30m",
+        "1h": "60m",
+        "1d": "1d",
+        "1w": "1wk",
+        "1M": "1mo",
+      };
 
-      const resolution = timeframe === "1D" ? "D" : "60"; // D for daily, 60 for hourly
-      const response = await fetch(
-        `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=${resolution}&from=${oneMonthAgo}&to=${now}&token=${FINNHUB_API_KEY}`
+      const interval = intervalMap[timeframe] || "1d";
+      const res = await fetch(
+        `https://${YAHOO_API_HOST}/stock/v3/get-chart?symbol=${symbol}&interval=${interval}&range=1mo&region=US`,
+        {
+          headers: {
+            "X-RapidAPI-Host": YAHOO_API_HOST,
+            "X-RapidAPI-Key": YAHOO_API_KEY || "",
+          },
+        }
       );
-      const data = await response.json();
 
-      if (data.s !== "ok") {
-        throw new Error(`Failed to fetch chart data for ${symbol}. Status: ${data.s}`);
+      const data = await res.json();
+      const chart = data.chart.result?.[0];
+
+      if (!chart || !chart.timestamp || !chart.indicators) {
+        throw new Error("Invalid chart response");
       }
 
-      return data.t.map((timestamp: number, index: number) => ({
-        time: new Date(timestamp * 1000).toISOString(),
-        timestamp: new Date(timestamp * 1000),
-        open: data.o[index],
-        high: data.h[index],
-        low: data.l[index],
-        close: data.c[index],
-        volume: data.v[index],
-      }));
-    } catch (error) {
-      console.error(`Error fetching chart data for ${symbol}:`, error);
+      const ohlc = chart.indicators.quote[0];
+
+      return chart.timestamp
+        .map((ts: number, i: number) => ({
+          time: new Date(ts * 1000).toISOString(),
+          timestamp: ts * 1000,
+          open: ohlc.open[i],
+          high: ohlc.high[i],
+          low: ohlc.low[i],
+          close: ohlc.close[i],
+          volume: ohlc.volume[i],
+        }))
+        .filter((item: { open: null }) => item.open !== null);
+    } catch (err) {
+      console.error("Error fetching Yahoo chart data:", err);
       return [];
     }
   }

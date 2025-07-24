@@ -29,6 +29,7 @@ interface OrderBookEntry {
   total: number;
   symbol: string;
 }
+
 interface StockData {
   symbol: string;
   name: string;
@@ -49,8 +50,7 @@ export default function EnhancedTradePage() {
   const symbol = typeof params.symbol === "string" ? params.symbol : "";
   const {
     stocks: marketData,
-    candlestickData: chartData,
-    getCandlestickData: getStockChart,
+    getCandlestickData,
     selectStock,
     news,
   } = useMarketData();
@@ -58,7 +58,7 @@ export default function EnhancedTradePage() {
 
   const [stockData, setStockData] = useState<StockData | null>(null);
   const [liveChartData, setLiveChartData] = useState<any[]>([]);
-  const [currentTimeframe, setCurrentTimeframe] = useState("5min");
+  const [currentTimeframe, setCurrentTimeframe] = useState("1d");
   const [isWatchlisted, setIsWatchlisted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -71,22 +71,24 @@ export default function EnhancedTradePage() {
         setStockData(stock as StockData);
         selectStock(stock.symbol);
         loadChartData(stock.symbol, currentTimeframe);
-        setIsLoading(false);
-      } else {
-        setIsLoading(false);
       }
+      setIsLoading(false);
     }
   }, [symbol, marketData, selectStock, currentTimeframe]);
 
-  useEffect(() => {
-    if (chartData.length > 0) {
-      setLiveChartData(chartData);
-    }
-  }, [chartData]);
-
   const loadChartData = async (stockSymbol: string, interval: string) => {
-    const data = await getStockChart(stockSymbol, interval);
-    setLiveChartData(data);
+    try {
+      const data = await getCandlestickData(stockSymbol, interval);
+      if (data && Array.isArray(data)) {
+        setLiveChartData(data);
+      } else {
+        setLiveChartData([]);
+        console.warn("Chart data unavailable or invalid for", stockSymbol);
+      }
+    } catch (err) {
+      console.error("Failed to fetch candlestick data:", err);
+      setLiveChartData([]);
+    }
   };
 
   const handleTimeframeChange = (interval: string) => {
@@ -98,7 +100,6 @@ export default function EnhancedTradePage() {
 
   const toggleWatchlist = () => {
     setIsWatchlisted(!isWatchlisted);
-    // In a real app, you would save this preference to a backend or context
   };
 
   const shareStock = async () => {
@@ -113,22 +114,16 @@ export default function EnhancedTradePage() {
         });
       } catch (error) {
         console.error("Share failed:", error);
-        // Fallback to clipboard for browsers that don't support share API
         navigator.clipboard.writeText(window.location.href);
       }
     }
   };
 
-  // Moved relatedNews calculation inside the component return, after the loading check
-  // This ensures stockData is not null when this is calculated.
   const relatedNews = stockData
     ? news
         .filter(
           (item) =>
-            item &&
-            item.title &&
-            stockData.name &&
-            stockData.symbol &&
+            item?.title &&
             (item.title.toLowerCase().includes(stockData.name.toLowerCase()) ||
               item.title.toLowerCase().includes(stockData.symbol.toLowerCase()))
         )
@@ -173,9 +168,7 @@ export default function EnhancedTradePage() {
   return (
     <div className="min-h-screen bg-[#131722]">
       <MainNav />
-
       <div className="container mx-auto px-4 py-6">
-        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div className="flex items-center space-x-4 mb-4 md:mb-0">
             <Link href="/dashboard">
@@ -184,8 +177,7 @@ export default function EnhancedTradePage() {
                 size="sm"
                 className="text-gray-300 hover:bg-gray-700"
               >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
+                <ArrowLeft className="h-4 w-4 mr-2" /> Back
               </Button>
             </Link>
             <div>
@@ -228,8 +220,7 @@ export default function EnhancedTradePage() {
               onClick={shareStock}
               className="border-gray-600 text-gray-300 bg-transparent hover:bg-gray-700"
             >
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
+              <Share2 className="h-4 w-4 mr-2" /> Share
             </Button>
           </div>
         </div>
@@ -316,23 +307,21 @@ export default function EnhancedTradePage() {
 
         {/* Main Trading Interface */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-          {/* Chart - Takes up 3 columns */}
           <div className="lg:col-span-3">
             <AdvancedTradingChart
               symbol={stockData.symbol}
               name={stockData.name}
               currentPrice={stockData.price}
-              chartCandlestickData={[]} // This will be populated by the context
-              selectedStock={stockData as any} // Cast to any to bypass type incompatibility
-              selectStock={selectStock as any} // Cast to any to bypass type incompatibility
-              addToWatchlist={() => {}} // Placeholder, implement if needed
-              removeFromWatchlist={() => {}} // Placeholder, implement if needed
-              activeWatchlist={[]} // Placeholder, populate from watchlist context // Removed duplicate 'selectedStock' and 'selectStock'
-              getCandlestickData={getStockChart as any}
+              chartCandlestickData={liveChartData}
+              selectedStock={stockData as any}
+              selectStock={selectStock as any}
+              addToWatchlist={() => {}}
+              removeFromWatchlist={() => {}}
+              activeWatchlist={[]}
+              getCandlestickData={getCandlestickData as any}
             />
           </div>
 
-          {/* Trading Interface */}
           <div>
             <EnhancedTradingInterface
               symbol={stockData.symbol}
@@ -342,9 +331,7 @@ export default function EnhancedTradePage() {
           </div>
         </div>
 
-        {/* Additional Info Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Order Book */}
           <div className="lg:col-span-1">
             {stockData?.symbol && bids && asks && (
               <OrderBook symbol={stockData.symbol} bids={bids} asks={asks} />

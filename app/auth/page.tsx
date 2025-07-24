@@ -1,9 +1,7 @@
-// app/auth/page.tsx
 "use client";
-
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,6 +14,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Github, Twitter, Chrome } from "lucide-react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+
+// Dynamically import ErrorMessage to avoid build issues
+const ErrorMessage = dynamic(() => import("./ErrorMessage"), { ssr: false });
 
 export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -26,11 +28,9 @@ export default function AuthPage() {
   });
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const searchParams = useSearchParams();
-  const router = useRouter();
 
-  const callbackUrl = (searchParams.get("callbackUrl") ||
-    "/dashboard") as string;
+  const router = useRouter();
+  const callbackUrl = "/dashboard";
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +48,6 @@ export default function AuthPage() {
         if (res?.ok) {
           router.push(res.url ?? "/dashboard");
         } else {
-          // Check if user exists
           const checkRes = await fetch("/api/auth/check-user", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -73,7 +72,6 @@ export default function AuthPage() {
           }
         }
       } else {
-        // Signup flow
         const response = await fetch("/api/auth/signup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -128,6 +126,7 @@ export default function AuthPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <ErrorMessage />
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-2">
               <Button

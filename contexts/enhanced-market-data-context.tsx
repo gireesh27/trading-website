@@ -6,7 +6,7 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import { stockAPI, StockQuote, ChartData } from "@/lib/api/stock-api";
+import { stockApi, StockQuote, CandlestickData, ChartApiResponse, CompanyProfile, CompanyStatistics, CompanyHoldings } from "@/lib/api/stock-api";
 import { newsAPI, NewsItem } from "@/lib/api/news-api";
 import { cryptoAPI, CryptoQuote } from "@/lib/api/crypto-api";
 
@@ -65,14 +65,14 @@ interface MarketDataContextType {
   news: NewsItem[];
   crypto: CryptoQuote[];
   technicalIndicators: TechnicalIndicators;
-  candlestickData: ChartData[];
+  candlestickData: CandlestickData[];
   selectedStock: StockQuote | null;
   isLoading: boolean;
   error: string | null;
 
   refreshData: () => void;
   selectStock: (symbol: string) => void;
-  getCandlestickData: (symbol: string, timeframe: string) => Promise<ChartData[]>;
+  getCandlestickData: (symbol: string, timeframe: string) => Promise<CandlestickData[]>;
 }
 
 // Create context
@@ -92,7 +92,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
   const [stocks, setStocks] = useState<StockQuote[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [crypto, setCrypto] = useState<CryptoQuote[]>([]);
-  const [candlestickData, setCandlestickData] = useState<ChartData[]>([]);
+  const [candlestickData, setCandlestickData] = useState<CandlestickData[]>([]);
   const [selectedStock, setSelectedStock] = useState<StockQuote | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,7 +103,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
     setError(null);
     try {
       const [stockData, newsData, cryptoData] = await Promise.all([
-        stockAPI.getMultipleQuotes(["AAPL", "GOOGL", "MSFT", "TSLA", "NVDA", "AMZN"]),
+        stockApi.getMultipleQuotes(["AAPL", "GOOGL", "MSFT", "TSLA", "NVDA", "AMZN"]),
         newsAPI.getMarketNews("general"),
         cryptoAPI.getMultipleCryptoQuotes(["BTC", "ETH", "SOL", "ADA"]),
       ]);
@@ -128,9 +128,10 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
   };
 
   // Get candlestick data
-  const getCandlestickData = async (symbol: string, timeframe: string): Promise<ChartData[]> => {
+  const getCandlestickData = async (symbol: string, timeframe: string): Promise<CandlestickData[]> => {
     try {
-      const chartData = await stockAPI.getChartData(symbol, timeframe);
+      const { chartData } = await stockApi.getFullChartData(symbol, timeframe);
+      // Fix: Set the actual fetched chartData, not the state variable itself
       setCandlestickData(chartData);
       return chartData;
     } catch (err) {

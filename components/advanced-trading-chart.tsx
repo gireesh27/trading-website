@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,205 +17,124 @@ import {
   ComposedChart,
   Bar,
   Area,
-  AreaChart,
   ReferenceLine,
+  Customized,
 } from "recharts";
-import {
-  TrendingUp,
-  TrendingDown,
-  BarChart3,
-  LineChartIcon,
-  Activity,
-  Volume2,
-  ZoomIn,
-  ZoomOut,
-  RotateCcw,
-  Crosshair,
-  TrendingUpIcon,
-  Minus,
-} from "lucide-react";
-import { useMarketData } from "@/contexts/enhanced-market-data-context";
+import { BarChart3, LineChartIcon, Activity, Pen } from "lucide-react";
 import { Stock } from "@/types/trading-types";
+import {
+  calculateSMA,
+  calculateEMA,
+  calculateRSI,
+  calculateMACD,
+} from "@/components/indicator-calculations";
 
-interface CandlestickPoint {
+// TYPE DEFINITIONS
+// ===================================
+
+export interface CandlestickPoint {
   time: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-}
-
-export interface AdvancedTradingChartProps {
-  symbol: string;
-  name: string;
-  currentPrice: number;
-  chartCandlestickData: CandlestickPoint[];
-  selectedStock: Stock | null;
-  selectStock: (stock: Stock) => void;
-  addToWatchlist: (symbol: string) => void;
-  removeFromWatchlist: (symbol: string) => void;
-  activeWatchlist: string[];
-  getCandlestickData: (symbol: string, timeframe?: string) => void;
-}
-
-export interface ChartData {
-  time: string;
-  timestamp: number;
   open: number;
   high: number;
   low: number;
   close: number;
   volume: number;
+}
+
+export interface AdvancedTradingChartProps {
+  symbol: string;
+  name: string;
+  selectedStock: Stock | null;
+  chartCandlestickData: CandlestickPoint[];
+  isChartLoading: boolean;
+  getCandlestickData: (symbol: string, range: string, interval: string) => void;
+  validRanges?: string[];
+  events?: any;
+}
+
+export interface ChartData extends CandlestickPoint {
+  timestamp: number;
   sma20?: number;
   sma50?: number;
-  sma200?: number;
-  ema12?: number;
-  ema26?: number;
+  ema20?: number;
+  ema50?: number;
   rsi?: number;
   macd?: number;
   signal?: number;
   histogram?: number;
-  bbUpper?: number;
-  bbMiddle?: number;
-  bbLower?: number;
-  stochK?: number;
-  stochD?: number;
-  williams?: number;
-  atr?: number;
-  adx?: number;
 }
 
-type ChartType = "candlestick" | "ohlc" | "line" | "area" | "bar";
-type Timeframe = "1m" | "5m" | "15m" | "30m" | "1h" | "4h" | "1d" | "1w" | "1M";
-type RangeSelector =
-  | "1D"
-  | "5D"
-  | "1M"
-  | "3M"
-  | "6M"
-  | "YTD"
-  | "1Y"
-  | "5Y"
-  | "MAX";
+type ChartType = "candlestick" | "line" | "area";
+type Range = "1d" | "5d" | "1mo" | "3mo" | "6mo" | "1y" | "5y" | "max";
+type Interval = "1m" | "5m" | "15m" | "30m" | "1h" | "4h" | "1d" | "1w" | "1M";
 
-const timeframes: { value: Timeframe; label: string }[] = [
-  { value: "1m", label: "1m" },
-  { value: "5m", label: "5m" },
-  { value: "15m", label: "15m" },
-  { value: "30m", label: "30m" },
-  { value: "1h", label: "1H" },
-  { value: "4h", label: "4H" },
-  { value: "1d", label: "1D" },
-  { value: "1w", label: "1W" },
-  { value: "1M", label: "1M" },
-];
+// MAPPINGS & DEFINITIONS
+// ===================================
 
-const rangeSelectors: { value: RangeSelector; label: string }[] = [
-  { value: "1D", label: "1D" },
-  { value: "5D", label: "5D" },
-  { value: "1M", label: "1M" },
-  { value: "3M", label: "3M" },
-  { value: "6M", label: "6M" },
-  { value: "YTD", label: "YTD" },
-  { value: "1Y", label: "1Y" },
-  { value: "5Y", label: "5Y" },
-  { value: "MAX", label: "MAX" },
-];
-
+const rangeIntervalMap: { [key in Range]: Interval } = {
+  "1d": "5m",
+  "5d": "15m",
+  "1mo": "1h",
+  "3mo": "1d",
+  "6mo": "1d",
+  "1y": "1d",
+  "5y": "1w",
+  max: "1M",
+};
+const ranges: Range[] = ["1d", "5d", "1mo", "6mo", "1y", "5y", "max"];
 const indicatorDefinitions = [
-  {
-    id: "sma20",
-    name: "SMA 20",
-    color: "#f59e0b",
-    category: "Moving Averages",
-  },
-  {
-    id: "sma50",
-    name: "SMA 50",
-    color: "#ef4444",
-    category: "Moving Averages",
-  },
-  {
-    id: "sma200",
-    name: "SMA 200",
-    color: "#8b5cf6",
-    category: "Moving Averages",
-  },
-  {
-    id: "ema12",
-    name: "EMA 12",
-    color: "#10b981",
-    category: "Moving Averages",
-  },
-  {
-    id: "ema26",
-    name: "EMA 26",
-    color: "#06b6d4",
-    category: "Moving Averages",
-  },
-  {
-    id: "bollinger",
-    name: "Bollinger Bands",
-    color: "#ec4899",
-    category: "Volatility",
-  },
-  { id: "rsi", name: "RSI", color: "#f97316", category: "Momentum" },
-  { id: "macd", name: "MACD", color: "#3b82f6", category: "Momentum" },
-  {
-    id: "stochastic",
-    name: "Stochastic",
-    color: "#84cc16",
-    category: "Momentum",
-  },
-  {
-    id: "williams",
-    name: "Williams %R",
-    color: "#f43f5e",
-    category: "Momentum",
-  },
-  { id: "atr", name: "ATR", color: "#6366f1", category: "Volatility" },
-  { id: "adx", name: "ADX", color: "#8b5cf6", category: "Trend" },
+  { id: "sma20", name: "SMA 20", color: "#f59e0b" },
+  { id: "sma50", name: "SMA 50", color: "#ef4444" },
+  { id: "ema20", name: "EMA 20", color: "#10b981" },
+  { id: "ema50", name: "EMA 50", color: "#06b6d4" },
 ];
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+// CUSTOM CHART COMPONENTS
+// ===================================
+
+const CustomCandle = (props: any) => {
+  const { x, y, width, height, low, high, open, close } = props;
+  const isBullish = close >= open;
+  const color = isBullish ? "#10b981" : "#ef4444";
+  const wickX = x + width / 2; // Assuming x, y, width, height are relative to the chart area
+
+  function yScale(high: any): string | number | undefined {
+    throw new Error("Function not implemented.");
+  }
+
+  return (
+    <g stroke={color} fill={isBullish ? "none" : color} strokeWidth="1">
+      <line x1={wickX} y1={yScale(low)} x2={wickX} y2={yScale(high)} />
+      <rect x={x} y={y} width={width} height={height} />
+    </g>
+  );
+};
+
+const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="bg-gray-800 border border-gray-600 rounded-lg p-3 shadow-lg">
-        <p className="text-white text-sm font-medium mb-2">
-          {new Date(data.time).toLocaleString()}
+      <div className="bg-gray-800 border border-gray-600 rounded-lg p-3 shadow-lg text-xs text-white">
+        <p className="font-bold mb-2">
+          {new Date(data.timestamp).toLocaleString()}
         </p>
-        <div className="space-y-1 text-xs">
-          <div className="flex justify-between">
-            <span className="text-gray-400">Open:</span>
-            <span className="text-white">
-              ${data.open?.toFixed(2) || "0.00"}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-400">High:</span>
-            <span className="text-green-400">
-              ${data.high?.toFixed(2) || "0.00"}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-400">Low:</span>
-            <span className="text-red-400">
-              ${data.low?.toFixed(2) || "0.00"}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-400">Close:</span>
-            <span className="text-white">
-              ${data.close?.toFixed(2) || "0.00"}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-400">Volume:</span>
-            <span className="text-blue-400">
-              {data.volume?.toLocaleString() || "0"}
-            </span>
-          </div>
+        <div className="grid grid-cols-2 gap-x-4">
+          <span>Open:</span>
+          <span className="text-right">${data.open?.toFixed(2)}</span>
+          <span>High:</span>
+          <span className="text-right text-green-400">
+            ${data.high?.toFixed(2)}
+          </span>
+          <span>Low:</span>
+          <span className="text-right text-red-400">
+            ${data.low?.toFixed(2)}
+          </span>
+          <span>Close:</span>
+          <span className="text-right">${data.close?.toFixed(2)}</span>
+          <span>Volume:</span>
+          <span className="text-right text-blue-400">
+            {data.volume?.toLocaleString()}
+          </span>
         </div>
       </div>
     );
@@ -224,523 +142,110 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+const DrawnLines = ({ lines, chartRef }: { lines: any[]; chartRef: any }) => {
+  if (!lines.length || !chartRef.current) return null;
+  const chartState = chartRef.current.getChartLayout().main;
+  const xScale = chartState.xScale;
+  const yScale = chartState.yScale;
+
+  return (
+    <g>
+      {lines.map((line, index) => (
+        <line
+          key={index}
+          x1={xScale(line.start.x)}
+          y1={yScale(line.start.y)}
+          x2={xScale(line.end.x)}
+          y2={yScale(line.end.y)}
+          stroke="#a78bfa"
+          strokeWidth={2}
+        />
+      ))}
+    </g>
+  );
+};
+
+// MAIN CHART COMPONENT
+// ===================================
+
 export function AdvancedTradingChart({
   symbol,
-  name,
-  currentPrice,
-  chartCandlestickData,
   selectedStock,
-  selectStock,
-  addToWatchlist,
-  removeFromWatchlist,
-  activeWatchlist,
+  chartCandlestickData,
+  isChartLoading,
   getCandlestickData,
 }: AdvancedTradingChartProps) {
-  const { technicalIndicators, isLoading } = useMarketData();
-
-  const [chartType, setChartType] = useState<ChartType>("candlestick");
-  const [timeframe, setTimeframe] = useState<Timeframe>("1d");
-  const [rangeSelector, setRangeSelector] = useState<RangeSelector>("1M");
-  const [showVolume, setShowVolume] = useState(true);
-  const [showCrosshair, setShowCrosshair] = useState(true);
-  const [zoomLevel, setZoomLevel] = useState(1);
+  // STATE MANAGEMENT
+  const chartRef = useRef<any>(null);
+  const [chartType, setChartType] = useState<ChartType>("line");
+  const [range, setRange] = useState<Range>("1y");
   const [enabledIndicators, setEnabledIndicators] = useState<Set<string>>(
-    new Set(["sma20", "sma50"])
+    new Set(["ema20", "ema50"])
   );
   const [drawingMode, setDrawingMode] = useState<string | null>(null);
   const [trendLines, setTrendLines] = useState<any[]>([]);
+  const [currentDrawing, setCurrentDrawing] = useState<any>(null);
 
+  // DATA PROCESSING & INDICATOR CALCULATION
   const chartData: ChartData[] = useMemo(() => {
     if (!chartCandlestickData || chartCandlestickData.length === 0) return [];
+    let data = chartCandlestickData.map((d) => ({
+      ...d,
+      timestamp: new Date(d.time).getTime(),
+    }));
 
-    return chartCandlestickData.map((item, index) => {
-      const data: ChartData = {
-        ...item,
-        timestamp: new Date(item.time).getTime(),
-        time: "",
-        volume: 0,
-      };
+    if (enabledIndicators.has("sma20")) data = calculateSMA(data, 20);
+    if (enabledIndicators.has("sma50")) data = calculateSMA(data, 50);
+    if (enabledIndicators.has("ema20")) data = calculateEMA(data, 20);
+    if (enabledIndicators.has("ema50")) data = calculateEMA(data, 50);
 
-      // Add technical indicators with null checks
-      if (technicalIndicators) {
-        const {
-          sma20,
-          sma50,
-          ema12,
-          ema26,
-          rsi,
-          macd,
-          bollingerBands,
-          stochastic,
-          williams,
-          atr,
-          adx,
-        } = technicalIndicators;
+    // Always calculate these for the sub-charts
+    data = calculateRSI(data, 14);
+    data = calculateMACD(data);
 
-        if (sma20 && sma20[index] !== undefined) data.sma20 = sma20[index];
-        if (sma50 && sma50[index] !== undefined) data.sma50 = sma50[index];
-        if (ema12 && ema12[index] !== undefined) data.ema12 = ema12[index];
-        if (ema26 && ema26[index] !== undefined) data.ema26 = ema26[index];
-        if (rsi && rsi[index] !== undefined) data.rsi = rsi[index];
-        if (macd?.macd?.[index] !== undefined) data.macd = macd.macd[index];
-        if (macd?.signal?.[index] !== undefined)
-          data.signal = macd.signal[index];
-        if (macd?.histogram?.[index] !== undefined)
-          data.histogram = macd.histogram[index];
-        if (bollingerBands?.upper?.[index] !== undefined)
-          data.bbUpper = bollingerBands.upper[index];
-        if (bollingerBands?.middle?.[index] !== undefined)
-          data.bbMiddle = bollingerBands.middle[index];
-        if (bollingerBands?.lower?.[index] !== undefined)
-          data.bbLower = bollingerBands.lower[index];
-        if (stochastic?.k?.[index] !== undefined)
-          data.stochK = stochastic.k[index];
-        if (stochastic?.d?.[index] !== undefined)
-          data.stochD = stochastic.d[index];
-        if (williams?.[index] !== undefined) data.williams = williams[index];
-        if (atr?.[index] !== undefined) data.atr = atr[index];
-        if (adx?.[index] !== undefined) data.adx = adx[index];
+    return data;
+  }, [chartCandlestickData, enabledIndicators]);
 
-        // Calculate SMA 200 manually if enough data
-        if (index >= 199 && chartCandlestickData.length > 199) {
-          const sma200 =
-            chartCandlestickData
-              .slice(index - 199, index + 1)
-              .reduce((sum, d) => sum + d.close, 0) / 200;
-          data.sma200 = sma200;
-        }
-      }
+  // HANDLERS for Chart Interaction
+  const handleRangeChange = (newRange: Range) => {
+    setRange(newRange);
+    getCandlestickData(symbol, newRange, rangeIntervalMap[newRange]);
+  };
 
-      return data;
-    });
-  }, [chartCandlestickData, technicalIndicators]);
+  const getCoordinatesFromEvent = (e: any) => {
+    if (!e || !e.activeLabel || !e.activePayload) return null;
+    const yValue = e.activePayload[0].payload.high;
+    return { x: e.activeLabel, y: yValue };
+  };
 
-  const handleTimeframeChange = (newTimeframe: Timeframe) => {
-    setTimeframe(newTimeframe);
-    if (selectedStock) {
-      getCandlestickData(selectedStock.symbol, newTimeframe);
+  const handleMouseDown = (e: any) => {
+    if (drawingMode === "trendline") {
+      const coords = getCoordinatesFromEvent(e);
+      if (coords) setCurrentDrawing({ start: coords, end: coords });
     }
   };
 
-  const handleRangeSelectorChange = (range: RangeSelector) => {
-    setRangeSelector(range);
-    // Implement range-based data filtering
-  };
-
-  const handleZoomIn = () => {
-    setZoomLevel((prev) => Math.min(prev * 1.5, 5));
-  };
-
-  const handleZoomOut = () => {
-    setZoomLevel((prev) => Math.max(prev / 1.5, 0.5));
-  };
-
-  const handleResetZoom = () => {
-    setZoomLevel(1);
-  };
-
-  const toggleIndicator = (indicatorId: string) => {
-    setEnabledIndicators((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(indicatorId)) {
-        newSet.delete(indicatorId);
-      } else {
-        newSet.add(indicatorId);
-      }
-      return newSet;
-    });
-  };
-
-  const renderMainChart = () => {
-    if (!chartData || chartData.length === 0) {
-      return (
-        <div className="flex items-center justify-center h-96 text-gray-400">
-          <div className="text-center">
-            <Activity className="h-12 w-12 mx-auto mb-4 opacity-50 animate-pulse" />
-            <p>Loading chart data...</p>
-          </div>
-        </div>
-      );
-    }
-
-    const visibleData = chartData.slice(-Math.floor(100 / zoomLevel));
-
-    const commonProps = {
-      data: visibleData,
-      margin: { top: 20, right: 30, left: 20, bottom: 20 },
-    };
-
-    switch (chartType) {
-      case "line":
-        return (
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart {...commonProps}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis
-                dataKey="time"
-                tickFormatter={(time) => new Date(time).toLocaleDateString()}
-                stroke="#9ca3af"
-                fontSize={12}
-              />
-              <YAxis stroke="#9ca3af" fontSize={12} />
-              <Tooltip content={<CustomTooltip />} />
-              <Line
-                type="monotone"
-                dataKey="close"
-                stroke="#3b82f6"
-                strokeWidth={2}
-                dot={false}
-              />
-              {renderIndicators()}
-            </LineChart>
-          </ResponsiveContainer>
-        );
-
-      case "area":
-        return (
-          <ResponsiveContainer width="100%" height={400}>
-            <AreaChart {...commonProps}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis
-                dataKey="time"
-                tickFormatter={(time) => new Date(time).toLocaleDateString()}
-                stroke="#9ca3af"
-                fontSize={12}
-              />
-              <YAxis stroke="#9ca3af" fontSize={12} />
-              <Tooltip content={<CustomTooltip />} />
-              <Area
-                type="monotone"
-                dataKey="close"
-                stroke="#3b82f6"
-                fill="#3b82f6"
-                fillOpacity={0.3}
-              />
-              {renderIndicators()}
-            </AreaChart>
-          </ResponsiveContainer>
-        );
-
-      case "bar":
-        return (
-          <ResponsiveContainer width="100%" height={400}>
-            <ComposedChart {...commonProps}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis
-                dataKey="time"
-                tickFormatter={(time) => new Date(time).toLocaleDateString()}
-                stroke="#9ca3af"
-                fontSize={12}
-              />
-              <YAxis stroke="#9ca3af" fontSize={12} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="close" fill="#3b82f6" />
-              {renderIndicators()}
-            </ComposedChart>
-          </ResponsiveContainer>
-        );
-
-      case "candlestick":
-      case "ohlc":
-      default:
-        return (
-          <ResponsiveContainer width="100%" height={400}>
-            <ComposedChart {...commonProps}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis
-                dataKey="time"
-                tickFormatter={(time) => new Date(time).toLocaleDateString()}
-                stroke="#9ca3af"
-                fontSize={12}
-              />
-              <YAxis stroke="#9ca3af" fontSize={12} />
-              <Tooltip content={<CustomTooltip />} />
-              {renderIndicators()}
-              {showVolume && (
-                <Bar
-                  dataKey="volume"
-                  fill="#6b7280"
-                  opacity={0.3}
-                  yAxisId="volume"
-                />
-              )}
-            </ComposedChart>
-          </ResponsiveContainer>
-        );
+  const handleMouseMove = (e: any) => {
+    if (drawingMode === "trendline" && currentDrawing) {
+      const coords = getCoordinatesFromEvent(e);
+      if (coords) setCurrentDrawing({ ...currentDrawing, end: coords });
     }
   };
 
-  const renderIndicators = () => {
-    const indicators = [];
-
-    if (enabledIndicators.has("sma20")) {
-      indicators.push(
-        <Line
-          key="sma20"
-          type="monotone"
-          dataKey="sma20"
-          stroke="#f59e0b"
-          strokeWidth={1}
-          dot={false}
-          strokeDasharray="5 5"
-        />
-      );
+  const handleMouseUp = () => {
+    if (drawingMode === "trendline" && currentDrawing) {
+      setTrendLines((prev) => [...prev, currentDrawing]);
+      setCurrentDrawing(null);
+      setDrawingMode(null);
     }
-
-    if (enabledIndicators.has("sma50")) {
-      indicators.push(
-        <Line
-          key="sma50"
-          type="monotone"
-          dataKey="sma50"
-          stroke="#ef4444"
-          strokeWidth={1}
-          dot={false}
-          strokeDasharray="5 5"
-        />
-      );
-    }
-
-    if (enabledIndicators.has("sma200")) {
-      indicators.push(
-        <Line
-          key="sma200"
-          type="monotone"
-          dataKey="sma200"
-          stroke="#8b5cf6"
-          strokeWidth={1}
-          dot={false}
-          strokeDasharray="5 5"
-        />
-      );
-    }
-
-    if (enabledIndicators.has("ema12")) {
-      indicators.push(
-        <Line
-          key="ema12"
-          type="monotone"
-          dataKey="ema12"
-          stroke="#10b981"
-          strokeWidth={1}
-          dot={false}
-        />
-      );
-    }
-
-    if (enabledIndicators.has("ema26")) {
-      indicators.push(
-        <Line
-          key="ema26"
-          type="monotone"
-          dataKey="ema26"
-          stroke="#06b6d4"
-          strokeWidth={1}
-          dot={false}
-        />
-      );
-    }
-
-    if (enabledIndicators.has("bollinger")) {
-      indicators.push(
-        <Line
-          key="bbUpper"
-          type="monotone"
-          dataKey="bbUpper"
-          stroke="#ec4899"
-          strokeWidth={1}
-          dot={false}
-          strokeDasharray="2 2"
-        />,
-        <Line
-          key="bbMiddle"
-          type="monotone"
-          dataKey="bbMiddle"
-          stroke="#ec4899"
-          strokeWidth={1}
-          dot={false}
-        />,
-        <Line
-          key="bbLower"
-          type="monotone"
-          dataKey="bbLower"
-          stroke="#ec4899"
-          strokeWidth={1}
-          dot={false}
-          strokeDasharray="2 2"
-        />
-      );
-    }
-
-    return indicators;
   };
 
-  const renderVolumeChart = () => {
-    if (!showVolume || !chartData || chartData.length === 0) return null;
-
-    return (
-      <Card className="bg-gray-900 border-gray-700 mt-4">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-white text-sm flex items-center">
-            <Volume2 className="h-4 w-4 mr-2" />
-            Volume
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={150}>
-            <ComposedChart data={chartData.slice(-Math.floor(100 / zoomLevel))}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis
-                dataKey="time"
-                tickFormatter={(time) => new Date(time).toLocaleDateString()}
-                stroke="#9ca3af"
-                fontSize={10}
-              />
-              <YAxis stroke="#9ca3af" fontSize={10} />
-              <Bar dataKey="volume" fill="#6b7280" />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  const renderIndicatorCharts = () => {
-    if (!chartData || chartData.length === 0) return [];
-
-    const indicatorCharts = [];
-
-    if (enabledIndicators.has("rsi")) {
-      indicatorCharts.push(
-        <Card key="rsi" className="bg-gray-900 border-gray-700 mt-4">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-white text-sm">RSI (14)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={150}>
-              <LineChart data={chartData.slice(-Math.floor(100 / zoomLevel))}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis
-                  dataKey="time"
-                  tickFormatter={(time) => new Date(time).toLocaleDateString()}
-                  stroke="#9ca3af"
-                  fontSize={10}
-                />
-                <YAxis domain={[0, 100]} stroke="#9ca3af" fontSize={10} />
-                <ReferenceLine y={70} stroke="#ef4444" strokeDasharray="2 2" />
-                <ReferenceLine y={30} stroke="#10b981" strokeDasharray="2 2" />
-                <Line
-                  type="monotone"
-                  dataKey="rsi"
-                  stroke="#f97316"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      );
-    }
-
-    if (enabledIndicators.has("macd")) {
-      indicatorCharts.push(
-        <Card key="macd" className="bg-gray-900 border-gray-700 mt-4">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-white text-sm">
-              MACD (12, 26, 9)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={150}>
-              <ComposedChart
-                data={chartData.slice(-Math.floor(100 / zoomLevel))}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis
-                  dataKey="time"
-                  tickFormatter={(time) => new Date(time).toLocaleDateString()}
-                  stroke="#9ca3af"
-                  fontSize={10}
-                />
-                <YAxis stroke="#9ca3af" fontSize={10} />
-                <ReferenceLine y={0} stroke="#6b7280" />
-                <Bar dataKey="histogram" fill="#6b7280" opacity={0.6} />
-                <Line
-                  type="monotone"
-                  dataKey="macd"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  dot={false}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="signal"
-                  stroke="#ef4444"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      );
-    }
-
-    if (enabledIndicators.has("stochastic")) {
-      indicatorCharts.push(
-        <Card key="stochastic" className="bg-gray-900 border-gray-700 mt-4">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-white text-sm">
-              Stochastic (14, 3, 3)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={150}>
-              <LineChart data={chartData.slice(-Math.floor(100 / zoomLevel))}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis
-                  dataKey="time"
-                  tickFormatter={(time) => new Date(time).toLocaleDateString()}
-                  stroke="#9ca3af"
-                  fontSize={10}
-                />
-                <YAxis domain={[0, 100]} stroke="#9ca3af" fontSize={10} />
-                <ReferenceLine y={80} stroke="#ef4444" strokeDasharray="2 2" />
-                <ReferenceLine y={20} stroke="#10b981" strokeDasharray="2 2" />
-                <Line
-                  type="monotone"
-                  dataKey="stochK"
-                  stroke="#84cc16"
-                  strokeWidth={2}
-                  dot={false}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="stochD"
-                  stroke="#f43f5e"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      );
-    }
-
-    return indicatorCharts;
-  };
-
+  // RENDER LOGIC
+  // ===================================
   if (!selectedStock) {
     return (
-      <Card className="bg-gray-900 border-gray-700">
-        <CardContent className="p-6">
-          <div className="text-center text-gray-400">
-            <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Select a stock to view advanced chart</p>
-          </div>
-        </CardContent>
+      <Card className="bg-gray-900 border-gray-700 h-[600px] flex items-center justify-center">
+        <p className="text-gray-400">Select a stock to view the chart.</p>
       </Card>
     );
   }
@@ -750,307 +255,279 @@ export function AdvancedTradingChart({
       <Card className="bg-gray-900 border-gray-700">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <CardTitle className="text-white text-xl">
-                {selectedStock.symbol}
-              </CardTitle>
-              <div className="flex items-center space-x-2">
-                <span className="text-2xl font-bold text-white">
-                  ${(selectedStock.price || 0).toFixed(2)}
-                </span>
-                <Badge
-                  variant={
-                    (selectedStock.change || 0) >= 0 ? "default" : "destructive"
-                  }
-                  className={
-                    (selectedStock.change || 0) >= 0
-                      ? "bg-green-600"
-                      : "bg-red-600"
-                  }
-                >
-                  {(selectedStock.change || 0) >= 0 ? (
-                    <TrendingUp className="h-3 w-3 mr-1" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3 mr-1" />
-                  )}
-                  {(selectedStock.change || 0).toFixed(2)} (
-                  {(selectedStock.changePercent || 0).toFixed(2)}%)
-                </Badge>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleZoomIn}
-                className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-              >
-                <ZoomIn className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleZoomOut}
-                className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-              >
-                <ZoomOut className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleResetZoom}
-                className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-              >
-                <RotateCcw className="h-4 w-4" />
-              </Button>
-            </div>
+            <CardTitle className="text-white text-xl">
+              {selectedStock.name} ({selectedStock.symbol})
+            </CardTitle>
           </div>
-
-          {/* Chart Controls */}
-          <Tabs defaultValue="main" className="w-full">
+          <Tabs defaultValue="chart" className="w-full mt-4">
             <TabsList className="grid w-full grid-cols-3 bg-gray-800">
-              <TabsTrigger value="main" className="text-white">
-                Chart
-              </TabsTrigger>
-              <TabsTrigger value="indicators" className="text-white">
-                Indicators
-              </TabsTrigger>
-              <TabsTrigger value="drawing" className="text-white">
-                Drawing
-              </TabsTrigger>
+              <TabsTrigger value="chart">Chart</TabsTrigger>
+              <TabsTrigger value="indicators">Indicators</TabsTrigger>
+              <TabsTrigger value="drawing">Drawing</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="main" className="space-y-4">
-              {/* Chart Type & Timeframe */}
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center space-x-2">
+            <TabsContent value="chart" className="space-y-4 pt-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {ranges.map((r) => (
                   <Button
-                    variant={
-                      chartType === "candlestick" ? "default" : "outline"
-                    }
+                    key={r}
+                    variant={range === r ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setChartType("candlestick")}
-                    className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+                    onClick={() => handleRangeChange(r)}
                   >
-                    <BarChart3 className="h-4 w-4 mr-1" />
-                    Candles
-                  </Button>
-                  <Button
-                    variant={chartType === "ohlc" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setChartType("ohlc")}
-                    className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-                  >
-                    <Minus className="h-4 w-4 mr-1" />
-                    OHLC
-                  </Button>
-                  <Button
-                    variant={chartType === "line" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setChartType("line")}
-                    className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-                  >
-                    <LineChartIcon className="h-4 w-4 mr-1" />
-                    Line
-                  </Button>
-                  <Button
-                    variant={chartType === "area" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setChartType("area")}
-                    className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-                  >
-                    <Activity className="h-4 w-4 mr-1" />
-                    Area
-                  </Button>
-                  <Button
-                    variant={chartType === "bar" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setChartType("bar")}
-                    className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-                  >
-                    <BarChart3 className="h-4 w-4 mr-1" />
-                    Bar
-                  </Button>
-                </div>
-
-                {/* Range Selector */}
-                <div className="flex items-center space-x-1">
-                  {rangeSelectors.map((range) => (
-                    <Button
-                      key={range.value}
-                      variant={
-                        rangeSelector === range.value ? "default" : "outline"
-                      }
-                      size="sm"
-                      onClick={() => handleRangeSelectorChange(range.value)}
-                      className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-                    >
-                      {range.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Timeframes */}
-              <div className="flex items-center space-x-1">
-                {timeframes.map((tf) => (
-                  <Button
-                    key={tf.value}
-                    variant={timeframe === tf.value ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleTimeframeChange(tf.value)}
-                    className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-                  >
-                    {tf.label}
+                    {r.toUpperCase()}
                   </Button>
                 ))}
               </div>
-
-              {/* Chart Options */}
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="volume"
-                    checked={showVolume}
-                    onCheckedChange={setShowVolume}
-                  />
-                  <Label htmlFor="volume" className="text-white text-sm">
-                    <Volume2 className="h-4 w-4 inline mr-1" />
-                    Volume
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="crosshair"
-                    checked={showCrosshair}
-                    onCheckedChange={setShowCrosshair}
-                  />
-                  <Label htmlFor="crosshair" className="text-white text-sm">
-                    <Crosshair className="h-4 w-4 inline mr-1" />
-                    Crosshair
-                  </Label>
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={chartType === "line" ? "secondary" : "ghost"}
+                    size="icon"
+                    onClick={() => setChartType("line")}
+                  >
+                    <LineChartIcon className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={chartType === "area" ? "secondary" : "ghost"}
+                    size="icon"
+                    onClick={() => setChartType("area")}
+                  >
+                    <Activity className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={
+                      chartType === "candlestick" ? "secondary" : "ghost"
+                    }
+                    size="icon"
+                    onClick={() => setChartType("candlestick")}
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             </TabsContent>
-
-            <TabsContent value="indicators" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {indicatorDefinitions.map((indicator) => (
-                  <div
-                    key={indicator.id}
-                    className="flex items-center space-x-2"
-                  >
+            <TabsContent value="indicators" className="pt-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {indicatorDefinitions.map((ind) => (
+                  <div key={ind.id} className="flex items-center space-x-2">
                     <Switch
-                      id={indicator.id}
-                      checked={enabledIndicators.has(indicator.id)}
-                      onCheckedChange={() => toggleIndicator(indicator.id)}
+                      id={ind.id}
+                      checked={enabledIndicators.has(ind.id)}
+                      onCheckedChange={() =>
+                        setEnabledIndicators((prev) => {
+                          const newSet = new Set(prev);
+                          newSet.has(ind.id)
+                            ? newSet.delete(ind.id)
+                            : newSet.add(ind.id);
+                          return newSet;
+                        })
+                      }
                     />
-                    <Label
-                      htmlFor={indicator.id}
-                      className="text-white text-sm"
-                    >
-                      <span
-                        className="inline-block w-3 h-3 rounded mr-2"
-                        style={{ backgroundColor: indicator.color }}
-                      ></span>
-                      {indicator.name}
+                    <Label htmlFor={ind.id} className="text-sm text-white">
+                      {ind.name}
                     </Label>
                   </div>
                 ))}
               </div>
             </TabsContent>
-
-            <TabsContent value="drawing" className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant={drawingMode === "trendline" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() =>
-                    setDrawingMode(
-                      drawingMode === "trendline" ? null : "trendline"
-                    )
-                  }
-                  className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-                >
-                  <TrendingUpIcon className="h-4 w-4 mr-1" />
-                  Trend Line
-                </Button>
-                <Button
-                  variant={drawingMode === "fibonacci" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() =>
-                    setDrawingMode(
-                      drawingMode === "fibonacci" ? null : "fibonacci"
-                    )
-                  }
-                  className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-                >
-                  Fibonacci
-                </Button>
-                <Button
-                  variant={drawingMode === "rectangle" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() =>
-                    setDrawingMode(
-                      drawingMode === "rectangle" ? null : "rectangle"
-                    )
-                  }
-                  className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-                >
-                  Rectangle
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setTrendLines([])}
-                  className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-                >
-                  Clear All
-                </Button>
-              </div>
+            <TabsContent value="drawing" className="pt-4">
+              <Button
+                variant={drawingMode === "trendline" ? "secondary" : "outline"}
+                size="sm"
+                onClick={() =>
+                  setDrawingMode(
+                    drawingMode === "trendline" ? null : "trendline"
+                  )
+                }
+              >
+                <Pen className="h-4 w-4 mr-2" />
+                Trend Line
+              </Button>
             </TabsContent>
           </Tabs>
         </CardHeader>
 
         <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center h-96 text-gray-400">
-              <div className="text-center">
-                <Activity className="h-12 w-12 mx-auto mb-4 opacity-50 animate-pulse" />
-                <p>Loading advanced chart data...</p>
-              </div>
+          {isChartLoading ? (
+            <div className="h-96 flex items-center justify-center text-gray-400">
+              <Activity className="h-12 w-12 animate-pulse" />
+            </div>
+          ) : !chartData || chartData.length === 0 ? (
+            <div className="h-96 flex items-center justify-center text-gray-400">
+              <p>No data available for this range.</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {renderMainChart()}
+            <ResponsiveContainer width="100%" height={400}>
+              <ComposedChart
+                ref={chartRef}
+                data={chartData}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis
+                  dataKey="timestamp"
+                  stroke="#9ca3af"
+                  fontSize={12}
+                  tickFormatter={(ts) => new Date(ts).toLocaleDateString()}
+                />
+                <YAxis
+                  stroke="#9ca3af"
+                  fontSize={12}
+                  orientation="right"
+                  domain={["dataMin - 5", "dataMax + 5"]}
+                  tickFormatter={(v) =>
+                    `$${typeof v === "number" ? v.toFixed(2) : v}`
+                  }
+                />
+                <Tooltip content={<CustomTooltip />} />
 
-              {/* Mini Navigator Chart */}
-              <Card className="bg-gray-800 border-gray-700">
-                <CardContent className="p-2">
-                  <ResponsiveContainer width="100%" height={80}>
-                    <LineChart data={chartData}>
-                      <Line
-                        type="monotone"
-                        dataKey="close"
-                        stroke="#3b82f6"
-                        strokeWidth={1}
-                        dot={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
+                {enabledIndicators.has("sma20") && (
+                  <Line
+                    type="monotone"
+                    dataKey="sma20"
+                    stroke="#f59e0b"
+                    dot={false}
+                    strokeWidth={1}
+                  />
+                )}
+                {enabledIndicators.has("sma50") && (
+                  <Line
+                    type="monotone"
+                    dataKey="sma50"
+                    stroke="#ef4444"
+                    dot={false}
+                    strokeWidth={1}
+                  />
+                )}
+                {enabledIndicators.has("ema20") && (
+                  <Line
+                    type="monotone"
+                    dataKey="ema20"
+                    stroke="#10b981"
+                    dot={false}
+                    strokeWidth={1.5}
+                  />
+                )}
+                {enabledIndicators.has("ema50") && (
+                  <Line
+                    type="monotone"
+                    dataKey="ema50"
+                    stroke="#06b6d4"
+                    dot={false}
+                    strokeWidth={1.5}
+                  />
+                )}
+
+                {chartType === "line" && (
+                  <Line
+                    type="monotone"
+                    dataKey="close"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                )}
+                {chartType === "area" && (
+                  <Area
+                    type="monotone"
+                    dataKey="close"
+                    stroke="#3b82f6"
+                    fill="#3b82f6"
+                    fillOpacity={0.2}
+                  />
+                )}
+                {chartType === "candlestick" && (
+                  <Bar dataKey="close" shape={<CustomCandle />} />
+                )}
+
+                <Customized
+                  component={DrawnLines}
+                  lines={trendLines}
+                  chartRef={chartRef}
+                />
+                {currentDrawing && (
+                  <Customized
+                    component={DrawnLines}
+                    lines={[currentDrawing]}
+                    chartRef={chartRef}
+                  />
+                )}
+              </ComposedChart>
+            </ResponsiveContainer>
           )}
         </CardContent>
       </Card>
 
-      {/* Volume Chart */}
-      {renderVolumeChart()}
-
-      {/* Technical Indicator Charts */}
-      {renderIndicatorCharts()}
+      {/* --- SUB-CHARTS FOR INDICATORS --- */}
+      {!isChartLoading && chartData && chartData.length > 0 && (
+        <div className="space-y-4">
+          <Card className="bg-gray-900 border-gray-700">
+            <CardHeader className="pb-2 pt-4">
+              <CardTitle className="text-sm text-white">RSI (14)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={100}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="timestamp" hide={true} />
+                  <YAxis stroke="#9ca3af" fontSize={10} domain={[0, 100]} />
+                  <Tooltip wrapperClassName="!text-xs" />
+                  <ReferenceLine
+                    y={70}
+                    stroke="#ef4444"
+                    strokeDasharray="2 2"
+                  />
+                  <ReferenceLine
+                    y={30}
+                    stroke="#10b981"
+                    strokeDasharray="2 2"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="rsi"
+                    stroke="#f97316"
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+          <Card className="bg-gray-900 border-gray-700">
+            <CardHeader className="pb-2 pt-4">
+              <CardTitle className="text-sm text-white">
+                MACD (12, 26, 9)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={100}>
+                <ComposedChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="timestamp" hide={true} />
+                  <YAxis stroke="#9ca3af" fontSize={10} />
+                  <Tooltip wrapperClassName="!text-xs" />
+                  <ReferenceLine y={0} stroke="#6b7280" />
+                  <Bar dataKey="histogram" fill="#6b7280" opacity={0.6} />
+                  <Line
+                    type="monotone"
+                    dataKey="macd"
+                    stroke="#3b82f6"
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="signal"
+                    stroke="#ef4444"
+                    dot={false}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

@@ -54,8 +54,8 @@ export interface Stock {
   symbol: string
   name: string
   price: number
-  change?: number
-  changePercent?: number
+  change: number
+  changePercent: number
   volume?: number
   exchange?: string
   sector?: string
@@ -83,3 +83,4 @@ export interface AdvancedTradingChartProps {
   activeWatchlist: string[]
   getCandlestickData: (symbol: string, timeframe?: string) => void
 }
+

@@ -1,171 +1,166 @@
 "use client";
+
 import React, {
   createContext,
   useContext,
   useState,
   useEffect,
   ReactNode,
+  useCallback,
+  useRef,
 } from "react";
-import { stockApi, StockQuote, CandlestickData, ChartApiResponse, CompanyProfile, CompanyStatistics, CompanyHoldings } from "@/lib/api/stock-api";
+import {
+  stockApi,
+  StockQuote,
+  CandlestickData,
+} from "@/lib/api/stock-api";
 import { newsAPI, NewsItem } from "@/lib/api/news-api";
 import { cryptoAPI, CryptoQuote } from "@/lib/api/crypto-api";
 
-// Type for technical indicators
-export interface TechnicalIndicators {
-  sma20?: number[];
-  sma50?: number[];
-  sma200?: number[];
-  ema12?: number[];
-  ema26?: number[];
-  bollinger?: { upper: number[]; middle: number[]; lower: number[] };
-  rsi?: number[];
-  macd?: {
-    line: any; macd: number[]; signal: number[]; histogram: number[] 
-};
-  stochastic?: { k: number[]; d: number[] };
-  williams?: number[];
-  atr?: number[];
-  adx?: number[];
-  bollingerBands: { upper: number[]; middle: number[]; lower: number[] };
-  macdLine: number[];
-  macdSignal: number[];
-  macdHistogram: number[];
-  stochK: number[];
-  stochD: number[];
-  williamsR: number[];
-  atrIndicator: number[];
-  adxIndicator: number[];
-  sma20Indicator: number[];
-  sma50Indicator: number[];
-  sma200Indicator: number[];
-  ema12Indicator: number[];
-  ema26Indicator: number[];
-  bollingerUpperIndicator: number[];
-  bollingerMiddleIndicator: number[];
-  bollingerLowerIndicator: number[];
-  rsiIndicator: number[];
-  macdLineIndicator: number[];
-  macdSignalIndicator: number[];
-  macdHistogramIndicator: number[];
-  stochKIndicator: number[];
-  stochDIndicator: number[];
-  williamsRIndicator: number[];
-  atrIndicatorIndicator: number[];
-  adxIndicatorIndicator: number[];
-  sma200IndicatorIndicator: number[];
-  sma50IndicatorIndicator: number[];
-  sma20IndicatorIndicator: number[];
-  ema12IndicatorIndicator: number[];
-  ema26IndicatorIndicator: number[];
-}
-
-// Context interface
 interface MarketDataContextType {
   stocks: StockQuote[];
   news: NewsItem[];
   crypto: CryptoQuote[];
-  technicalIndicators: TechnicalIndicators;
   candlestickData: CandlestickData[];
   selectedStock: StockQuote | null;
   isLoading: boolean;
+  candlestickLoading: boolean;
   error: string | null;
 
   refreshData: () => void;
   selectStock: (symbol: string) => void;
-  getCandlestickData: (symbol: string, timeframe: string) => Promise<CandlestickData[]>;
+  getCandlestickData: (
+    symbol: string,
+    range?: string,
+    interval?: string
+  ) => Promise<CandlestickData[]>;
+  getQuote: (symbol: string) => Promise<StockQuote | null>;
 }
 
-// Create context
 const MarketDataContext = createContext<MarketDataContextType | undefined>(undefined);
 
-// Utility function
-export const formatIndicatorData = (data: any) => {
-  if (!data) return [];
-  return Object.entries(data).map(([key, value]) => ({
-    name: key,
-    value: Array.isArray(value) ? value[value.length - 1] : value,
-  }));
-};
-
-// Provider
-export function MarketDataProvider({ children }: { children: ReactNode }) {
+export const MarketDataProvider = ({ children }: { children: ReactNode }) => {
   const [stocks, setStocks] = useState<StockQuote[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [crypto, setCrypto] = useState<CryptoQuote[]>([]);
   const [candlestickData, setCandlestickData] = useState<CandlestickData[]>([]);
   const [selectedStock, setSelectedStock] = useState<StockQuote | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [candlestickLoading, setCandlestickLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch market data
-  const refreshData = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const [stockData, newsData, cryptoData] = await Promise.all([
-        stockApi.getMultipleQuotes(["AAPL", "GOOGL", "MSFT", "TSLA", "NVDA", "AMZN"]),
-        newsAPI.getMarketNews("general"),
-        cryptoAPI.getMultipleCryptoQuotes(["BTC", "ETH", "SOL", "ADA"]),
-      ]);
+  const candlestickCache = useRef<Map<string, CandlestickData[]>>(new Map());
+  const refreshTimeout = useRef<NodeJS.Timeout | null>(null);
+  const trackedSymbols = ["AAPL", "GOOGL", "MSFT", "TSLA", "NVDA", "AMZN"];
 
-      setStocks(stockData);
-      setNews(newsData);
-      setCrypto(cryptoData);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to fetch market data. Please try again.");
-    } finally {
-      setIsLoading(false);
+  const refreshData = useCallback(() => {
+    if (refreshTimeout.current) {
+      clearTimeout(refreshTimeout.current);
     }
-  };
 
-  // Select a stock
-  const selectStock = async (symbol: string) => {
+    refreshTimeout.current = setTimeout(async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const [stockData, newsData, cryptoData] = await Promise.all([
+          stockApi.getMultipleQuotes(trackedSymbols),
+          newsAPI.getMarketNews("general"),
+          cryptoAPI.getMultipleCryptoQuotes(["BTC", "ETH", "SOL", "ADA"]),
+        ]);
+
+        setStocks(stockData);
+        setNews(newsData);
+        setCrypto(cryptoData);
+
+        if (!selectedStock && stockData.length > 0) {
+          setSelectedStock(stockData[0]);
+        }
+      } catch (err) {
+        console.error("Refresh error:", err);
+        setError("Failed to fetch market data. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    }, 300); // Debounce API call by 300ms
+  }, [selectedStock]);
+
+  const selectStock = (symbol: string) => {
     const stock = stocks.find((s) => s.symbol === symbol);
-    if (stock) {
-      setSelectedStock(stock);
-    }
+    if (stock) setSelectedStock(stock);
   };
 
-  // Get candlestick data
-  const getCandlestickData = async (symbol: string, timeframe: string): Promise<CandlestickData[]> => {
+  const getCandlestickData = useCallback(
+    async (
+      symbol: string,
+      range: string = "1mo",
+      interval: string = "1d"
+    ): Promise<CandlestickData[]> => {
+      const cacheKey = `${symbol}_${range}_${interval}`;
+
+      if (candlestickCache.current.has(cacheKey)) {
+        const cached = candlestickCache.current.get(cacheKey)!;
+        setCandlestickData(cached);
+        return cached;
+      }
+
+      setCandlestickLoading(true);
+
+      try {
+        const { chartData } = await stockApi.getFullChartData(symbol, range, interval);
+        candlestickCache.current.set(cacheKey, chartData);
+        setCandlestickData(chartData);
+        return chartData;
+      } catch (err) {
+        console.error("Error fetching candlestick data:", err);
+        setError("Failed to load chart data.");
+        throw err;
+      } finally {
+        setCandlestickLoading(false);
+      }
+    },
+    []
+  );
+
+  const getQuote = async (symbol: string): Promise<StockQuote | null> => {
     try {
-      const { chartData } = await stockApi.getFullChartData(symbol, timeframe);
-      // Fix: Set the actual fetched chartData, not the state variable itself
-      setCandlestickData(chartData);
-      return chartData;
+      return await stockApi.getStockQuote(symbol);
     } catch (err) {
-      console.error("Failed to get chart data", err);
-      return [];
+      console.error(`Quote error (${symbol}):`, err);
+      return null;
     }
   };
 
   useEffect(() => {
     refreshData();
-  }, []);
+  }, [refreshData]);
 
   const value: MarketDataContextType = {
     stocks,
     news,
     crypto,
-    technicalIndicators: {} as TechnicalIndicators, // Initialize with an empty object
     candlestickData,
     selectedStock,
     isLoading,
+    candlestickLoading,
     error,
     refreshData,
     selectStock,
     getCandlestickData,
+    getQuote,
   };
 
-  return <MarketDataContext.Provider value={value}>{children}</MarketDataContext.Provider>;
-}
+  return (
+    <MarketDataContext.Provider value={value}>
+      {children}
+    </MarketDataContext.Provider>
+  );
+};
 
-// Hook to use context
-export function useMarketData() {
+export function useMarketData(): MarketDataContextType {
   const context = useContext(MarketDataContext);
-  if (context === undefined) {
-    throw new Error("useMarketData must be used within a MarketDataProvider");
+  if (!context) {
+    throw new Error("useMarketData must be used within MarketDataProvider");
   }
   return context;
 }

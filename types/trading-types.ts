@@ -73,15 +73,9 @@ export interface CandlestickPoint {
 }
 
 export interface AdvancedTradingChartProps {
-  symbol: string
-  name: string
-  currentPrice: number
-  chartCandlestickData: CandlestickPoint[] // 👈 renamed from candlestickData
-  selectedStock: Stock | null
-  selectStock: (stock: Stock) => void
-  addToWatchlist: (symbol: string) => void
-  removeFromWatchlist: (symbol: string) => void
-  activeWatchlist: string[]
-  getCandlestickData: (symbol: string, timeframe?: string) => void
-}
-
+    symbol: string;
+    selectedStock: Stock | null;
+    chartCandlestickData: CandlestickPoint[];
+    isChartLoading: boolean;
+    getCandlestickData: (symbol: string, range: string, interval: string) => void;
+  }

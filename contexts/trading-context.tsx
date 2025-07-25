@@ -64,6 +64,8 @@ export interface OrderBookEntry {
   total: number;
 }
 
+type OrderType = "market" | "limit" | "stop";
+
 // ✅ Context Type
 interface TradingContextType {
   portfolio: Portfolio;
@@ -76,19 +78,10 @@ interface TradingContextType {
   placeOrder: (
     symbol: string,
     quantity: number,
-    price: number,
     side: "buy" | "sell",
-    type: "market" | "limit"
-  ) => Promise<boolean>;
-  placeBuyOrder: (
-    symbol: string,
-    quantity: number,
-    price: number
-  ) => Promise<boolean>;
-  placeSellOrder: (
-    symbol: string,
-    quantity: number,
-    price: number
+    type: OrderType,
+    price?: number,
+    stopPrice?: number
   ) => Promise<boolean>;
   cancelOrder: (orderId: string) => Promise<boolean>;
   fetchOrders: () => void;
@@ -125,14 +118,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   const fetchTradingData = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
-
-    // const headers = {
-    //   "Content-Type": "application/json" as const,
-    //   "x-user-id": user.id,
-    // };
-    const headers = {
-      "x-user-id": "user_123", // Replace with dynamic user if using auth
-    };
+    const headers = { "x-user-id": "user_123" };
 
     try {
       const endpoints = [
@@ -140,15 +126,10 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         fetch("/api/trading/orders", { headers }),
         fetch("/api/trading/transactions", { headers }),
       ];
-
       const responses = await Promise.all(endpoints);
-
       for (const res of responses) {
-        if (!res.ok || res.headers.get("content-type")?.includes("text/html")) {
-          throw new Error("Invalid JSON or endpoint not found");
-        }
+        if (!res.ok) throw new Error("Failed to fetch trading data");
       }
-
       const [portfolioData, ordersData, transactionsData] = await Promise.all(
         responses.map((r) => r.json())
       );
@@ -171,9 +152,10 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   const placeOrder = async (
     symbol: string,
     quantity: number,
-    price: number,
     side: "buy" | "sell",
-    type: "market" | "limit"
+    type: OrderType,
+    price?: number,
+    stopPrice?: number
   ): Promise<boolean> => {
     if (!user) {
       toast({
@@ -189,23 +171,23 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       const response = await fetch("/api/trading/orders", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json" as const,
-          "x-user-id": user.id || "",
+          "Content-Type": "application/json",
+          "x-user-id": user.id || "user_123",
         },
-        body: JSON.stringify({ symbol, quantity, price, side, type }),
+        body: JSON.stringify({
+          symbol,
+          quantity,
+          side,
+          orderType: type,
+          price,
+          stopPrice,
+        }),
       });
 
       const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Failed to place order");
 
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to place order");
-      }
-
-      toast({
-        title: "Success",
-        description: `Order placed for ${symbol}`,
-      });
-
+      toast({ title: "Success", description: `Order placed for ${symbol}` });
       await fetchTradingData();
       return true;
     } catch (error: any) {
@@ -220,14 +202,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const placeBuyOrder = (symbol: string, quantity: number, price: number) =>
-    placeOrder(symbol, quantity, price, "buy", "limit");
-
-  const placeSellOrder = (symbol: string, quantity: number, price: number) =>
-    placeOrder(symbol, quantity, price, "sell", "limit");
-
   const cancelOrder = async (orderId: string): Promise<boolean> => {
-    // Stub - replace with actual cancel logic
     toast({
       title: "Cancel not implemented",
       description: "To be added later",
@@ -242,9 +217,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    if (user) {
-      fetchTradingData();
-    }
+    if (user) fetchTradingData();
   }, [user, fetchTradingData]);
 
   return (
@@ -258,8 +231,6 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         selectedStock: selectedStock || null,
         isLoading,
         placeOrder,
-        placeBuyOrder,
-        placeSellOrder,
         cancelOrder,
         fetchOrders: fetchTradingData,
         updatePortfolio: fetchTradingData,

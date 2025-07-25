@@ -81,11 +81,26 @@ export class StockAPI {
   }
 
   public async getFullChartData(symbol: string, range: string = "1y", interval: string = "1d") {
+    const intradayLimits: Record<string, string[]> = {
+      "1m": ["1d", "5d", "7d"],
+      "2m": ["1d", "5d", "7d", "1mo"],
+      "5m": ["1d", "5d", "7d", "1mo"],
+      "15m": ["1d", "5d", "1mo"],
+      "30m": ["1d", "5d", "1mo", "3mo"],
+      "60m": ["5d", "1mo", "3mo", "6mo"],
+      "90m": ["1mo", "3mo", "6mo"],
+    };
+
+    if (intradayLimits[interval] && !intradayLimits[interval].includes(range)) {
+      throw new Error(
+        `The interval "${interval}" only supports the following ranges: ${intradayLimits[interval].join(", ")}.`
+      );
+    }
+
     const data = await this.fetchFromRapidApi<{ chart: { result: ChartApiResponse[] | null; error: any } }>(
       `stock/v3/get-chart?symbol=${symbol}&range=${range}&interval=${interval}`
     );
 
-    // FIX #1: Check for an explicit error object in the API response body first.
     const chartError = data?.chart?.error;
     if (chartError) {
       throw new Error(chartError.description || chartError.message || `API returned an error for symbol "${symbol}".`);
@@ -95,9 +110,8 @@ export class StockAPI {
     if (!chartResult || !chartResult.timestamp || !chartResult.indicators?.quote?.[0]) {
       throw new Error(`No chart data found for "${symbol}". The symbol may be invalid or the API limit has been reached.`);
     }
-    
+
     const quote = chartResult.indicators.quote[0];
-    // FIX #2: Safely access adjclose using optional chaining (?.) as it might not always be present.
     const adjclose = chartResult.indicators.adjclose?.[0]?.adjclose;
 
     const formattedData: CandlestickData[] = chartResult.timestamp.map((ts, i) => ({
@@ -107,12 +121,12 @@ export class StockAPI {
       low: quote.low[i] || 0,
       close: quote.close[i] || 0,
       volume: quote.volume[i] || 0,
-      // FIX #3: Provide a fallback to the regular 'close' price if adjclose is not available.
-      adjclose: adjclose?.[i] || quote.close[i] || 0, 
+      adjclose: adjclose?.[i] || quote.close[i] || 0,
     })).filter(d => d.open && d.high && d.low && d.close);
-    
+
     return { chartData: formattedData, apiResponse: chartResult };
   }
+
 
   public async getProfile(symbol: string): Promise<CompanyProfile | null> {
     return this.fetchFromRapidApi(`stock/v3/get-profile?symbol=${symbol}&region=US`);

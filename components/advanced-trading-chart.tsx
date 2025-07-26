@@ -174,9 +174,36 @@ type DrawingTool =
   | "fibonacci"
   | "arrow"
   | "text"
-  | "line";
+  | "line"
+  | "eraser"
+  | "ray"
+  | "extended-line"
+  | "brush";
 
-type ShapeType = "line" | "rectangle" | "arrow" | "text";
+type ShapeType =
+  | "line"
+  | "rectangle"
+  | "arrow"
+  | "text"
+  | "eraser"
+  | "ray"
+  | "extended-line"
+  | "brush";
+
+type RawCandle = {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+};
+type Candle = {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+};
 
 interface Point {
   x: number;
@@ -628,27 +655,62 @@ export function AdvancedTradingChart({
   const [activeSettings, setActiveSettings] = useState<string | null>(null);
   const [selectedRange, setSelectedRange] = useState<Range>("1d");
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [chartHeight, setChartHeight] = useState(0);
   const [chartWidth, setChartWidth] = useState(800); // fallback value
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [history, setHistory] = useState<Shape[][]>([]);
   const [redoStack, setRedoStack] = useState<Shape[][]>([]);
+  
+  function getPixelCandles(
+    candles: {
+      time: number;
+      open: number;
+      high: number;
+      low: number;
+      close: number;
+    }[],
+    chartWidth: number,
+    chartHeight: number
+  ) {
+    if (!candles || candles.length === 0) return [];
+
+    const highs = candles.map((c) => c.high);
+    const lows = candles.map((c) => c.low);
+    const maxPrice = Math.max(...highs);
+    const minPrice = Math.min(...lows);
+    const priceRange = maxPrice - minPrice;
+
+    const candleSpacing = chartWidth / candles.length;
+
+    return candles.map((c, i) => {
+      const x = i * candleSpacing;
+      const y = chartHeight - ((c.close - minPrice) / priceRange) * chartHeight;
+      return { ...c, x, y }; // ✅ now has both x and y
+    });
+  }
+  const pixelCandles = getPixelCandles(candles, chartWidth, chartHeight);
+
 
   const undo = () => {
     if (history.length === 0) return;
     const prevShapes = history[history.length - 1];
-    const newHistory = history.slice(0, -1);
     setRedoStack([shapes, ...redoStack]);
     setShapes(prevShapes);
-    setHistory(newHistory);
+    setHistory(history.slice(0, -1));
   };
 
   const redo = () => {
     if (redoStack.length === 0) return;
     const nextShapes = redoStack[0];
-    const newRedoStack = redoStack.slice(1);
     setHistory([...history, shapes]);
     setShapes(nextShapes);
-    setRedoStack(newRedoStack);
+    setRedoStack(redoStack.slice(1));
+  };
+
+  const clearAll = () => {
+    setHistory([...history, shapes]);
+    setRedoStack([]);
+    setShapes([]);
   };
 
   const fullChartData: ChartData[] = useMemo(() => {
@@ -715,6 +777,7 @@ export function AdvancedTradingChart({
   useEffect(() => {
     if (chartContainerRef.current) {
       setChartWidth(chartContainerRef.current.offsetWidth);
+      setChartHeight(chartContainerRef.current.offsetHeight); // ✅ chart height
     }
   }, []);
   const getCoordinatesFromEvent = (e: any) => {
@@ -1162,59 +1225,50 @@ export function AdvancedTradingChart({
               </ResponsiveContainer>
               <DrawingCanvas
                 width={chartWidth}
-                height={400}
+                height={chartHeight}
                 drawingTool={
-                  drawingTool === "trendline"
-                    ? "line"
-                    : drawingTool === "fibonacci"
+                  drawingTool === "trendline" || drawingTool === "fibonacci"
                     ? "line"
                     : drawingTool
                 }
                 shapes={shapes}
                 setShapes={setShapes}
                 history={history}
-                setHistory={setHistory} // ✅ REQUIRED
+                setHistory={setHistory}
                 redoStack={redoStack}
                 setRedoStack={setRedoStack}
+                candles={pixelCandles} // ✅ Now includes .y
               />
             </>
           )}
         </div>
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 mt-4 pt-4 border-t border-gray-700/50">
-          <div className="flex flex-wrap items-center justify-end gap-2 mt-4">
-            {/* Drawing tool buttons */}
-            <Button
-              variant={drawingTool === "line" ? "secondary" : "outline"}
-              onClick={() =>
-                dispatch({ type: "SET_DRAWING_TOOL", payload: "line" })
-              }
-            >
-              Line
-            </Button>
-            <Button
-              variant={drawingTool === "rectangle" ? "secondary" : "outline"}
-              onClick={() =>
-                dispatch({ type: "SET_DRAWING_TOOL", payload: "rectangle" })
-              }
-            >
-              Rectangle
-            </Button>
-            <Button
-              variant={drawingTool === "arrow" ? "secondary" : "outline"}
-              onClick={() =>
-                dispatch({ type: "SET_DRAWING_TOOL", payload: "arrow" })
-              }
-            >
-              Arrow
-            </Button>
-            <Button
-              variant={drawingTool === "text" ? "secondary" : "outline"}
-              onClick={() =>
-                dispatch({ type: "SET_DRAWING_TOOL", payload: "text" })
-              }
-            >
-              Text
-            </Button>
+          <div className="flex flex-wrap gap-2 mb-4 justify-end">
+            {[
+              "line",
+              "rectangle",
+              "arrow",
+              "text",
+              "ray",
+              "extended-line",
+              "brush",
+              "eraser",
+            ].map((tool) => (
+              <Button
+                key={tool}
+                variant={drawingTool === tool ? "secondary" : "outline"}
+                onClick={() =>
+                  dispatch({
+                    type: "SET_DRAWING_TOOL",
+                    payload:
+                      drawingTool === tool ? null : (tool as DrawingTool),
+                  })
+                }
+                className="capitalize"
+              >
+                {tool.replace("-", " ")}
+              </Button>
+            ))}
           </div>
 
           <div className="flex items-center gap-x-4 gap-y-2 flex-wrap lg:border-l lg:border-gray-700 lg:ml-2 lg:pl-4">

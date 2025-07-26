@@ -8,14 +8,8 @@ import React, {
   useReducer,
   Dispatch,
 } from "react";
+
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
   ComposedChart,
   Bar,
   Area,
@@ -24,6 +18,7 @@ import {
   TooltipProps,
   BarChart,
   Rectangle,
+  CartesianGrid,
 } from "recharts";
 import {
   NameType,
@@ -47,6 +42,19 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { CustomTooltip } from "./customTool-Tip";
+import {
+  ResponsiveContainer,
+  LineChart,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Line,
+} from "recharts";
+import dayjs from "dayjs";
+import advancedFormat from "dayjs/plugin/advancedFormat";
+import isToday from "dayjs/plugin/isToday";
+dayjs.extend(advancedFormat);
+dayjs.extend(isToday);
 
 //================================================================
 // 1. TYPE DEFINITIONS & INTERFACES
@@ -69,6 +77,7 @@ export interface Stock {
  * A single data point from the charting API.
  */
 export interface CandlestickPoint {
+  timestamp: string | number | Date;
   time: string;
   open: number;
   high: number;
@@ -86,7 +95,12 @@ export interface AdvancedTradingChartProps {
   selectedStock: Stock | null;
   chartCandlestickData: CandlestickPoint[];
   isChartLoading: boolean;
-  getCandlestickData: (symbol: string, range: string, interval: string) => void;
+  getCandlestickData: (
+    symbol: string,
+    range: Range,
+    interval: Interval
+  ) => void;
+  range: Range; // ✅ New prop
 }
 
 /**
@@ -114,6 +128,7 @@ export interface IndicatorSetting {
  * State structure managed by the reducer.
  */
 interface ChartState {
+  candles: any;
   range: Range;
   interval: Interval;
   chartType: ChartType;
@@ -139,14 +154,15 @@ type ChartAction =
   | { type: "UPDATE_INDICATOR_PERIOD"; payload: { id: string; period: number } }
   | { type: "TOGGLE_SUBCHART"; payload: "volume" | "rsi" | "macd" }
   | { type: "SET_ZOOM_DOMAIN"; payload: [number, number] | null }
+  | { type: "SET_CANDLES"; payload: CandlestickPoint[] } // ✅ Add this
   | { type: "ADD_SHAPE"; payload: any }
   | { type: "CLEAR_SHAPES" }
   | { type: "SET_CURRENT_DRAWING"; payload: any | null }
   | { type: "RESET_VIEW" };
 
 type ChartType = "candlestick" | "line" | "area";
-type Range = "1d" | "5d" | "1mo" | "3mo" | "6mo" | "1y" | "5y" | "max";
-type Interval = "5m" | "15m" | "30m" | "1h" | "1d" | "1w" | "1M";
+export type Range = "1d" | "5d" | "1mo" | "3mo" | "6mo" | "1y" | "max";
+type Interval = "5m" | "15m" | "30m" | "1h" | "1d" | "1w" | "1m";
 type DrawingTool = "trendline" | "rectangle" | "fibonacci";
 
 //================================================================
@@ -159,18 +175,17 @@ const THEME = {
   accent: "#a78bfa",
   inactive: "#6b7280",
 };
-
-const rangeIntervalMap: { [key in Range]: Interval } = {
+const rangeIntervalMap: Record<Range, Interval> = {
   "1d": "5m",
   "5d": "15m",
-  "1mo": "1h",
+  "1mo": "1d",
   "3mo": "1d",
   "6mo": "1d",
-  "1y": "1d",
-  "5y": "1w",
-  max: "1M",
+  "1y": "1w",
+  max: "1m",
 };
-const ranges: Range[] = ["1d", "5d", "1mo", "6mo", "1y", "5y", "max"];
+
+const ranges: Range[] = ["1d", "5d", "1mo", "3mo", "6mo", "1y", "max"];
 const intradayIntervals: Interval[] = ["5m", "15m", "30m", "1h"];
 const FIBONACCI_LEVELS = [
   { level: 0, color: THEME.inactive },
@@ -215,6 +230,7 @@ const initialState: ChartState = {
   zoomDomain: null,
   drawnShapes: [],
   currentDrawing: null,
+  candles: undefined,
 };
 
 function chartReducer(state: ChartState, action: ChartAction): ChartState {
@@ -251,6 +267,20 @@ function chartReducer(state: ChartState, action: ChartAction): ChartState {
             : ind
         ),
       };
+    case "SET_CANDLES": {
+      const timestamps = action.payload.map((d) => new Date(d.time).getTime());
+      const domain: [number, number] = [
+        Math.min(...timestamps),
+        Math.max(...timestamps),
+      ];
+
+      return {
+        ...state,
+        candles: action.payload,
+        zoomDomain: domain,
+      };
+    }
+
     case "TOGGLE_SUBCHART":
       if (action.payload === "volume")
         return { ...state, showVolume: !state.showVolume };
@@ -300,6 +330,7 @@ const calculateSMA = (
               .reduce((acc, val) => acc + val.close, 0) / period,
         }
   );
+
 const calculateEMA = (
   data: ChartData[],
   period: number,
@@ -353,6 +384,7 @@ function StockChartHeader({ stock }: { stock: Stock | null }) {
   const changeColor = isPositive ? `text-emerald-400` : `text-red-400`;
   const bgColor = isPositive ? `bg-emerald-500/10` : `bg-red-500/10`;
   const ChangeIcon = isPositive ? ArrowUp : ArrowDown;
+
   return (
     <div className="mb-4 px-1">
       <h2 className="text-2xl lg:text-3xl font-bold text-white">
@@ -503,93 +535,6 @@ const SubChartCard = ({
   </div>
 );
 
-const VolumeChart = ({ data }: { data: ChartData[] }) => (
-  <ResponsiveContainer width="100%" height={100}>
-    <BarChart
-      data={data}
-      syncId="syncedCharts"
-      margin={{ top: 5, right: 5, left: -25, bottom: 5 }}
-    >
-      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-      <XAxis dataKey="timestamp" hide={true} />
-      <YAxis
-        orientation="left"
-        stroke="#9ca3af"
-        fontSize={10}
-        tickFormatter={(v) => `${(v / 1000000).toFixed(1)}M`}
-      />
-      <Tooltip
-        content={
-          <CustomTooltip
-            active={false}
-            payload={[]}
-            coordinate={{ x: 0, y: 0 }}
-            accessibilityLayer={false}
-          />
-        }
-      />
-      {data.map((entry) => (
-        <Bar
-          key={entry.timestamp}
-          dataKey="volume"
-          fill={entry.isBullish ? THEME.positive : THEME.negative}
-          opacity={0.6}
-        />
-      ))}
-    </BarChart>
-  </ResponsiveContainer>
-);
-
-const RsiChart = ({ data }: { data: ChartData[] }) => (
-  <ResponsiveContainer width="100%" height={100}>
-    <LineChart
-      data={data}
-      syncId="syncedCharts"
-      margin={{ top: 5, right: 5, left: -25, bottom: 5 }}
-    >
-      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-      <XAxis dataKey="timestamp" hide={true} />
-      <YAxis
-        stroke="#9ca3af"
-        fontSize={10}
-        domain={[0, 100]}
-        orientation="left"
-      />
-      <Tooltip wrapperClassName="!text-xs" />
-      <ReferenceLine y={70} stroke={THEME.negative} strokeDasharray="2 2" />
-      <ReferenceLine y={30} stroke={THEME.positive} strokeDasharray="2 2" />
-      <Line type="monotone" dataKey="rsi" stroke="#f97316" dot={false} />
-    </LineChart>
-  </ResponsiveContainer>
-);
-
-const MacdChart = ({ data }: { data: ChartData[] }) => (
-  <ResponsiveContainer width="100%" height={100}>
-    <ComposedChart
-      data={data}
-      syncId="syncedCharts"
-      margin={{ top: 5, right: 5, left: -25, bottom: 5 }}
-    >
-      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-      <XAxis dataKey="timestamp" hide={true} />
-      <YAxis stroke="#9ca3af" fontSize={10} orientation="left" />
-      <Tooltip wrapperClassName="!text-xs" />
-      <ReferenceLine y={0} stroke={THEME.inactive} />
-      <Bar dataKey="histogram">
-        {data.map((entry) => (
-          <Bar
-            key={entry.timestamp}
-            dataKey="histogram"
-            fill={entry.histogram >= 0 ? THEME.positive : THEME.negative}
-          />
-        ))}
-      </Bar>
-      <Line type="monotone" dataKey="macd" stroke="#3b82f6" dot={false} />
-      <Line type="monotone" dataKey="signal" stroke="#ef4444" dot={false} />
-    </ComposedChart>
-  </ResponsiveContainer>
-);
-
 //================================================================
 // 6. MAIN CHART COMPONENT
 //================================================================
@@ -615,9 +560,10 @@ export function AdvancedTradingChart({
     zoomDomain,
     drawnShapes,
     currentDrawing,
+    candles
   } = state;
   const [activeSettings, setActiveSettings] = useState<string | null>(null);
-
+  const [selectedRange, setSelectedRange] = useState<Range>("1d");
   const fullChartData: ChartData[] = useMemo(() => {
     if (!chartCandlestickData || chartCandlestickData.length === 0) return [];
     let data = chartCandlestickData.map((d) => ({
@@ -644,14 +590,41 @@ export function AdvancedTradingChart({
     );
   }, [fullChartData, zoomDomain]);
 
+  const filterMarketHours = (data: CandlestickPoint[]) => {
+    if (range !== "1d") return data;
+
+    return data.filter((d) => {
+      const date = new Date(d.timestamp);
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
+      return (
+        (hours > 9 || (hours === 9 && minutes >= 15)) &&
+        (hours < 15 || (hours === 15 && minutes <= 30))
+      );
+    });
+  };
+  const filteredData = filterMarketHours(chartCandlestickData);
+  const handleRangeChange = (newRange: Range) => {
+    dispatch({ type: "SET_RANGE", payload: newRange });
+  };
+
+  const handleIntervalChange = (newInterval: Interval) => {
+    dispatch({ type: "SET_INTERVAL", payload: newInterval });
+  };
   useEffect(() => {
-    if (symbol) {
-      const newInterval = rangeIntervalMap[range];
-      dispatch({ type: "SET_INTERVAL", payload: newInterval });
-      dispatch({ type: "RESET_VIEW" });
-      getCandlestickData(symbol, range, newInterval);
+    if (chartCandlestickData.length > 0) {
+      dispatch({ type: "SET_CANDLES", payload: chartCandlestickData });
     }
-  }, [symbol, range, getCandlestickData]);
+  }, [chartCandlestickData]);
+
+  // Fetch on range/interval change
+  useEffect(() => {
+    if (!symbol) return;
+    const selectedInterval =
+      range === "1d" ? interval : rangeIntervalMap[range];
+    dispatch({ type: "RESET_VIEW" });
+    getCandlestickData(symbol, range, selectedInterval);
+  }, [symbol, range, interval, getCandlestickData]);
 
   const getCoordinatesFromEvent = (e: any) => {
     if (!e || e.activeLabel === undefined || e.chartY === undefined)
@@ -665,37 +638,47 @@ export function AdvancedTradingChart({
   const handleMouseDown = (e: any) => {
     if (drawingTool && !currentDrawing && e) {
       const coords = getCoordinatesFromEvent(e);
-      if (coords)
-        dispatch({
-          type: "SET_CURRENT_DRAWING",
-          payload: {
-            type: drawingTool,
-            start: coords,
-            end: coords,
-            isDrawing: true,
-          },
-        });
+      if (coords) {
+        const initialDrawing = {
+          type: drawingTool,
+          start: coords,
+          end: coords,
+          isDrawing: true,
+        };
+        drawingRef.current = initialDrawing;
+        dispatch({ type: "SET_CURRENT_DRAWING", payload: initialDrawing });
+      }
     }
   };
+
+  const drawingRef = useRef<any>(null);
+
   const handleMouseMove = (e: any) => {
-    if (drawingTool && currentDrawing && e) {
+    if (drawingTool && drawingRef.current && e) {
       const coords = getCoordinatesFromEvent(e);
-      if (coords)
-        dispatch({
-          type: "SET_CURRENT_DRAWING",
-          payload: { ...currentDrawing, end: coords },
+      if (coords) {
+        drawingRef.current = { ...drawingRef.current, end: coords };
+        // Trigger a single re-render via animation frame
+        requestAnimationFrame(() => {
+          dispatch({
+            type: "SET_CURRENT_DRAWING",
+            payload: drawingRef.current,
+          });
         });
+      }
     }
   };
+
   const handleMouseUp = (e: any) => {
-    if (drawingTool && currentDrawing && e) {
+    if (drawingTool && drawingRef.current && e) {
       const coords = getCoordinatesFromEvent(e);
       const finalShape = {
-        ...currentDrawing,
-        end: coords || currentDrawing.end,
+        ...drawingRef.current,
+        end: coords || drawingRef.current.end,
         isDrawing: false,
       };
       dispatch({ type: "ADD_SHAPE", payload: finalShape });
+      drawingRef.current = null;
       dispatch({ type: "SET_CURRENT_DRAWING", payload: null });
       dispatch({ type: "SET_DRAWING_TOOL", payload: null });
     }
@@ -726,34 +709,155 @@ export function AdvancedTradingChart({
       });
   };
 
-  const formatXAxis = (timestamp: number) => {
-    const date = new Date(timestamp);
-    const visibleDomain =
-      zoomDomain ??
-      (fullChartData.length > 0
-        ? [
-            fullChartData[0].timestamp,
-            fullChartData[fullChartData.length - 1].timestamp,
-          ]
-        : null);
-    if (!visibleDomain) return "";
-    const duration = visibleDomain[1] - visibleDomain[0];
+  const formatXAxis = (
+    timestamp: number,
+    zoomDomain: [number, number] | null,
+    range: Range
+  ): string => {
+    const date = dayjs(timestamp);
+    if (!zoomDomain || zoomDomain.length !== 2) return "";
+    const startYear = dayjs(zoomDomain[0]).year();
 
-    if (duration <= 2 * 24 * 60 * 60 * 1000)
-      return date.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      });
-    if (duration <= 31 * 24 * 60 * 60 * 1000)
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
-    if (duration <= 365 * 24 * 60 * 60 * 1000)
-      return date.toLocaleDateString("en-US", { month: "short" });
-    return date.toLocaleDateString("en-US", { year: "numeric" });
+    switch (range) {
+      case "1d":
+        return date.format("h:mm A"); // 9:30 AM
+      case "5d":
+      case "1mo":
+        return date.format("MMM D"); // Jul 26
+      case "3mo":
+      case "6mo":
+      case "1y":
+        return date.year() !== startYear
+          ? date.format("MMM D, YY")
+          : date.format("MMM D");
+      case "max":
+        return date.format("MMM YY");
+      default:
+        return date.format("MMM D");
+    }
   };
+  const customTicks = useMemo(() => {
+  if (!candles || candles.length === 0) return [];
+
+  const timestamps = candles.map((d: { time: string | number | Date; }) => new Date(d.time).getTime());
+  const min = Math.min(...timestamps);
+  const max = Math.max(...timestamps);
+
+  const ticks: number[] = [];
+
+  if (range === "1d") {
+    // ⏱ For 1D: show every 30 minutes
+    const step = 30 * 60 * 1000;
+    for (let t = min; t <= max; t += step) {
+      ticks.push(t);
+    }
+  } else {
+    // 📆 For 5D and above: remove duplicate date labels
+    const step = Math.floor((max - min) / 12); // 10–12 ticks
+    const labelSet = new Set<string>();
+
+    for (let t = min; t <= max; t += step) {
+      const label = formatXAxis(t, [min, max], range);
+      if (!labelSet.has(label)) {
+        labelSet.add(label);
+        ticks.push(t);
+      }
+    }
+  }
+
+  return ticks;
+}, [candles, range]);
+
+
+  const VolumeChart = ({ data }: { data: ChartData[] }) => (
+    <ResponsiveContainer width="100%" height={100}>
+      <BarChart
+        data={data}
+        syncId="syncedCharts"
+        margin={{ top: 5, right: 5, left: -25, bottom: 5 }}
+      >
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="rgba(255, 255, 255, 0.1)"
+        />
+        <XAxis dataKey="timestamp" hide={true} />
+        <YAxis
+          orientation="left"
+          stroke="#9ca3af"
+          fontSize={10}
+          tickFormatter={(v) => `${(v / 1000000).toFixed(1)}M`}
+        />
+        <Tooltip
+          content={
+            <CustomTooltip
+              active={false}
+              payload={[]}
+              coordinate={{ x: 0, y: 0 }}
+              accessibilityLayer={false}
+            />
+          }
+        />
+        {data.map((entry) => (
+          <Bar
+            key={entry.timestamp}
+            dataKey="volume"
+            fill={entry.isBullish ? THEME.positive : THEME.negative}
+            opacity={0.6}
+          />
+        ))}
+      </BarChart>
+    </ResponsiveContainer>
+  );
+
+  const RsiChart = ({ data }: { data: ChartData[] }) => (
+    <ResponsiveContainer width="100%" height={100}>
+      <LineChart
+        data={filteredData}
+        syncId="syncedCharts"
+        margin={{ top: 5, right: 5, left: -25, bottom: 5 }}
+      >
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="rgba(255, 255, 255, 0.1)"
+        />
+        <XAxis dataKey="timestamp" hide={true} />
+        <YAxis
+          stroke="#9ca3af"
+          fontSize={10}
+          domain={[0, 100]}
+          orientation="left"
+        />
+        <Tooltip wrapperClassName="!text-xs" />
+        <ReferenceLine y={70} stroke={THEME.negative} strokeDasharray="2 2" />
+        <ReferenceLine y={30} stroke={THEME.positive} strokeDasharray="2 2" />
+        <Line type="monotone" dataKey="rsi" stroke="#f97316" dot={false} />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+
+  // const MacdChart = ({ data }: { data: ChartData[] }) => (
+  //   <ResponsiveContainer width="100%" height={400}>
+  //     <LineChart data={filteredData}>
+  //       <XAxis
+  //         dataKey="timestamp"
+  //         domain={zoomDomain || ["dataMin", "dataMax"]}
+  //         type="number"
+  //         tickFormatter={(tick) => formatXAxis(tick, zoomDomain,range)}
+  //       />
+  //       <YAxis dataKey="close" domain={["auto", "auto"]} />
+  //       <Tooltip
+  //         labelFormatter={(label) => dayjs(label).format("MMM D, YYYY h:mm A")}
+  //       />
+  //       <Line
+  //         type="monotone"
+  //         dataKey="close"
+  //         stroke="#22c55e"
+  //         dot={false}
+  //         strokeWidth={2}
+  //       />
+  //     </LineChart>
+  //   </ResponsiveContainer>
+  // );
 
   if (isChartLoading)
     return (
@@ -860,14 +964,14 @@ export function AdvancedTradingChart({
                 <XAxis
                   dataKey="timestamp"
                   type="number"
-                  scale="time"
-                  domain={zoomDomain ?? ["dataMin", "dataMax"]}
-                  stroke="#9ca3af"
-                  fontSize={12}
-                  allowDataOverflow
-                  tickLine={{ stroke: "rgba(255, 255, 255, 0.2)" }}
-                  tickFormatter={formatXAxis}
+                  domain={zoomDomain ?? ["auto", "auto"]}
+                  ticks={customTicks}
+                  tickFormatter={(tick) => formatXAxis(tick, zoomDomain, range)}
+                  tick={{ fill: "#aaa", fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
                 />
+
                 <YAxis
                   stroke="#9ca3af"
                   fontSize={12}
@@ -1032,7 +1136,7 @@ export function AdvancedTradingChart({
         </div>
       </div>
 
-      <div className="space-y-2">
+      {/*  <div className="space-y-2">
         {showVolume && (
           <SubChartCard
             title="Volume"
@@ -1063,7 +1167,7 @@ export function AdvancedTradingChart({
             <MacdChart data={visibleChartData} />
           </SubChartCard>
         )}
-      </div>
+      </div>*/}
     </div>
   );
 }

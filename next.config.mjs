@@ -9,6 +9,13 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-}
+  webpack: (config) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      canvas: false, // ✅ prevents Node 'canvas' module usage
+    };
+    return config;
+  },
+};
 
-export default nextConfig
+export default nextConfig;

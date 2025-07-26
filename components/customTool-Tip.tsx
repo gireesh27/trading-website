@@ -11,10 +11,17 @@ type ChartData = {
   volume: number;
 };
 
+type CustomTooltipProps = TooltipContentProps<ValueType, NameType> & {
+  drawingTool: string | null;
+};
+
 export const CustomTooltip = ({
   active,
   payload,
-}: TooltipContentProps<ValueType, NameType>) => {
+  drawingTool,
+}: CustomTooltipProps) => {
+  if (drawingTool) return null; // ✅ Hide during drawing
+
   if (
     active &&
     payload &&
@@ -52,5 +59,6 @@ export const CustomTooltip = ({
 
   return null;
 };
+
 
 export default CustomTooltip;

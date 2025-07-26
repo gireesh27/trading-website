@@ -53,6 +53,11 @@ import {
 import dayjs from "dayjs";
 import advancedFormat from "dayjs/plugin/advancedFormat";
 import isToday from "dayjs/plugin/isToday";
+import dynamic from "next/dynamic";
+const DrawingCanvas = dynamic(() => import("./DrawingCanva"), {
+  ssr: false,
+});
+
 dayjs.extend(advancedFormat);
 dayjs.extend(isToday);
 
@@ -163,7 +168,26 @@ type ChartAction =
 type ChartType = "candlestick" | "line" | "area";
 export type Range = "1d" | "5d" | "1mo" | "3mo" | "6mo" | "1y" | "max";
 type Interval = "5m" | "15m" | "30m" | "1h" | "1d" | "1w" | "1m";
-type DrawingTool = "trendline" | "rectangle" | "fibonacci";
+type DrawingTool =
+  | "trendline"
+  | "rectangle"
+  | "fibonacci"
+  | "arrow"
+  | "text"
+  | "line";
+
+type ShapeType = "line" | "rectangle" | "arrow" | "text";
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface Shape {
+  type: ShapeType;
+  start: Point;
+  end: Point;
+}
 
 //================================================================
 // 2. CONSTANTS & THEME
@@ -247,6 +271,7 @@ function chartReducer(state: ChartState, action: ChartAction): ChartState {
       return { ...state, chartType: action.payload };
     case "SET_DRAWING_TOOL":
       return { ...state, drawingTool: action.payload, currentDrawing: null };
+
     case "TOGGLE_INDICATOR":
       return {
         ...state,
@@ -429,6 +454,7 @@ const CustomCandle = (props: any) => {
 };
 
 const DrawnShapes = ({
+  // This component renders the drawn shapes on the chart.
   shapes,
   chartRef,
 }: {
@@ -481,14 +507,23 @@ const DrawnShapes = ({
             />
           );
         if (shape.type === "fibonacci") {
-          const priceRange = Math.abs(shape.start.y - shape.end.y);
-          const minPrice = Math.min(shape.start.y, shape.end.y);
+          const x1 = xScale(shape.start.x);
+          const x2 = xScale(shape.end.x);
+
+          const yStart = shape.start.y;
+          const yEnd = shape.end.y;
+
+          const priceRange = yStart - yEnd;
+          const direction = priceRange >= 0 ? 1 : -1;
+
           return (
             <g key={index}>
               {FIBONACCI_LEVELS.map((fib) => {
-                const y = yScale(minPrice + priceRange * fib.level);
-                const x1 = Math.min(startX, endX);
-                const x2 = Math.max(startX, endX);
+                const level =
+                  yEnd + direction * Math.abs(priceRange) * fib.level;
+                const y = yScale(level);
+                if (isNaN(x1) || isNaN(x2) || isNaN(y)) return null;
+
                 return (
                   <React.Fragment key={fib.level}>
                     <line
@@ -497,11 +532,17 @@ const DrawnShapes = ({
                       x2={x2}
                       y2={y}
                       stroke={fib.color}
-                      strokeDasharray="5 5"
+                      strokeDasharray="4 2"
                       strokeWidth={1}
                     />
-                    <text x={x1 + 5} y={y - 5} fill={fib.color} fontSize="10">
-                      {fib.level.toFixed(3)}
+                    <text
+                      x={x1 + 4}
+                      y={y - 4}
+                      fill={fib.color}
+                      fontSize={10}
+                      fontWeight={500}
+                    >
+                      {(fib.level * 100).toFixed(1)}%
                     </text>
                   </React.Fragment>
                 );
@@ -509,6 +550,28 @@ const DrawnShapes = ({
             </g>
           );
         }
+        if (shape.type === "arrow") {
+          const x1 = xScale(shape.start.x);
+          const y1 = yScale(shape.start.y);
+          const x2 = xScale(shape.end.x);
+          const y2 = yScale(shape.end.y);
+
+          if ([x1, y1, x2, y2].some((v) => isNaN(v))) return null;
+
+          return (
+            <line
+              key={index}
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              stroke="yellow"
+              strokeWidth={2}
+            />
+          );
+        }
+
+        // If the shape type is 'arrow', render a line with a specific color and width.
         return null;
       })}
     </g>
@@ -560,10 +623,34 @@ export function AdvancedTradingChart({
     zoomDomain,
     drawnShapes,
     currentDrawing,
-    candles
+    candles,
   } = state;
   const [activeSettings, setActiveSettings] = useState<string | null>(null);
   const [selectedRange, setSelectedRange] = useState<Range>("1d");
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [chartWidth, setChartWidth] = useState(800); // fallback value
+  const [shapes, setShapes] = useState<Shape[]>([]);
+  const [history, setHistory] = useState<Shape[][]>([]);
+  const [redoStack, setRedoStack] = useState<Shape[][]>([]);
+
+  const undo = () => {
+    if (history.length === 0) return;
+    const prevShapes = history[history.length - 1];
+    const newHistory = history.slice(0, -1);
+    setRedoStack([shapes, ...redoStack]);
+    setShapes(prevShapes);
+    setHistory(newHistory);
+  };
+
+  const redo = () => {
+    if (redoStack.length === 0) return;
+    const nextShapes = redoStack[0];
+    const newRedoStack = redoStack.slice(1);
+    setHistory([...history, shapes]);
+    setShapes(nextShapes);
+    setRedoStack(newRedoStack);
+  };
+
   const fullChartData: ChartData[] = useMemo(() => {
     if (!chartCandlestickData || chartCandlestickData.length === 0) return [];
     let data = chartCandlestickData.map((d) => ({
@@ -625,7 +712,11 @@ export function AdvancedTradingChart({
     dispatch({ type: "RESET_VIEW" });
     getCandlestickData(symbol, range, selectedInterval);
   }, [symbol, range, interval, getCandlestickData]);
-
+  useEffect(() => {
+    if (chartContainerRef.current) {
+      setChartWidth(chartContainerRef.current.offsetWidth);
+    }
+  }, []);
   const getCoordinatesFromEvent = (e: any) => {
     if (!e || e.activeLabel === undefined || e.chartY === undefined)
       return null;
@@ -636,37 +727,47 @@ export function AdvancedTradingChart({
   };
 
   const handleMouseDown = (e: any) => {
-    if (drawingTool && !currentDrawing && e) {
-      const coords = getCoordinatesFromEvent(e);
-      if (coords) {
-        const initialDrawing = {
-          type: drawingTool,
-          start: coords,
-          end: coords,
-          isDrawing: true,
-        };
-        drawingRef.current = initialDrawing;
-        dispatch({ type: "SET_CURRENT_DRAWING", payload: initialDrawing });
-      }
+    if (!drawingTool) return;
+
+    const coords = getCoordinatesFromEvent(e);
+    if (!coords) return;
+
+    if (!drawingRef.current) {
+      // ✅ First click: set start
+      const initial = {
+        type: drawingTool,
+        start: coords,
+        end: coords,
+        isDrawing: true,
+      };
+      drawingRef.current = initial;
+      dispatch({ type: "SET_CURRENT_DRAWING", payload: initial });
+    } else {
+      // ✅ Second click: finalize drawing
+      const final = {
+        ...drawingRef.current,
+        end: coords,
+        isDrawing: false,
+      };
+      dispatch({ type: "ADD_SHAPE", payload: final });
+      dispatch({ type: "SET_CURRENT_DRAWING", payload: null });
+      drawingRef.current = null;
+      dispatch({ type: "SET_DRAWING_TOOL", payload: null }); // Exit drawing mode
     }
   };
 
   const drawingRef = useRef<any>(null);
 
   const handleMouseMove = (e: any) => {
-    if (drawingTool && drawingRef.current && e) {
-      const coords = getCoordinatesFromEvent(e);
-      if (coords) {
-        drawingRef.current = { ...drawingRef.current, end: coords };
-        // Trigger a single re-render via animation frame
-        requestAnimationFrame(() => {
-          dispatch({
-            type: "SET_CURRENT_DRAWING",
-            payload: drawingRef.current,
-          });
-        });
-      }
-    }
+    if (!drawingTool || !drawingRef.current) return;
+
+    const coords = getCoordinatesFromEvent(e);
+    if (!coords) return;
+
+    drawingRef.current = { ...drawingRef.current, end: coords };
+    requestAnimationFrame(() => {
+      dispatch({ type: "SET_CURRENT_DRAWING", payload: drawingRef.current });
+    });
   };
 
   const handleMouseUp = (e: any) => {
@@ -737,37 +838,38 @@ export function AdvancedTradingChart({
     }
   };
   const customTicks = useMemo(() => {
-  if (!candles || candles.length === 0) return [];
+    if (!candles || candles.length === 0) return [];
 
-  const timestamps = candles.map((d: { time: string | number | Date; }) => new Date(d.time).getTime());
-  const min = Math.min(...timestamps);
-  const max = Math.max(...timestamps);
+    const timestamps = candles.map((d: { time: string | number | Date }) =>
+      new Date(d.time).getTime()
+    );
+    const min = Math.min(...timestamps);
+    const max = Math.max(...timestamps);
 
-  const ticks: number[] = [];
+    const ticks: number[] = [];
 
-  if (range === "1d") {
-    // ⏱ For 1D: show every 30 minutes
-    const step = 30 * 60 * 1000;
-    for (let t = min; t <= max; t += step) {
-      ticks.push(t);
-    }
-  } else {
-    // 📆 For 5D and above: remove duplicate date labels
-    const step = Math.floor((max - min) / 12); // 10–12 ticks
-    const labelSet = new Set<string>();
-
-    for (let t = min; t <= max; t += step) {
-      const label = formatXAxis(t, [min, max], range);
-      if (!labelSet.has(label)) {
-        labelSet.add(label);
+    if (range === "1d") {
+      // ⏱ For 1D: show every 30 minutes
+      const step = 30 * 60 * 1000;
+      for (let t = min; t <= max; t += step) {
         ticks.push(t);
       }
+    } else {
+      // 📆 For 5D and above: remove duplicate date labels
+      const step = Math.floor((max - min) / 12); // 10–12 ticks
+      const labelSet = new Set<string>();
+
+      for (let t = min; t <= max; t += step) {
+        const label = formatXAxis(t, [min, max], range);
+        if (!labelSet.has(label)) {
+          labelSet.add(label);
+          ticks.push(t);
+        }
+      }
     }
-  }
 
-  return ticks;
-}, [candles, range]);
-
+    return ticks;
+  }, [candles, range]);
 
   const VolumeChart = ({ data }: { data: ChartData[] }) => (
     <ResponsiveContainer width="100%" height={100}>
@@ -794,6 +896,7 @@ export function AdvancedTradingChart({
               payload={[]}
               coordinate={{ x: 0, y: 0 }}
               accessibilityLayer={false}
+              drawingTool={null}
             />
           }
         />
@@ -906,10 +1009,7 @@ export function AdvancedTradingChart({
           )}
         </div>
 
-        <div
-          className="relative"
-          style={{ cursor: drawingTool ? "crosshair" : "default" }}
-        >
+        <div className="relative" ref={chartContainerRef}>
           <div className="absolute top-2 right-2 z-20 flex gap-1 bg-gray-900/50 backdrop-blur-sm rounded-md">
             <Button
               size="icon"
@@ -933,158 +1033,190 @@ export function AdvancedTradingChart({
               <p>No data available.</p>
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={400}>
-              <ComposedChart
-                ref={mainChartRef}
-                data={visibleChartData}
-                syncId="syncedCharts"
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-              >
-                <defs>
-                  <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor={THEME.positive}
-                      stopOpacity={0.4}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor={THEME.positive}
-                      stopOpacity={0}
-                    />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="rgba(255, 255, 255, 0.1)"
-                />
-                <XAxis
-                  dataKey="timestamp"
-                  type="number"
-                  domain={zoomDomain ?? ["auto", "auto"]}
-                  ticks={customTicks}
-                  tickFormatter={(tick) => formatXAxis(tick, zoomDomain, range)}
-                  tick={{ fill: "#aaa", fontSize: 12 }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-
-                <YAxis
-                  stroke="#9ca3af"
-                  fontSize={12}
-                  orientation="left"
-                  domain={["auto", "auto"]}
-                  tickFormatter={(v) =>
-                    `$${typeof v === "number" ? v.toFixed(2) : v}`
-                  }
-                  allowDataOverflow
-                  tickLine={{ stroke: "rgba(255, 255, 255, 0.2)" }}
-                />
-                <Tooltip
-                  content={
-                    <CustomTooltip
-                      active={false}
-                      payload={[]}
-                      coordinate={{ x: 0, y: 0 }}
-                      accessibilityLayer={false}
-                    />
-                  }
-                  cursor={{ stroke: "#9ca3af", strokeDasharray: "3 3" }}
-                  wrapperStyle={{ outline: "none" }}
-                />
-                {indicatorSettings.map(
-                  (ind) =>
-                    ind.enabled && (
-                      <Line
-                        key={ind.id}
-                        type="monotone"
-                        dataKey={ind.id}
-                        stroke={ind.color}
-                        dot={false}
-                        strokeWidth={1.5}
+            <>
+              <ResponsiveContainer width="100%" height={400}>
+                <ComposedChart
+                  ref={mainChartRef}
+                  data={visibleChartData}
+                  syncId="syncedCharts"
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                >
+                  <defs>
+                    <linearGradient
+                      id="areaGradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor={THEME.positive}
+                        stopOpacity={0.4}
                       />
-                    )
-                )}
-                {chartType === "area" && (
-                  <Area
-                    type="monotone"
-                    dataKey="close"
-                    stroke={THEME.positive}
-                    strokeWidth={2}
-                    fill="url(#areaGradient)"
+                      <stop
+                        offset="95%"
+                        stopColor={THEME.positive}
+                        stopOpacity={0}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(255, 255, 255, 0.1)"
                   />
-                )}
-                {chartType === "candlestick" && (
-                  <Bar
-                    dataKey="open"
-                    shape={(props: any) => <CustomCandle {...props} />}
-                    isAnimationActive={false}
+                  <XAxis
+                    dataKey="timestamp"
+                    type="number"
+                    domain={zoomDomain ?? ["auto", "auto"]}
+                    ticks={customTicks}
+                    tickFormatter={(tick) =>
+                      formatXAxis(tick, zoomDomain, range)
+                    }
+                    tick={{ fill: "#aaa", fontSize: 12 }}
+                    tickLine={false}
+                    axisLine={false}
                   />
-                )}
-                {chartType === "line" && (
-                  <Line
-                    type="monotone"
-                    dataKey="close"
-                    stroke={THEME.positive}
-                    strokeWidth={2}
-                    dot={false}
+
+                  <YAxis
+                    stroke="#9ca3af"
+                    fontSize={12}
+                    orientation="left"
+                    domain={["auto", "auto"]}
+                    tickFormatter={(v) =>
+                      `$${typeof v === "number" ? v.toFixed(2) : v}`
+                    }
+                    allowDataOverflow
+                    tickLine={{ stroke: "rgba(255, 255, 255, 0.2)" }}
                   />
-                )}
-                <Customized
-                  component={DrawnShapes}
-                  shapes={[
-                    ...drawnShapes,
-                    ...(currentDrawing ? [currentDrawing] : []),
-                  ]}
-                  chartRef={mainChartRef}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
+                  <Tooltip
+                    content={
+                      <CustomTooltip
+                        drawingTool={drawingTool}
+                        active={false}
+                        payload={[]}
+                        coordinate={{ x: 0, y: 0 }}
+                        accessibilityLayer={false}
+                      />
+                    }
+                    cursor={
+                      drawingTool
+                        ? false
+                        : { stroke: "#9ca3af", strokeDasharray: "3 3" }
+                    }
+                    wrapperStyle={{
+                      outline: "none",
+                      display: drawingTool ? "none" : "block",
+                    }}
+                  />
+
+                  {indicatorSettings.map(
+                    (ind) =>
+                      ind.enabled && (
+                        <Line
+                          key={ind.id}
+                          type="monotone"
+                          dataKey={ind.id}
+                          stroke={ind.color}
+                          dot={false}
+                          strokeWidth={1.5}
+                        />
+                      )
+                  )}
+                  {chartType === "area" && (
+                    <Area
+                      type="monotone"
+                      dataKey="close"
+                      stroke={THEME.positive}
+                      strokeWidth={2}
+                      fill="url(#areaGradient)"
+                    />
+                  )}
+                  {chartType === "candlestick" && (
+                    <Bar
+                      dataKey="open"
+                      shape={(props: any) => <CustomCandle {...props} />}
+                      isAnimationActive={false}
+                    />
+                  )}
+                  {chartType === "line" && (
+                    <Line
+                      type="monotone"
+                      dataKey="close"
+                      stroke={THEME.positive}
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  )}
+                  <DrawnShapes
+                    shapes={[
+                      ...drawnShapes,
+                      ...(currentDrawing ? [currentDrawing] : []),
+                    ]}
+                    chartRef={mainChartRef}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+              <DrawingCanvas
+                width={chartWidth}
+                height={400}
+                drawingTool={
+                  drawingTool === "trendline"
+                    ? "line"
+                    : drawingTool === "fibonacci"
+                    ? "line"
+                    : drawingTool
+                }
+                shapes={shapes}
+                setShapes={setShapes}
+                history={history}
+                setHistory={setHistory} // ✅ REQUIRED
+                redoStack={redoStack}
+                setRedoStack={setRedoStack}
+              />
+            </>
           )}
         </div>
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 mt-4 pt-4 border-t border-gray-700/50">
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex flex-wrap items-center justify-end gap-2 mt-4">
+            {/* Drawing tool buttons */}
             <Button
-              variant={drawingTool === "trendline" ? "secondary" : "outline"}
-              size="sm"
+              variant={drawingTool === "line" ? "secondary" : "outline"}
               onClick={() =>
-                dispatch({ type: "SET_DRAWING_TOOL", payload: "trendline" })
+                dispatch({ type: "SET_DRAWING_TOOL", payload: "line" })
               }
             >
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Trendline
+              Line
             </Button>
             <Button
               variant={drawingTool === "rectangle" ? "secondary" : "outline"}
-              size="sm"
               onClick={() =>
                 dispatch({ type: "SET_DRAWING_TOOL", payload: "rectangle" })
               }
             >
-              <Maximize className="h-4 w-4 mr-2" />
               Rectangle
             </Button>
             <Button
-              variant={drawingTool === "fibonacci" ? "secondary" : "outline"}
-              size="sm"
+              variant={drawingTool === "arrow" ? "secondary" : "outline"}
               onClick={() =>
-                dispatch({ type: "SET_DRAWING_TOOL", payload: "fibonacci" })
+                dispatch({ type: "SET_DRAWING_TOOL", payload: "arrow" })
               }
             >
-              <Percent className="h-4 w-4 mr-2" />
-              Fibonacci
+              Arrow
             </Button>
             <Button
-              variant="destructive"
-              size="icon"
-              onClick={() => dispatch({ type: "CLEAR_SHAPES" })}
+              variant={drawingTool === "text" ? "secondary" : "outline"}
+              onClick={() =>
+                dispatch({ type: "SET_DRAWING_TOOL", payload: "text" })
+              }
             >
-              <Trash2 className="h-4 w-4" />
+              Text
             </Button>
           </div>
+
           <div className="flex items-center gap-x-4 gap-y-2 flex-wrap lg:border-l lg:border-gray-700 lg:ml-2 lg:pl-4">
             {indicatorSettings.map((ind) => (
               <div

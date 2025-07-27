@@ -166,8 +166,7 @@ type ChartAction =
   | { type: "RESET_VIEW" };
 
 type ChartType = "candlestick" | "line" | "area";
-export type Range = "1d" | "5d" | "1mo" | "3mo" | "6mo" | "1y" | "max";
-type Interval = "5m" | "15m" | "30m" | "1h" | "1d" | "1w" | "1m";
+
 type DrawingTool =
   | "trendline"
   | "rectangle"
@@ -215,10 +214,33 @@ interface Shape {
   start: Point;
   end: Point;
 }
-
+export type Range =
+  | "1d"
+  | "5d"
+  | "1mo"
+  | "3mo"
+  | "6mo"
+  | "1y"
+  | "2y"
+  | "5y"
+  | "max";
+type Interval = "5m" | "15m" | "30m" | "1h" | "1d" | "1mo" | "3mo";
 //================================================================
 // 2. CONSTANTS & THEME
 //================================================================
+const ranges: Range[] = ["1d", "5d", "1mo", "3mo", "6mo", "1y","2y","5y", "max"];
+const intradayIntervals: Interval[] = ["5m", "15m", "30m", "1h"];
+const rangeIntervalMap: Record<Range, Interval> = {
+  "1d": "5m",
+  "5d": "15m",
+  "1mo": "1d",
+  "3mo": "1d",
+  "6mo": "1d",
+  "1y": "1d",
+  "2y": "1mo",
+  "5y": "1mo",
+  "max": "3mo",
+};
 
 const THEME = {
   positive: "#22c55e",
@@ -226,18 +248,6 @@ const THEME = {
   accent: "#a78bfa",
   inactive: "#6b7280",
 };
-const rangeIntervalMap: Record<Range, Interval> = {
-  "1d": "5m",
-  "5d": "15m",
-  "1mo": "1d",
-  "3mo": "1d",
-  "6mo": "1d",
-  "1y": "1w",
-  max: "1m",
-};
-
-const ranges: Range[] = ["1d", "5d", "1mo", "3mo", "6mo", "1y", "max"];
-const intradayIntervals: Interval[] = ["5m", "15m", "30m", "1h"];
 const FIBONACCI_LEVELS = [
   { level: 0, color: THEME.inactive },
   { level: 0.236, color: "#fbbf24" },
@@ -660,7 +670,7 @@ export function AdvancedTradingChart({
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [history, setHistory] = useState<Shape[][]>([]);
   const [redoStack, setRedoStack] = useState<Shape[][]>([]);
-  
+
   function getPixelCandles(
     candles: {
       time: number;
@@ -690,28 +700,27 @@ export function AdvancedTradingChart({
   }
   const pixelCandles = getPixelCandles(candles, chartWidth, chartHeight);
 
+  // const undo = () => {
+  //   if (history.length === 0) return;
+  //   const prevShapes = history[history.length - 1];
+  //   setRedoStack([shapes, ...redoStack]);
+  //   setShapes(prevShapes);
+  //   setHistory(history.slice(0, -1));
+  // };
 
-  const undo = () => {
-    if (history.length === 0) return;
-    const prevShapes = history[history.length - 1];
-    setRedoStack([shapes, ...redoStack]);
-    setShapes(prevShapes);
-    setHistory(history.slice(0, -1));
-  };
+  // const redo = () => {
+  //   if (redoStack.length === 0) return;
+  //   const nextShapes = redoStack[0];
+  //   setHistory([...history, shapes]);
+  //   setShapes(nextShapes);
+  //   setRedoStack(redoStack.slice(1));
+  // };
 
-  const redo = () => {
-    if (redoStack.length === 0) return;
-    const nextShapes = redoStack[0];
-    setHistory([...history, shapes]);
-    setShapes(nextShapes);
-    setRedoStack(redoStack.slice(1));
-  };
-
-  const clearAll = () => {
-    setHistory([...history, shapes]);
-    setRedoStack([]);
-    setShapes([]);
-  };
+  // const clearAll = () => {
+  //   setHistory([...history, shapes]);
+  //   setRedoStack([]);
+  //   setShapes([]);
+  // };
 
   const fullChartData: ChartData[] = useMemo(() => {
     if (!chartCandlestickData || chartCandlestickData.length === 0) return [];
@@ -772,8 +781,9 @@ export function AdvancedTradingChart({
     const selectedInterval =
       range === "1d" ? interval : rangeIntervalMap[range];
     dispatch({ type: "RESET_VIEW" });
-    getCandlestickData(symbol, range, selectedInterval);
+    getCandlestickData(symbol, range, selectedInterval); // ✅ use mapped interval
   }, [symbol, range, interval, getCandlestickData]);
+
   useEffect(() => {
     if (chartContainerRef.current) {
       setChartWidth(chartContainerRef.current.offsetWidth);
@@ -890,16 +900,20 @@ export function AdvancedTradingChart({
         return date.format("MMM D"); // Jul 26
       case "3mo":
       case "6mo":
+        return date.format("MMM D"); // Jul 26
       case "1y":
+      case "2y":
         return date.year() !== startYear
-          ? date.format("MMM D, YY")
+          ? date.format("MMM D [ ']YY")
           : date.format("MMM D");
+      case "5y":
       case "max":
-        return date.format("MMM YY");
+        return date.format("MMM YY"); // Jan 24
       default:
         return date.format("MMM D");
     }
   };
+
   const customTicks = useMemo(() => {
     if (!candles || candles.length === 0) return [];
 

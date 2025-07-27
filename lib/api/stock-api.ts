@@ -119,6 +119,29 @@ export class StockAPI {
   ): Promise<{ chartData: CandlestickData[]; apiResponse: any }> {
     console.log(`Fetching chart data for ${symbol} with range: ${range}, interval: ${interval}`);
 
+    if (interval === "5m") {
+      // Validate 5m allowed only for last 60 days
+      const now = Date.now();
+      const sixtyDaysMs = 60 * 24 * 60 * 60 * 1000;
+      const minTimestamp = now - sixtyDaysMs;
+
+      const rangeToDuration: Record<string, number> = {
+        "1d": 1,
+        "5d": 5,
+        "1mo": 30,
+        "3mo": 90,
+        "6mo": 180,
+        "1y": 365,
+        "2y": 730,
+        "5y": 1825,
+      };
+
+      const daysRequested = rangeToDuration[range] ?? 365;
+      if (daysRequested > 60) {
+        throw new Error("5m interval is not supported for ranges beyond 60 days. Use 15m, 1d instead.");
+      }
+    }
+
     const data = await this.fetchFromRapidApi<{
       chart: { result: ChartApiResponse[] | null; error?: { description?: string; message?: string } };
     }>(

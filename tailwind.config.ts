@@ -13,6 +13,7 @@ const config: Config = {
   theme: {
   	extend: {
   		colors: {
+			 darkMode: "class",
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {

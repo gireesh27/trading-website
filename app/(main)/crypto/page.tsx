@@ -1,14 +1,14 @@
 "use client";
-import { MainNav } from "@/components/main-nav";
 import FooterTime from "./FooterTime";
-import {
-  useMarketData,
-} from "@/contexts/enhanced-market-data-context";
+import { useMarketData } from "@/contexts/enhanced-market-data-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cryptoApi } from "@/lib/api/crypto-api"; // ensure correct path
+import type { CryptoData } from "@/types/crypto-types";
+
 import {
   Search,
   Filter,
@@ -20,100 +20,98 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import CountUp from "react-countup";
-
-interface CryptoData {
+import {
+  AdvancedTradingChart,
+  CandlestickPoint,
+} from "@/components/advanced-trading-chart";
+import { stockApi } from "@/lib/api/stock-api";
+import { useRouter } from "next/navigation";
+export interface CryptoQuote {
   symbol: string;
   name: string;
   price: number;
   change: number;
   changePercent: number;
-  change24h?: number;
-  volume: number;
-  marketCap: number;
-  high: number;
-  low: number;
-  rank?: number;
-  dominance?: number;
+  volume?: number;
+  marketCap?: number;
+  high?: number;
+  low?: number;
+  rank?: number; // ✅ Add this
+  dominance?: number; // ✅ And this (if you use it)
 }
+const getCleanSymbol = (raw: string): string =>
+  raw.replace("-USD", "").toUpperCase();
+
+const normalizeToYahooSymbol = (clean: string): string => `${clean}-USD`;
 
 export default function CryptoPage() {
-  const {
-    // `stocks` is removed as it was unused
-    selectedStock,
-    candlestickData,
-    technicalIndicators,
-    isLoading,
-    error,
-    selectStock,
-    getCandlestickData,
-    refreshData,
-  } = useMarketData();
+  const { selectedStock, isLoading, error, selectStock, refreshData } =
+    useMarketData();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<
     "price" | "change" | "volume" | "marketCap"
   >("marketCap");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-
+  const [chartCandlestickData, setChartCandlestickData] = useState<
+    CandlestickPoint[]
+  >([]);
   const ITEMS_PER_PAGE = 12;
   const [overviewPage, setOverviewPage] = useState(1);
   const [tablePage, setTablePage] = useState(1);
   const [activeTab, setActiveTab] = useState<"overview" | "table">("overview");
-
   const [allCryptoData, setAllCryptoData] = useState<CryptoData[]>([]);
   const [loadingPage, setLoadingPage] = useState(false);
   const [hasMoreData, setHasMoreData] = useState(true);
-  // New state for handling fetch-specific errors
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const router = useRouter();
+
+  const handleSelect = (crypto: CryptoData) => {
+    const clean = getCleanSymbol(crypto.symbol);
+    const normalized = normalizeToYahooSymbol(clean);
+
+    console.log("🔁 Redirecting to:", `/crypto/${normalized}`); // ✅ check output
+
+    router.push(`/crypto/${normalized}`);
+  };
 
   const fetchCryptoData = useCallback(
     async (page: number, replace: boolean = false) => {
       setLoadingPage(true);
-      if (replace) {
-        setFetchError(null); // Clear previous errors on a fresh load
-      }
+      if (replace) setFetchError(null);
+
       try {
-        const response = await fetch(
-          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&sparkline=false&price_change_percentage=24h`
-        );
+        const quotes = await cryptoApi.getMultipleCryptoQuotes();
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch crypto data");
-        }
+        const normalized: CryptoData[] = quotes.map((q) => ({
+          symbol: q.symbol,
+          name: q.name,
+          price: q.price,
+          change: q.change,
+          changePercent: q.changePercent,
+          volume: q.volume,
+          marketCap: q.marketCap ?? 0,
+          high: q.high,
+          low: q.low,
+          rank: q.rank,
+          dominance: q.dominance,
+        }));
 
-        const data = await response.json();
-        
-        if (data.length < ITEMS_PER_PAGE) {
+        if (normalized.length < ITEMS_PER_PAGE) {
           setHasMoreData(false);
         }
 
-        const mapped: CryptoData[] = data.map((coin: any) => ({
-          symbol: coin.symbol.toUpperCase(),
-          name: coin.name,
-          price: coin.current_price,
-          change: coin.price_change_24h,
-          changePercent: coin.price_change_percentage_24h,
-          volume: coin.total_volume,
-          marketCap: coin.market_cap,
-          high: coin.high_24h,
-          low: coin.low_24h,
-          rank: coin.market_cap_rank,
-        }));
-
         setAllCryptoData((prev) => {
-          if (replace) {
-            return mapped;
-          } else {
-            const existingSymbols = new Set(prev.map((crypto) => crypto.symbol));
-            const newData = mapped.filter(
-              (crypto) => !existingSymbols.has(crypto.symbol)
-            );
-            return [...prev, ...newData];
-          }
+          if (replace) return normalized;
+
+          const existingSymbols = new Set(prev.map((crypto) => crypto.symbol));
+          const newData = normalized.filter(
+            (crypto) => !existingSymbols.has(crypto.symbol)
+          );
+          return [...prev, ...newData];
         });
       } catch (error) {
-        console.error("Error fetching crypto data:", error);
-        // Set the specific error message for the UI
+        console.error("❌ Error in fetchCryptoData:", error);
         setFetchError("Failed to fetch crypto data. Please try again later.");
       } finally {
         setLoadingPage(false);
@@ -121,16 +119,6 @@ export default function CryptoPage() {
     },
     []
   );
-
-  useEffect(() => {
-    fetchCryptoData(1, true);
-  }, [fetchCryptoData]);
-
-  // New useEffect to reset pagination when search or sort changes
-  useEffect(() => {
-    setOverviewPage(1);
-    setTablePage(1);
-  }, [searchTerm, sortBy, sortOrder]);
 
   const handleOverviewPageChange = useCallback(
     (newPage: number) => {
@@ -154,7 +142,7 @@ export default function CryptoPage() {
     setTablePage((prev) => prev + 1);
     fetchCryptoData(nextPage, false);
   }, [allCryptoData.length, fetchCryptoData]);
-  
+
   const filteredAndSortedData = allCryptoData
     .filter(
       (crypto) =>
@@ -207,9 +195,21 @@ export default function CryptoPage() {
     fetchCryptoData(1, true);
   }, [refreshData, fetchCryptoData]);
 
+  //use Effect Hooks
+  useEffect(() => {
+    fetchCryptoData(1, true);
+  }, [fetchCryptoData]);
+
+  useEffect(() => {
+    if (activeTab === "overview") {
+      setOverviewPage(1);
+    } else if (activeTab === "table") {
+      setTablePage(1);
+    }
+  }, [searchTerm, sortBy, sortOrder, activeTab]);
+
   return (
     <div className="min-h-screen bg-[#131722]">
-      <MainNav />
       <div className="container mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
@@ -360,7 +360,7 @@ export default function CryptoPage() {
                       </div>
                     ))}
                   </div>
-                ) : (error || fetchError) ? ( // Check both context error and fetchError
+                ) : error || fetchError ? ( // Check both context error and fetchError
                   <div className="text-center py-8">
                     <p className="text-red-400 mb-4">{fetchError || error}</p>
                     <Button onClick={handleRefresh}>Retry</Button>
@@ -370,71 +370,71 @@ export default function CryptoPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {overviewData.map((crypto) => (
                         <div
-                         key={`${crypto.symbol}-${crypto.rank || crypto.name}`}
+                          key={`${crypto.symbol}-${crypto.rank || crypto.name}`}
                           className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-colors cursor-pointer"
-                          onClick={() => selectStock(crypto.symbol + "-USD")}
+                          onClick={() => handleSelect(crypto)}
                         >
-                           <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center space-x-2">
-                                <h3 className="text-white font-semibold">
+                              <h3 className="text-white font-semibold">
                                 {crypto.name} ({crypto.symbol})
-                                </h3>
-                                {crypto.rank && crypto.rank <= 10 && (
+                              </h3>
+                              {crypto.rank && crypto.rank <= 10 && (
                                 <Badge variant="secondary" className="text-xs">
-                                    #{crypto.rank}
+                                  #{crypto.rank}
                                 </Badge>
-                                )}
+                              )}
                             </div>
                             <div
-                                className={`text-sm font-medium ${
+                              className={`text-sm font-medium ${
                                 crypto.changePercent >= 0
-                                    ? "text-green-500"
-                                    : "text-red-500"
-                                }`}
+                                  ? "text-green-500"
+                                  : "text-red-500"
+                              }`}
                             >
-                                {crypto.changePercent >= 0 ? "+" : ""}
-                                {crypto.changePercent.toFixed(2)}%
+                              {crypto.changePercent >= 0 ? "+" : ""}
+                              {crypto.changePercent.toFixed(2)}%
                             </div>
-                            </div>
-                            <div className="flex items-center justify-between mt-2">
+                          </div>
+                          <div className="flex items-center justify-between mt-2">
                             <span className="text-white text-lg font-bold">
-                                $
-                                {crypto.price.toLocaleString(undefined, {
+                              $
+                              {crypto.price.toLocaleString(undefined, {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: crypto.price < 1 ? 6 : 2,
-                                })}
+                              })}
                             </span>
-                            </div>
-                            <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-400">
+                          </div>
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-400">
                             <div>
-                                <span className="block">Volume</span>
-                                <span className="text-white">
+                              <span className="block">Volume</span>
+                              <span className="text-white">
                                 {formatLargeNumber(crypto.volume)}
-                                </span>
+                              </span>
                             </div>
                             <div>
-                                <span className="block">Market Cap</span>
-                                <span className="text-white">
+                              <span className="block">Market Cap</span>
+                              <span className="text-white">
                                 {crypto.marketCap
-                                    ? formatLargeNumber(crypto.marketCap)
-                                    : "N/A"}
-                                </span>
+                                  ? formatLargeNumber(crypto.marketCap)
+                                  : "N/A"}
+                              </span>
                             </div>
-                            </div>
-                            <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-400">
+                          </div>
+                          <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-400">
                             <div>
-                                <span className="block">24h High</span>
-                                <span className="text-green-400">
+                              <span className="block">24h High</span>
+                              <span className="text-green-400">
                                 ${crypto.high.toFixed(2)}
-                                </span>
+                              </span>
                             </div>
                             <div>
-                                <span className="block">24h Low</span>
-                                <span className="text-red-400">
+                              <span className="block">24h Low</span>
+                              <span className="text-red-400">
                                 ${crypto.low.toFixed(2)}
-                                </span>
+                              </span>
                             </div>
-                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -465,7 +465,7 @@ export default function CryptoPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {(error || fetchError) ? (
+                {error || fetchError ? (
                   <div className="text-center py-8">
                     <p className="text-red-400 mb-4">{fetchError || error}</p>
                     <Button onClick={handleRefresh}>Retry</Button>
@@ -476,53 +476,106 @@ export default function CryptoPage() {
                       <table className="w-full">
                         <thead>
                           <tr className="border-b border-gray-700">
-                            <th className="text-left py-3 px-4 text-gray-400">#</th>
-                            <th className="text-left py-3 px-4 text-gray-400">Name</th>
-                            <th className="text-right py-3 px-4 text-gray-400">Price</th>
-                            <th className="text-right py-3 px-4 text-gray-400">24h Change</th>
-                            <th className="text-right py-3 px-4 text-gray-400">Volume</th>
-                            <th className="text-right py-3 px-4 text-gray-400">Market Cap</th>
+                            <th className="text-left py-3 px-4 text-gray-400">
+                              #
+                            </th>
+                            <th className="text-left py-3 px-4 text-gray-400">
+                              Name
+                            </th>
+                            <th className="text-right py-3 px-4 text-gray-400">
+                              Price
+                            </th>
+                            <th className="text-right py-3 px-4 text-gray-400">
+                              24h Change
+                            </th>
+                            <th className="text-right py-3 px-4 text-gray-400">
+                              Volume
+                            </th>
+                            <th className="text-right py-3 px-4 text-gray-400">
+                              Market Cap
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
-                          {isLoading && allCryptoData.length === 0 ? (
-                            [...Array(ITEMS_PER_PAGE)].map((_, i) => (
-                              <tr key={i} className="border-b border-gray-800 animate-pulse">
-                                <td className="py-4 px-4"><div className="h-4 bg-gray-700 rounded w-1/2"></div></td>
-                                <td className="py-4 px-4"><div className="h-4 bg-gray-700 rounded"></div></td>
-                                <td className="py-4 px-4 text-right"><div className="h-4 bg-gray-700 rounded w-3/4 ml-auto"></div></td>
-                                <td className="py-4 px-4 text-right"><div className="h-4 bg-gray-700 rounded w-1/2 ml-auto"></div></td>
-                                <td className="py-4 px-4 text-right"><div className="h-4 bg-gray-700 rounded w-3/4 ml-auto"></div></td>
-                                <td className="py-4 px-4 text-right"><div className="h-4 bg-gray-700 rounded w-3/4 ml-auto"></div></td>
-                              </tr>
-                            ))
-                          ) : tableData.length > 0 ? (
-                            tableData.map((crypto) => (
-                              <tr
-                                key={`${crypto.symbol}-${crypto.rank || crypto.name}`}
-                                className="border-b border-gray-700 hover:bg-gray-700 cursor-pointer transition-colors"
-                                onClick={() => selectStock(crypto.symbol + "-USD")}
-                              >
-                                <td className="py-3 px-4 text-gray-400">{crypto.rank}</td>
-                                <td className="py-3 px-4 text-white font-semibold">
-                                  {crypto.name}
-                                  <span className="block text-xs text-gray-400">{crypto.symbol}</span>
-                                </td>
-                                <td className="py-3 px-4 text-right text-white">${crypto.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: crypto.price < 1 ? 6 : 2})}</td>
-                                <td className={`py-3 px-4 text-right font-medium ${crypto.changePercent >= 0 ? "text-green-500" : "text-red-500"}`}>
-                                  {crypto.changePercent >= 0 ? "+" : ""}{crypto.changePercent.toFixed(2)}%
-                                </td>
-                                <td className="py-3 px-4 text-right text-white">{formatLargeNumber(crypto.volume)}</td>
-                                <td className="py-3 px-4 text-right text-white">{formatLargeNumber(crypto.marketCap)}</td>
-                              </tr>
-                            ))
-                          ) : null}
+                          {isLoading && allCryptoData.length === 0
+                            ? [...Array(ITEMS_PER_PAGE)].map((_, i) => (
+                                <tr
+                                  key={i}
+                                  className="border-b border-gray-800 animate-pulse"
+                                >
+                                  <td className="py-4 px-4">
+                                    <div className="h-4 bg-gray-700 rounded w-1/2"></div>
+                                  </td>
+                                  <td className="py-4 px-4">
+                                    <div className="h-4 bg-gray-700 rounded"></div>
+                                  </td>
+                                  <td className="py-4 px-4 text-right">
+                                    <div className="h-4 bg-gray-700 rounded w-3/4 ml-auto"></div>
+                                  </td>
+                                  <td className="py-4 px-4 text-right">
+                                    <div className="h-4 bg-gray-700 rounded w-1/2 ml-auto"></div>
+                                  </td>
+                                  <td className="py-4 px-4 text-right">
+                                    <div className="h-4 bg-gray-700 rounded w-3/4 ml-auto"></div>
+                                  </td>
+                                  <td className="py-4 px-4 text-right">
+                                    <div className="h-4 bg-gray-700 rounded w-3/4 ml-auto"></div>
+                                  </td>
+                                </tr>
+                              ))
+                            : tableData.length > 0
+                            ? tableData.map((crypto) => (
+                                <tr
+                                  key={`${crypto.symbol}-${
+                                    crypto.rank || crypto.name
+                                  }`}
+                                  className="border-b border-gray-700 hover:bg-gray-700 cursor-pointer transition-colors"
+                                  onClick={() => handleSelect(crypto)}
+                                >
+                                  <td className="py-3 px-4 text-gray-400">
+                                    {crypto.rank}
+                                  </td>
+                                  <td className="py-3 px-4 text-white font-semibold">
+                                    {crypto.name}
+                                    <span className="block text-xs text-gray-400">
+                                      {crypto.symbol}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 px-4 text-right text-white">
+                                    $
+                                    {crypto.price.toLocaleString(undefined, {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits:
+                                        crypto.price < 1 ? 6 : 2,
+                                    })}
+                                  </td>
+                                  <td
+                                    className={`py-3 px-4 text-right font-medium ${
+                                      crypto.changePercent >= 0
+                                        ? "text-green-500"
+                                        : "text-red-500"
+                                    }`}
+                                  >
+                                    {crypto.changePercent >= 0 ? "+" : ""}
+                                    {crypto.changePercent.toFixed(2)}%
+                                  </td>
+                                  <td className="py-3 px-4 text-right text-white">
+                                    {formatLargeNumber(crypto.volume)}
+                                  </td>
+                                  <td className="py-3 px-4 text-right text-white">
+                                    {formatLargeNumber(crypto.marketCap)}
+                                  </td>
+                                </tr>
+                              ))
+                            : null}
                         </tbody>
                       </table>
                     </div>
                     {!loadingPage && tableData.length === 0 && !fetchError && (
                       <div className="text-center py-8">
-                        <p className="text-gray-400">No cryptocurrencies found.</p>
+                        <p className="text-gray-400">
+                          No cryptocurrencies found.
+                        </p>
                       </div>
                     )}
                     {loadingPage && allCryptoData.length > 0 && (
@@ -548,7 +601,9 @@ export default function CryptoPage() {
             >
               Previous
             </Button>
-            <span className="text-sm text-gray-400">Page {overviewPage} of {totalPages || 1}</span>
+            <span className="text-sm text-gray-400">
+              Page {overviewPage} of {totalPages || 1}
+            </span>
             <Button
               variant="outline"
               onClick={() => handleOverviewPageChange(overviewPage + 1)}
@@ -561,7 +616,7 @@ export default function CryptoPage() {
         )}
 
         {/* Table Load More */}
-        {activeTab === "table" && canLoadMoreTable && !fetchError &&(
+        {activeTab === "table" && canLoadMoreTable && !fetchError && (
           <div className="flex justify-center mt-6">
             <Button
               variant="default"
@@ -581,130 +636,19 @@ export default function CryptoPage() {
           </div>
         )}
 
-        {/* Selected Crypto Details */}
+        {/* Selected Crypto Details
         {selectedStock && selectedStock.symbol.includes("-USD") && (
-          <Card className="bg-gray-800 border-gray-700 mt-6">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center justify-between">
-                <span>
-                  {selectedStock.name} ({selectedStock.symbol})
-                </span>
-                <div className="flex items-center space-x-4">
-                  <span className="text-2xl font-bold">
-                    ${selectedStock.price.toLocaleString()}
-                  </span>
-                  <span
-                    className={`text-lg font-medium ${
-                      selectedStock.changePercent >= 0
-                        ? "text-green-500"
-                        : "text-red-500"
-                    }`}
-                  >
-                    {selectedStock.changePercent >= 0 ? "+" : ""}
-                    {selectedStock.changePercent.toFixed(2)}%
-                  </span>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-gray-700 rounded-lg p-4">
-                  <p className="text-gray-400 text-sm">24h Change</p>
-                  <p
-                    className={`text-lg font-semibold ${
-                      selectedStock.change >= 0
-                        ? "text-green-500"
-                        : "text-red-500"
-                    }`}
-                  >
-                    {selectedStock.change >= 0 ? "+" : ""}$
-                    {selectedStock.change.toFixed(2)}
-                  </p>
-                </div>
-                <div className="bg-gray-700 rounded-lg p-4">
-                  <p className="text-gray-400 text-sm">Volume</p>
-                  <p className="text-white text-lg font-semibold">
-                    {formatLargeNumber(selectedStock.volume)}
-                  </p>
-                </div>
-                <div className="bg-gray-700 rounded-lg p-4">
-                  <p className="text-gray-400 text-sm">24h High</p>
-                  <p className="text-green-400 text-lg font-semibold">
-                    ${selectedStock.high.toFixed(2)}
-                  </p>
-                </div>
-                <div className="bg-gray-700 rounded-lg p-4">
-                  <p className="text-gray-400 text-sm">24h Low</p>
-                  <p className="text-red-400 text-lg font-semibold">
-                    ${selectedStock.low.toFixed(2)}
-                  </p>
-                </div>
-              </div>
-              {candlestickData.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-white text-lg font-semibold mb-4">
-                    Price Chart
-                  </h3>
-                  <div className="bg-gray-700 rounded-lg p-4 h-64 flex items-center justify-center">
-                    <p className="text-gray-400">
-                      Chart visualization would go here
-                      <br />
-                      <span className="text-sm">
-                        Data points: {candlestickData.length} | Latest: $
-                        {candlestickData[
-                          candlestickData.length - 1
-                        ]?.close.toFixed(2)}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-              )}
-              {technicalIndicators && (
-                <div className="mt-6">
-                  <h3 className="text-white text-lg font-semibold mb-4">
-                    Technical Indicators
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-gray-700 rounded-lg p-3">
-                      <p className="text-gray-400 text-sm">RSI</p>
-                      <p className="text-white font-semibold">
-                        {technicalIndicators.rsi?.[
-                          technicalIndicators.rsi.length - 1
-                        ]?.toFixed(2) ?? "N/A"}
-                      </p>
-                    </div>
-                    <div className="bg-gray-700 rounded-lg p-3">
-                      <p className="text-gray-400 text-sm">SMA (20)</p>
-                      <p className="text-white font-semibold">
-                        $
-                        {technicalIndicators.sma20?.[
-                          technicalIndicators.sma20.length - 1
-                        ]?.toFixed(2) ?? "N/A"}
-                      </p>
-                    </div>
-                    <div className="bg-gray-700 rounded-lg p-3">
-                      <p className="text-gray-400 text-sm">EMA (12)</p>
-                      <p className="text-white font-semibold">
-                        $
-                        {technicalIndicators.ema12?.[
-                          technicalIndicators.ema12.length - 1
-                        ]?.toFixed(2) ?? "N/A"}
-                      </p>
-                    </div>
-                    <div className="bg-gray-700 rounded-lg p-3">
-                      <p className="text-gray-400 text-sm">MACD</p>
-                      <p className="text-white font-semibold">
-                        {technicalIndicators.macd?.line?.[
-                          technicalIndicators.macd.line.length - 1
-                        ]?.toFixed(4) ?? "N/A"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+          <div className="mt-6">
+            <AdvancedTradingChart
+              symbol={selectedStock.symbol}
+              selectedStock={selectedStock}
+              chartCandlestickData={chartCandlestickData}
+              isChartLoading={loadingPage}
+              getCandlestickData={loadChartData}
+              range="1mo"
+            />
+          </div>
+        )} */}
 
         <FooterTime />
       </div>

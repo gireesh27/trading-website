@@ -72,15 +72,18 @@ export interface Stock {
   exchange?: string
   sector?: string
   marketCap?: number
+  
   isWatchlisted?: boolean
 }
 
 export interface CandlestickPoint {
-  time: string
-  open: number
-  high: number
-  low: number
-  close: number
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  timestamp: number; // <-- Required by AdvancedTradingChart
 }
 
 export interface AdvancedTradingChartProps {

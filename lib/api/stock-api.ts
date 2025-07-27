@@ -1,3 +1,5 @@
+// File: stock-api.ts
+
 export interface CandlestickData {
   time: string;
   open: number;
@@ -18,6 +20,10 @@ export interface StockQuote {
   low?: number;
   open?: number;
   previousClose?: number;
+  volume?: number;
+  marketCap?: number;
+  rank?: number;
+  dominance?: number;
 }
 
 export interface ChartApiResponse {
@@ -66,18 +72,26 @@ export class StockAPI {
         },
       });
 
+      // Handle Rate Limit (429)
       if (response.status === 429 && retries > 0) {
         console.warn(`⚠️ RapidAPI rate limit hit. Retrying in ${backoff}ms...`);
         await new Promise((res) => setTimeout(res, backoff));
         return this.fetchFromRapidApi<T>(url, options, retries - 1, backoff * 2);
       }
 
+      const contentType = response.headers.get("content-type");
       const text = await response.text();
-      if (!text) {
-        throw new Error("Received empty response from RapidAPI");
+
+      if (!text.trim()) {
+        throw new Error(`Received empty response from RapidAPI for URL: ${url}`);
       }
 
-      return JSON.parse(text);
+      try {
+        const json = JSON.parse(text);
+        return json;
+      } catch (jsonErr) {
+        throw new Error(`Invalid JSON from RapidAPI: ${text}`);
+      }
 
     } catch (err: any) {
       console.error("❌ fetchFromRapidApi error:", err.message || err);
@@ -85,15 +99,10 @@ export class StockAPI {
     }
   }
 
-  private async fetchFromFinnhub<T>(
-    endpoint: string,
-    retries = 2,
-    backoff = 300
-  ): Promise<T> {
+
+  private async fetchFromFinnhub<T>(endpoint: string, retries = 2, backoff = 300): Promise<T> {
     try {
-      const response = await fetch(
-        `https://finnhub.io/api/v1/${endpoint}&token=${this.finnhubApiKey}`
-      );
+      const response = await fetch(`https://finnhub.io/api/v1/${endpoint}&token=${this.finnhubApiKey}`);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -105,22 +114,16 @@ export class StockAPI {
         throw new Error("Received empty response from Finnhub API");
       }
       return JSON.parse(text);
-
     } catch (err: any) {
       console.error("❌ Finnhub fetch error:", err.message || err);
       throw err;
     }
   }
 
-  public async getFullChartData(
-    symbol: string,
-    range: string,
-    interval: string
-  ): Promise<{ chartData: CandlestickData[]; apiResponse: any }> {
+  public async getFullChartData(symbol: string, range: string, interval: string): Promise<{ chartData: CandlestickData[]; apiResponse: any }> {
     console.log(`Fetching chart data for ${symbol} with range: ${range}, interval: ${interval}`);
 
     if (interval === "5m") {
-      // Validate 5m allowed only for last 60 days
       const now = Date.now();
       const sixtyDaysMs = 60 * 24 * 60 * 60 * 1000;
       const minTimestamp = now - sixtyDaysMs;
@@ -144,9 +147,7 @@ export class StockAPI {
 
     const data = await this.fetchFromRapidApi<{
       chart: { result: ChartApiResponse[] | null; error?: { description?: string; message?: string } };
-    }>(
-      `stock/v3/get-chart?symbol=${symbol}&range=${range}&interval=${interval}`
-    );
+    }>(`stock/v3/get-chart?symbol=${symbol}&range=${range}&interval=${interval}`);
 
     const chartError = data?.chart?.error;
     if (chartError) {
@@ -174,12 +175,12 @@ export class StockAPI {
     return { chartData: formattedData, apiResponse: data };
   }
 
-
   public async getStockQuote(symbol: string): Promise<StockQuote> {
     try {
       const data = await this.fetchFromFinnhub<{
         c: number, d: number, dp: number, h: number,
         l: number, o: number, pc: number,
+        v?: number, marketCapitalization?: number, rank?: number, marketDominance?: number,
       }>(`quote?symbol=${symbol}`);
 
       if (typeof data.c === "undefined" || data.c === 0) {
@@ -190,7 +191,7 @@ export class StockAPI {
       try {
         const profile = await this.fetchFromFinnhub<{ name?: string }>(`stock/profile2?symbol=${symbol}`);
         if (profile.name) companyName = profile.name;
-      } catch (e) { /* Ignore profile errors, use symbol as name */ }
+      } catch (e) { }
 
       return {
         symbol,
@@ -202,8 +203,11 @@ export class StockAPI {
         low: data.l,
         open: data.o,
         previousClose: data.pc,
+        volume: data.v ?? undefined,
+        marketCap: data.marketCapitalization ?? undefined,
+        rank: data.rank ?? undefined,
+        dominance: data.marketDominance ?? undefined,
       };
-
     } catch (err) {
       console.warn(`Finnhub quote failed for ${symbol}, falling back to RapidAPI. Error: ${(err as Error).message}`);
       return this.getQuoteFromRapidAPI(symbol);
@@ -221,6 +225,8 @@ export class StockAPI {
         regularMarketOpen?: { raw: number };
         regularMarketPreviousClose?: { raw: number };
         longName?: string;
+        regularMarketVolume?: { raw: number };
+        marketCap?: { raw: number };
       };
       message?: string;
     }>(`stock/v2/get-summary?symbol=${symbol}&region=US`);
@@ -235,11 +241,13 @@ export class StockAPI {
       name: priceData?.longName || symbol,
       price: priceData?.regularMarketPrice?.raw ?? 0,
       change: priceData?.regularMarketChange?.raw ?? 0,
-      changePercent: (priceData?.regularMarketChangePercent?.raw ?? 0) * 100,
+      changePercent: priceData?.regularMarketChangePercent?.raw ?? 0,
       high: priceData?.regularMarketDayHigh?.raw,
       low: priceData?.regularMarketDayLow?.raw,
       open: priceData?.regularMarketOpen?.raw,
       previousClose: priceData?.regularMarketPreviousClose?.raw,
+      volume: priceData?.regularMarketVolume?.raw,
+      marketCap: priceData?.marketCap?.raw,
     };
   }
 

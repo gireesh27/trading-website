@@ -15,11 +15,12 @@ import {
   CandlestickData,
 } from "@/lib/api/stock-api";
 import { newsAPI, NewsItem } from "@/lib/api/news-api";
-import { cryptoAPI, CryptoQuote } from "@/lib/api/crypto-api";
+import { cryptoApi, CryptoQuote } from "@/lib/api/crypto-api";
 
 interface MarketDataContextType {
   stocks: StockQuote[];
   news: NewsItem[];
+  technicalIndicators: any[];
   crypto: CryptoQuote[];
   candlestickData: CandlestickData[];
   selectedStock: StockQuote | null;
@@ -38,7 +39,16 @@ interface MarketDataContextType {
 }
 
 const MarketDataContext = createContext<MarketDataContextType | undefined>(undefined);
-
+  export interface TechnicalIndicators {
+  rsi?: number[];
+  sma20?: number[];
+  ema12?: number[];
+  macd?: {
+    line?: number[];
+    signal?: number[];
+    histogram?: number[];
+  };
+}
 export const MarketDataProvider = ({ children }: { children: ReactNode }) => {
   const [stocks, setStocks] = useState<StockQuote[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -66,7 +76,7 @@ export const MarketDataProvider = ({ children }: { children: ReactNode }) => {
         const [stockData, newsData, cryptoData] = await Promise.all([
           stockApi.getMultipleQuotes(trackedSymbols),
           newsAPI.getMarketNews("general"),
-          cryptoAPI.getMultipleCryptoQuotes(["BTC", "ETH", "SOL", "ADA"]),
+          cryptoApi.getMultipleCryptoQuotes(["BTC", "ETH", "SOL", "ADA"]),
         ]);
 
         setStocks(stockData);
@@ -135,11 +145,14 @@ export const MarketDataProvider = ({ children }: { children: ReactNode }) => {
     refreshData();
   }, [refreshData]);
 
+
+
   const value: MarketDataContextType = {
     stocks,
     news,
     crypto,
     candlestickData,
+    technicalIndicators: [],
     selectedStock,
     isLoading,
     candlestickLoading,

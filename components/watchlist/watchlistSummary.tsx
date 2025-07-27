@@ -30,7 +30,6 @@ export function WatchlistSummary() {
       item.changePercent < min.changePercent ? item : min
     )
 
-    const avgVolume = items.reduce((sum, item) => sum + item.volume, 0) / items.length
 
     return {
       totalValue,
@@ -41,7 +40,6 @@ export function WatchlistSummary() {
       unchanged: unchanged.length,
       topGainer,
       topLoser,
-      avgVolume,
       totalItems: items.length
     }
   }, [activeWatchlist])
@@ -162,12 +160,6 @@ export function WatchlistSummary() {
 
         {/* Additional Stats */}
         <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-700">
-          <div className="text-center">
-            <p className="text-gray-400 text-xs">Avg Volume</p>
-            <p className="text-white text-sm font-medium">
-              {formatLargeNumber(summary.avgVolume)}
-            </p>
-          </div>
           <div className="text-center">
             <p className="text-gray-400 text-xs">Total Symbols</p>
             <p className="text-white text-sm font-medium">

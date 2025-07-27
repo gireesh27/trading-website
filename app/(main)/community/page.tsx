@@ -98,9 +98,7 @@ export default function CommunityPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#131722] text-white">
-      <MainNav />
-
+    <div className="min-h-screen bg-[rgb(19,23,34)] text-white">
       <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-6">
         <div>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">

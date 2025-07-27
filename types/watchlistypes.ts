@@ -1,3 +1,13 @@
+export interface PriceAlert {
+  id: string;
+  symbol: string;
+  price: number;
+  type: "above" | "below";
+  isActive: boolean;
+  createdAt: string | Date;
+  triggeredAt?: string | Date;
+}
+
 export interface WatchlistItem {
   id: string;
   symbol: string;
@@ -5,10 +15,6 @@ export interface WatchlistItem {
   price: number;
   change: number;
   changePercent: number;
-  volume: number;
-  high: number;
-  low: number;
-  marketCap?: string | number;
   addedAt: Date;
   alerts?: PriceAlert[];
 }
@@ -19,16 +25,7 @@ export interface Watchlist {
   items: WatchlistItem[];
   createdAt: Date;
   updatedAt: Date;
-  isDefault: boolean;
-}
-
-export interface PriceAlert {
-  id: string;
-  symbol: string;
-  type: 'above' | 'below';
-  price: number;
-  isActive: boolean;
-  createdAt: Date;
+  isDefault?: boolean;
 }
 
 export interface WatchlistContextType {

@@ -19,6 +19,7 @@ import {
   BarChart,
   Rectangle,
   CartesianGrid,
+  Cell,
 } from "recharts";
 import {
   NameType,
@@ -39,9 +40,11 @@ import {
   Percent,
   Eye,
   EyeOff,
+  Star,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { CustomTooltip } from "./customTool-Tip";
+import { useWatchlist } from "@/contexts/watchlist-context";
 import {
   ResponsiveContainer,
   LineChart,
@@ -91,6 +94,7 @@ export interface CandlestickPoint {
   close: number;
   volume: number;
 }
+
 
 /**
  * Props for the main AdvancedTradingChart component.
@@ -146,6 +150,25 @@ interface ChartState {
   drawnShapes: any[];
   currentDrawing: any | null;
 }
+export interface ChartData {
+  timestamp: number;
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  isBullish: boolean;
+
+  // Optional computed fields
+  ema12?: number;
+  ema26?: number;
+  macd?: number;
+  signal?: number;
+  histogram?: number;
+  rsi?: number;
+}
+
 
 /**
  * Actions available to modify the chart state.
@@ -228,7 +251,17 @@ type Interval = "5m" | "15m" | "30m" | "1h" | "1d" | "1mo" | "3mo";
 //================================================================
 // 2. CONSTANTS & THEME
 //================================================================
-const ranges: Range[] = ["1d", "5d", "1mo", "3mo", "6mo", "1y","2y","5y", "max"];
+const ranges: Range[] = [
+  "1d",
+  "5d",
+  "1mo",
+  "3mo",
+  "6mo",
+  "1y",
+  "2y",
+  "5y",
+  "max",
+];
 const intradayIntervals: Interval[] = ["5m", "15m", "30m", "1h"];
 const rangeIntervalMap: Record<Range, Interval> = {
   "1d": "5m",
@@ -239,7 +272,7 @@ const rangeIntervalMap: Record<Range, Interval> = {
   "1y": "1d",
   "2y": "1mo",
   "5y": "1mo",
-  "max": "3mo",
+  max: "3mo",
 };
 
 const THEME = {
@@ -383,7 +416,7 @@ const calculateSMA = (
 ): ChartData[] =>
   data.map((d, i) =>
     i < period - 1
-      ? d
+      ? { ...d }
       : {
           ...d,
           [key]:
@@ -400,62 +433,129 @@ const calculateEMA = (
 ): ChartData[] => {
   const k = 2 / (period + 1);
   let ema: number | undefined;
+
   return data.map((d, i) => {
     if (i < period - 1) return { ...d };
-    if (i === period - 1)
+    if (i === period - 1) {
       ema =
         data.slice(0, period).reduce((acc, val) => acc + val.close, 0) / period;
-    else if (ema !== undefined) ema = d.close * k + ema * (1 - k);
+    } else if (ema !== undefined) {
+      ema = d.close * k + ema * (1 - k);
+    }
     return { ...d, [key]: ema };
   });
 };
-const calculateRSI = (data: ChartData[]): ChartData[] =>
-  data.map((d) => ({ ...d, rsi: 50 + Math.random() * 20 - 10 }));
-const calculateMACD = (data: ChartData[]): ChartData[] => {
-  const ema12 = calculateEMA(data, 12, "ema12").map((d) => d.ema12);
-  const ema26 = calculateEMA(data, 26, "ema26").map((d) => d.ema26);
-  let macdData = data.map((d, i) => {
-    if (ema12[i] && ema26[i]) return { ...d, macd: ema12[i] - ema26[i] };
-    return d;
-  });
-  const signalLineData = calculateEMA(
-    macdData.filter((d) => d.macd !== undefined),
-    9,
-    "signal"
-  ).map((d) => d.signal);
-  let signalIndex = 0;
-  return macdData.map((d) => {
-    if (d.macd !== undefined) {
-      const signal = signalLineData[signalIndex];
-      if (signal !== undefined) {
-        signalIndex++;
-        return { ...d, signal: signal, histogram: d.macd - signal };
-      }
+
+
+const calculateRSI = (data: ChartData[], period = 14): ChartData[] => {
+  let gains = 0;
+  let losses = 0;
+
+  return data.map((d, i) => {
+    if (i === 0) return { ...d };
+
+    const diff = d.close - data[i - 1].close;
+    const gain = diff > 0 ? diff : 0;
+    const loss = diff < 0 ? -diff : 0;
+
+    if (i <= period) {
+      gains += gain;
+      losses += loss;
+      return { ...d };
     }
-    return d;
+
+    if (i === period + 1) {
+      const avgGain = gains / period;
+      const avgLoss = losses / period;
+      const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+      const rsi = 100 - 100 / (1 + rs);
+      return { ...d, rsi };
+    }
+
+    gains = (gains * (period - 1) + gain) / period;
+    losses = (losses * (period - 1) + loss) / period;
+
+    const rs = losses === 0 ? 100 : gains / losses;
+    const rsi = 100 - 100 / (1 + rs);
+
+    return { ...d, rsi };
   });
 };
+
+
+const calculateMACD = (data: ChartData[]): ChartData[] => {
+  const ema12Data = calculateEMA(data, 12, "ema12");
+  const ema26Data = calculateEMA(data, 26, "ema26");
+
+  const macdData = data.map((d, i) => {
+    const ema12 = ema12Data[i]?.ema12;
+    const ema26 = ema26Data[i]?.ema26;
+
+    const macd =
+      ema12 !== undefined && ema26 !== undefined ? ema12 - ema26 : undefined;
+
+    return { ...d, macd };
+  });
+
+  const macdOnly = macdData.map((d) =>
+    d.macd !== undefined ? { ...d } : { ...d, macd: undefined }
+  );
+
+  const signalData = calculateEMA(macdOnly, 9, "signal");
+
+  return macdData.map((d, i) => {
+    const signal = signalData[i]?.signal;
+    const histogram =
+      d.macd !== undefined && signal !== undefined
+        ? d.macd - signal
+        : undefined;
+
+    return {
+      ...d,
+      signal,
+      histogram,
+    };
+  });
+};
+
 
 //================================================================
 // 5. HELPER & CUSTOM UI COMPONENTS
 //================================================================
-
-function StockChartHeader({ stock }: { stock: Stock | null }) {
+const { addToWatchlist, activeWatchlist, isLoading } = useWatchlist();
+export function StockChartHeader({ stock }: { stock: Stock | null }) {
   if (!stock) return null;
+
   const isPositive = stock.change && stock.change >= 0;
-  const changeColor = isPositive ? `text-emerald-400` : `text-red-400`;
-  const bgColor = isPositive ? `bg-emerald-500/10` : `bg-red-500/10`;
+  const changeColor = isPositive ? "text-emerald-400" : "text-red-400";
+  const bgColor = isPositive ? "bg-emerald-500/10" : "bg-red-500/10";
   const ChangeIcon = isPositive ? ArrowUp : ArrowDown;
 
   return (
     <div className="mb-4 px-1">
-      <h2 className="text-2xl lg:text-3xl font-bold text-white">
-        {stock.name} <span className="text-gray-400">({stock.symbol})</span>
-      </h2>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <h2 className="text-2xl lg:text-3xl font-bold text-white">
+          {stock.name}{" "}
+          <span className="text-gray-400">({stock.symbol})</span>
+        </h2>
+
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={isLoading}
+          className="text-white border-gray-600 hover:bg-gray-800"
+         onClick={() => activeWatchlist && addToWatchlist(activeWatchlist.id, stock.symbol)}
+        >
+          <Star className="h-4 w-4 mr-2 text-yellow-400" />
+          Add to Watchlist
+        </Button>
+      </div>
+
       <div className="flex flex-col sm:flex-row sm:items-end gap-x-4 gap-y-2 mt-2">
         <p className="text-4xl lg:text-5xl font-bold text-white">
           ${stock.price?.toFixed(2)}
         </p>
+
         <div className={`flex items-center gap-2 ${changeColor}`}>
           <div
             className={`flex items-center gap-1 px-2 py-1 rounded-md text-lg font-semibold ${bgColor}`}
@@ -617,23 +717,39 @@ const DrawnShapes = ({
 
 const SubChartCard = ({
   title,
+  isVisible,
   onToggle,
   children,
 }: {
   title: string;
+  isVisible: boolean;
   onToggle: () => void;
   children: React.ReactNode;
-}) => (
-  <div className="bg-gray-800/50 border-gray-700/50 rounded-lg">
-    <div className="px-4 py-2 flex justify-between items-center border-b border-gray-700/50">
-      <h3 className="text-sm font-semibold text-white">{title}</h3>
-      <button onClick={onToggle} className="text-gray-400 hover:text-white">
-        <EyeOff className="h-4 w-4" />
-      </button>
+}) => {
+  return (
+    <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg">
+      <div className="px-4 py-2 flex justify-between items-center border-b border-gray-700/50">
+        <h3 className="text-sm font-semibold text-white">{title}</h3>
+        <button onClick={onToggle} className="text-gray-400 hover:text-white">
+          {isVisible ? (
+            <EyeOff className="h-4 w-4" />
+          ) : (
+            <Eye className="h-4 w-4" />
+          )}
+        </button>
+      </div>
+      <div className="p-2">
+        {isVisible ? (
+          children
+        ) : (
+          <p className="text-gray-400 text-sm italic">
+            Click above to view the {title} chart.
+          </p>
+        )}
+      </div>
     </div>
-    <div className="p-2">{children}</div>
-  </div>
-);
+  );
+};
 
 //================================================================
 // 6. MAIN CHART COMPONENT
@@ -699,28 +815,6 @@ export function AdvancedTradingChart({
     });
   }
   const pixelCandles = getPixelCandles(candles, chartWidth, chartHeight);
-
-  // const undo = () => {
-  //   if (history.length === 0) return;
-  //   const prevShapes = history[history.length - 1];
-  //   setRedoStack([shapes, ...redoStack]);
-  //   setShapes(prevShapes);
-  //   setHistory(history.slice(0, -1));
-  // };
-
-  // const redo = () => {
-  //   if (redoStack.length === 0) return;
-  //   const nextShapes = redoStack[0];
-  //   setHistory([...history, shapes]);
-  //   setShapes(nextShapes);
-  //   setRedoStack(redoStack.slice(1));
-  // };
-
-  // const clearAll = () => {
-  //   setHistory([...history, shapes]);
-  //   setRedoStack([]);
-  //   setShapes([]);
-  // };
 
   const fullChartData: ChartData[] = useMemo(() => {
     if (!chartCandlestickData || chartCandlestickData.length === 0) return [];
@@ -948,6 +1042,23 @@ export function AdvancedTradingChart({
     return ticks;
   }, [candles, range]);
 
+  const tooltipStyle = {
+    contentStyle: {
+      backgroundColor: "#1f2937", // dark gray
+      border: "1px solid #4b5563", // border gray-600
+      color: "#f9fafb", // text-gray-100
+    },
+    labelStyle: {
+      color: "#f9fafb",
+      fontSize: "12px",
+    },
+    itemStyle: {
+      color: "#f9fafb",
+      fontSize: "12px",
+    },
+    cursor: { fill: "rgba(255, 255, 255, 0.05)" },
+  };
+
   const VolumeChart = ({ data }: { data: ChartData[] }) => (
     <ResponsiveContainer width="100%" height={100}>
       <BarChart
@@ -966,25 +1077,21 @@ export function AdvancedTradingChart({
           fontSize={10}
           tickFormatter={(v) => `${(v / 1000000).toFixed(1)}M`}
         />
-        <Tooltip
-          content={
-            <CustomTooltip
-              active={false}
-              payload={[]}
-              coordinate={{ x: 0, y: 0 }}
-              accessibilityLayer={false}
-              drawingTool={null}
+
+        <Tooltip {...tooltipStyle} />
+        <Bar
+          dataKey="volume"
+          barSize={2}
+          isAnimationActive={false}
+          fill="#22c55e"
+        >
+          {data.map((entry, index) => (
+            <Cell
+              key={`cell-${index}`}
+              fill={entry.isBullish ? THEME.positive : THEME.negative}
             />
-          }
-        />
-        {data.map((entry) => (
-          <Bar
-            key={entry.timestamp}
-            dataKey="volume"
-            fill={entry.isBullish ? THEME.positive : THEME.negative}
-            opacity={0.6}
-          />
-        ))}
+          ))}
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
@@ -992,7 +1099,7 @@ export function AdvancedTradingChart({
   const RsiChart = ({ data }: { data: ChartData[] }) => (
     <ResponsiveContainer width="100%" height={100}>
       <LineChart
-        data={filteredData}
+        data={data}
         syncId="syncedCharts"
         margin={{ top: 5, right: 5, left: -25, bottom: 5 }}
       >
@@ -1001,43 +1108,63 @@ export function AdvancedTradingChart({
           stroke="rgba(255, 255, 255, 0.1)"
         />
         <XAxis dataKey="timestamp" hide={true} />
-        <YAxis
-          stroke="#9ca3af"
-          fontSize={10}
-          domain={[0, 100]}
-          orientation="left"
-        />
-        <Tooltip wrapperClassName="!text-xs" />
+        <YAxis stroke="#9ca3af" fontSize={10} domain={[0, 100]} />
+        <Tooltip {...tooltipStyle} />
         <ReferenceLine y={70} stroke={THEME.negative} strokeDasharray="2 2" />
         <ReferenceLine y={30} stroke={THEME.positive} strokeDasharray="2 2" />
-        <Line type="monotone" dataKey="rsi" stroke="#f97316" dot={false} />
+        <Line
+          type="monotone"
+          dataKey="rsi"
+          stroke="#f97316"
+          dot={false}
+          strokeWidth={1}
+          isAnimationActive={false}
+        />
       </LineChart>
     </ResponsiveContainer>
   );
 
-  // const MacdChart = ({ data }: { data: ChartData[] }) => (
-  //   <ResponsiveContainer width="100%" height={400}>
-  //     <LineChart data={filteredData}>
-  //       <XAxis
-  //         dataKey="timestamp"
-  //         domain={zoomDomain || ["dataMin", "dataMax"]}
-  //         type="number"
-  //         tickFormatter={(tick) => formatXAxis(tick, zoomDomain,range)}
-  //       />
-  //       <YAxis dataKey="close" domain={["auto", "auto"]} />
-  //       <Tooltip
-  //         labelFormatter={(label) => dayjs(label).format("MMM D, YYYY h:mm A")}
-  //       />
-  //       <Line
-  //         type="monotone"
-  //         dataKey="close"
-  //         stroke="#22c55e"
-  //         dot={false}
-  //         strokeWidth={2}
-  //       />
-  //     </LineChart>
-  //   </ResponsiveContainer>
-  // );
+  const MacdChart = ({ data }: { data: ChartData[] }) => (
+    <ResponsiveContainer width="100%" height={150}>
+      <LineChart
+        data={data}
+        syncId="syncedCharts"
+        margin={{ top: 5, right: 5, left: -25, bottom: 5 }} // ✅ add this
+      >
+        <XAxis
+          dataKey="timestamp"
+          domain={zoomDomain || ["dataMin", "dataMax"]}
+          type="number"
+          hide={true}
+        />
+        <YAxis
+          dataKey="macd"
+          domain={["auto", "auto"]}
+          stroke="#9ca3af"
+          fontSize={10}
+          orientation="left"
+          tickLine={{ stroke: "rgba(255, 255, 255, 0.2)" }}
+        />
+        <Tooltip {...tooltipStyle} />
+        <Line
+          type="monotone"
+          dataKey="macd"
+          stroke="#22c55e"
+          dot={false}
+          strokeWidth={2}
+          isAnimationActive={false}
+        />
+        <Line
+          type="monotone"
+          dataKey="signal"
+          stroke="#f97316"
+          dot={false}
+          strokeWidth={1.5}
+          isAnimationActive={false}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  );
 
   if (isChartLoading)
     return (
@@ -1335,39 +1462,36 @@ export function AdvancedTradingChart({
           </div>
         </div>
       </div>
+      {/*lower graphs*/}
+      <div className="space-y-2">
+        <SubChartCard
+          title="Volume"
+          isVisible={showVolume}
+          onToggle={() =>
+            dispatch({ type: "TOGGLE_SUBCHART", payload: "volume" })
+          }
+        >
+          {showVolume ? <VolumeChart data={visibleChartData} /> : null}
+        </SubChartCard>
 
-      {/*  <div className="space-y-2">
-        {showVolume && (
-          <SubChartCard
-            title="Volume"
-            onToggle={() =>
-              dispatch({ type: "TOGGLE_SUBCHART", payload: "volume" })
-            }
-          >
-            <VolumeChart data={visibleChartData} />
-          </SubChartCard>
-        )}
-        {showRSI && (
-          <SubChartCard
-            title="RSI (14)"
-            onToggle={() =>
-              dispatch({ type: "TOGGLE_SUBCHART", payload: "rsi" })
-            }
-          >
-            <RsiChart data={visibleChartData} />
-          </SubChartCard>
-        )}
-        {showMACD && (
-          <SubChartCard
-            title="MACD (12, 26, 9)"
-            onToggle={() =>
-              dispatch({ type: "TOGGLE_SUBCHART", payload: "macd" })
-            }
-          >
-            <MacdChart data={visibleChartData} />
-          </SubChartCard>
-        )}
-      </div>*/}
+        <SubChartCard
+          title="RSI (14)"
+          isVisible={showRSI}
+          onToggle={() => dispatch({ type: "TOGGLE_SUBCHART", payload: "rsi" })}
+        >
+          {showRSI ? <RsiChart data={visibleChartData} /> : null}
+        </SubChartCard>
+
+        <SubChartCard
+          title="MACD (12, 26, 9)"
+          isVisible={showMACD}
+          onToggle={() =>
+            dispatch({ type: "TOGGLE_SUBCHART", payload: "macd" })
+          }
+        >
+          {showMACD ? <MacdChart data={visibleChartData} /> : null}
+        </SubChartCard>
+      </div>
     </div>
   );
 }

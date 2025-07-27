@@ -37,6 +37,17 @@ export interface Portfolio {
   dayChangePercent: number;
 }
 
+export interface ChartData {
+  timestamp: number;
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  isBullish: boolean;
+}
+
 export interface Position {
   id: string;
   symbol: string;

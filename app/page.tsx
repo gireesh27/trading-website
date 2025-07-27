@@ -4,16 +4,32 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingUp, Shield, Zap, BarChart3, Smartphone, Globe } from "lucide-react"
+import { MainNav } from "@/components/main-nav" // ✅ Import MainNav
 import Link from "next/link"
+import {
+  TrendingUp,
+  Shield,
+  Zap,
+  BarChart3,
+  Smartphone,
+  Globe,
+} from "lucide-react"
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+// ... other imports remain unchanged
 
 export default function HomePage() {
   const { user, isLoading } = useAuth()
   const router = useRouter()
-  const [isRedirecting, setIsRedirecting] = useState(false);
 
-  if (isLoading || isRedirecting) {
+  // ✅ Redirect when authenticated
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.push("/dashboard")
+    }
+  }, [user, isLoading, router])
+
+  // ✅ Loading screen
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center">
         <div className="text-center">
@@ -24,9 +40,10 @@ export default function HomePage() {
     )
   }
 
+  // ✅ Fallback marketing landing for unauthenticated users
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
-      {/* Header */}
+      {/* Header (only for guests) */}
       <header className="border-b border-gray-800">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -47,6 +64,7 @@ export default function HomePage() {
           </div>
         </div>
       </header>
+
 
       {/* Hero Section */}
       <section className="py-20">

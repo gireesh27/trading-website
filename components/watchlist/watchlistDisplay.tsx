@@ -11,10 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "@/components/ui/use-toast";
-import {stockApi} from "@/lib/api/stock-api";
+import { stockApi } from "@/lib/api/stock-api";
 
 export function WatchlistDisplay() {
   const {
@@ -23,11 +23,14 @@ export function WatchlistDisplay() {
     deleteWatchlist,
     removeFromWatchlist,
     addToWatchlist,
+    updateWatchlistName,
   } = useWatchlist();
 
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [newWatchlistName, setNewWatchlistName] = useState("");
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editedName, setEditedName] = useState<string>("");
   const [newSymbols, setNewSymbols] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [suggestions, setSuggestions] = useState<Record<string, any[]>>({});
@@ -38,6 +41,13 @@ export function WatchlistDisplay() {
       setNewWatchlistName("");
       setOpen(false);
     }
+  };
+
+  const handleRename = async (id: string) => {
+    if (!editedName.trim()) return;
+    await updateWatchlistName(id, editedName.trim());
+    toast({ title: "Renamed", description: "Watchlist name updated." });
+    setEditId(null);
   };
 
   const handleAddStock = async (watchlistId: string) => {
@@ -60,7 +70,6 @@ export function WatchlistDisplay() {
     setNewSymbols((prev) => ({ ...prev, [watchlistId]: value }));
     setErrors((prev) => ({ ...prev, [watchlistId]: "" }));
 
-    // Suggestions
     try {
       const res = await stockApi.searchSymbol(value);
       setSuggestions((prev) => ({ ...prev, [watchlistId]: res.slice(0, 5) }));
@@ -75,10 +84,7 @@ export function WatchlistDisplay() {
         <h2 className="text-xl font-semibold text-white">Your Watchlists</h2>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button
-              variant="outline"
-              className="text-white border-gray-600 hover:bg-gray-800"
-            >
+            <Button variant="outline" className="text-white border-gray-600 hover:bg-gray-800">
               <Plus className="h-4 w-4 mr-2" /> Create Watchlist
             </Button>
           </DialogTrigger>
@@ -96,18 +102,10 @@ export function WatchlistDisplay() {
                 autoFocus
               />
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setOpen(false)}
-                  className="flex-1 border-gray-600 text-gray-300"
-                >
+                <Button variant="outline" onClick={() => setOpen(false)} className="flex-1 border-gray-600 text-gray-300">
                   Cancel
                 </Button>
-                <Button
-                  onClick={handleCreateWatchlist}
-                  disabled={!newWatchlistName.trim()}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                >
+                <Button onClick={handleCreateWatchlist} disabled={!newWatchlistName.trim()} className="flex-1 bg-blue-600 hover:bg-blue-700">
                   Create
                 </Button>
               </div>
@@ -118,25 +116,43 @@ export function WatchlistDisplay() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {watchlists.map((watchlist) => (
-          <div
-            key={watchlist._id}
-            className="bg-gray-800 border border-gray-700 rounded-xl p-4 space-y-4 shadow-sm"
-          >
+          <div key={watchlist._id} className="bg-gray-800 border border-gray-700 rounded-xl p-4 space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <h3 className="text-white font-semibold">{watchlist.name}</h3>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-400">
-                  {watchlist.items?.length} item{watchlist.items?.length !== 1 ? "s" : ""}
-                </span>
-                <Button
-                  variant="ghost"
-                  className="text-red-500 hover:text-red-700"
-                  size="icon"
-                  onClick={() => deleteWatchlist(watchlist._id)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
+              {editId === watchlist._id ? (
+                <div className="flex gap-2 w-full">
+                  <Input
+                    value={editedName}
+                    onChange={(e) => setEditedName(e.target.value)}
+                    className="bg-gray-700 text-white flex-1"
+                    onKeyDown={(e) => e.key === "Enter" && handleRename(watchlist._id)}
+                    autoFocus
+                  />
+                  <Button size="sm" onClick={() => handleRename(watchlist._id)}>
+                    Save
+                  </Button>
+                </div>
+              ) : (
+                <h3 className="text-white font-semibold">
+                  {watchlist.name}
+                  <button
+                    onClick={() => {
+                      setEditId(watchlist._id);
+                      setEditedName(watchlist.name);
+                    }}
+                    className="ml-2 text-gray-400 hover:text-white"
+                  >
+                    <Pencil className="w-4 h-4 inline" />
+                  </button>
+                </h3>
+              )}
+              <Button
+                variant="ghost"
+                className="text-red-500 hover:text-red-700"
+                size="icon"
+                onClick={() => deleteWatchlist(watchlist._id)}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
             </div>
 
             <div className="space-y-1">
@@ -147,9 +163,7 @@ export function WatchlistDisplay() {
                 onKeyDown={(e) => e.key === "Enter" && handleAddStock(watchlist._id)}
                 className="bg-gray-700 border-gray-600 text-white"
               />
-              {errors[watchlist._id] && (
-                <p className="text-red-500 text-xs ml-1">{errors[watchlist._id]}</p>
-              )}
+              {errors[watchlist._id] && <p className="text-red-500 text-xs ml-1">{errors[watchlist._id]}</p>}
               {suggestions[watchlist._id]?.length > 0 && (
                 <ul className="bg-gray-700 border border-gray-600 rounded-md mt-1 max-h-32 overflow-y-auto text-white text-sm">
                   {suggestions[watchlist._id].map((s) => (
@@ -166,10 +180,7 @@ export function WatchlistDisplay() {
                   ))}
                 </ul>
               )}
-              <Button
-                onClick={() => handleAddStock(watchlist._id)}
-                className="bg-blue-600 hover:bg-blue-700 mt-2"
-              >
+              <Button onClick={() => handleAddStock(watchlist._id)} className="bg-blue-600 hover:bg-blue-700 mt-2">
                 Add
               </Button>
             </div>
@@ -185,7 +196,7 @@ export function WatchlistDisplay() {
                   <div className="text-sm text-gray-300 text-right">
                     <div>{item.name}</div>
                     <div className="text-xs">
-                      ₹{item.price?.toFixed(2) ?? "N/A"} {" "}
+                      ₹{item.price?.toFixed(2) ?? "N/A"}{" "}
                       <span className={(item.change ?? 0) >= 0 ? "text-green-400" : "text-red-400"}>
                         ({(item.changePercent ?? 0).toFixed(2)}%)
                       </span>
@@ -205,9 +216,7 @@ export function WatchlistDisplay() {
                 </div>
               ))}
               {(watchlist.items ?? []).length === 0 && (
-                <p className="text-sm text-gray-400 text-center italic">
-                  No items in this watchlist.
-                </p>
+                <p className="text-sm text-gray-400 text-center italic">No items in this watchlist.</p>
               )}
             </div>
           </div>

@@ -49,4 +49,5 @@ export interface WatchlistContextType {
   exportWatchlist: (id: string) => void;
   importWatchlist: (data: any) => void;
   toggleAlert: (alertId: string, symbol: string) => Promise<void>;
+  updateWatchlistName: (id: string, newName: string) => void;
 }

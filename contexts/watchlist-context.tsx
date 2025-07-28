@@ -262,6 +262,18 @@ const addToWatchlist = async (watchlistId: string, symbol: string) => {
   }
 };
 
+const updateWatchlistName = async (watchlistId: string, newName: string) => {
+  await fetch(`/api/watchlist/${watchlistId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: newName }),
+  });
+
+  // update local state
+  setWatchlists((prev) =>
+    prev.map((w) => (w._id === watchlistId ? { ...w, name: newName } : w))
+  );
+};
 
 
   const toggleAlert = async (alertId: string, symbol: string) => {
@@ -290,6 +302,7 @@ const addToWatchlist = async (watchlistId: string, symbol: string) => {
     addToWatchlist,
     removeFromWatchlist,
     moveItem,
+    updateWatchlistName,
     createAlert,
     toggleAlert,
     deleteAlert,

@@ -1,5 +1,3 @@
-// File: stock-api.ts
-
 export interface CandlestickData {
   time: string;
   open: number;
@@ -72,7 +70,6 @@ export class StockAPI {
         },
       });
 
-      // Handle Rate Limit (429)
       if (response.status === 429 && retries > 0) {
         console.warn(`⚠️ RapidAPI rate limit hit. Retrying in ${backoff}ms...`);
         await new Promise((res) => setTimeout(res, backoff));
@@ -177,40 +174,24 @@ export class StockAPI {
 
   public async getStockQuote(symbol: string): Promise<StockQuote> {
     try {
-      const data = await this.fetchFromFinnhub<{
-        c: number, d: number, dp: number, h: number,
-        l: number, o: number, pc: number,
-        v?: number, marketCapitalization?: number, rank?: number, marketDominance?: number,
-      }>(`quote?symbol=${symbol}`);
-
-      if (typeof data.c === "undefined" || data.c === 0) {
-        throw new Error("Invalid or zero-value quote data from Finnhub, falling back.");
-      }
-
-      let companyName = symbol;
-      try {
-        const profile = await this.fetchFromFinnhub<{ name?: string }>(`stock/profile2?symbol=${symbol}`);
-        if (profile.name) companyName = profile.name;
-      } catch (e) { }
+      const chart = await this.getFullChartData(symbol, "1d", "1d");
+      const latest = chart.chartData[chart.chartData.length - 1];
 
       return {
         symbol,
-        name: companyName,
-        price: data.c,
-        change: data.d,
-        changePercent: data.dp,
-        high: data.h,
-        low: data.l,
-        open: data.o,
-        previousClose: data.pc,
-        volume: data.v ?? undefined,
-        marketCap: data.marketCapitalization ?? undefined,
-        rank: data.rank ?? undefined,
-        dominance: data.marketDominance ?? undefined,
+        name: symbol,
+        price: latest.close,
+        change: latest.close - latest.open,
+        changePercent: ((latest.close - latest.open) / latest.open) * 100,
+        high: latest.high,
+        low: latest.low,
+        open: latest.open,
+        previousClose: latest.open,
+        volume: latest.volume,
       };
     } catch (err) {
-      console.warn(`Finnhub quote failed for ${symbol}, falling back to RapidAPI. Error: ${(err as Error).message}`);
-      return this.getQuoteFromRapidAPI(symbol);
+      console.warn(`getStockQuote failed for ${symbol}: ${(err as Error).message}`);
+      throw err;
     }
   }
 
@@ -273,7 +254,6 @@ export class StockAPI {
   public async getQuote(symbol: string): Promise<StockQuote> {
     return this.getStockQuote(symbol);
   }
-
   public async getMultipleQuotes(symbols: string[]): Promise<StockQuote[]> {
     const promises = symbols.map(symbol =>
       this.getQuote(symbol).catch(err => {

@@ -755,7 +755,7 @@ export function AdvancedTradingChart({
             className="text-white border-gray-600 hover:bg-gray-800"
             onClick={() =>
               activeWatchlist &&
-              addToWatchlist(activeWatchlist.id, stock.symbol)
+              addToWatchlist(activeWatchlist._id, stock.symbol)
             }
           >
             <Star className="h-4 w-4 mr-2 text-yellow-400" />

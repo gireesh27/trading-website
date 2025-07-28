@@ -19,10 +19,11 @@ import {
   Clock,
 } from "lucide-react";
 import { useWatchlist } from "@/contexts/watchlist-context";
-import { PriceAlert, WatchlistItem, Watchlist, WatchlistContextType } from "@/types/watchlistypes";
+import { PriceAlert } from "@/types/watchlistypes";
+import { toast } from "@/components/ui/use-toast";
 
 export function AlertsPanel() {
-  const { watchlists = [], deleteAlert } = useWatchlist(); // default empty array
+  const { watchlists = [], deleteAlert } = useWatchlist();
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
 
   useEffect(() => {
@@ -31,7 +32,9 @@ export function AlertsPanel() {
     (watchlists ?? []).forEach((watchlist) => {
       (watchlist.items ?? []).forEach((item) => {
         if (Array.isArray(item.alerts)) {
-          allAlerts.push(...item.alerts);
+          item.alerts.forEach((alert) => {
+            allAlerts.push({ ...alert, symbol: item.symbol });
+          });
         }
       });
     });
@@ -56,9 +59,23 @@ export function AlertsPanel() {
     }).format(new Date(date));
   };
 
-  const toggleAlert = (alertId: string) => {
-    // Placeholder for toggling alert activation
-    console.log("Toggle alert:", alertId);
+  const toggleAlert = async (alertId: string, symbol: string) => {
+    try {
+      const res = await fetch("/api/watchlist/toggle-alert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ alertId, symbol }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+      toast({ title: "Alert Updated", description: `Status changed.` });
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to update alert",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -147,7 +164,9 @@ export function AlertsPanel() {
                     {!alert.triggeredAt && (
                       <Switch
                         checked={alert.isActive}
-                        onCheckedChange={() => toggleAlert(alert.id)}
+                        onCheckedChange={() =>
+                          toggleAlert(alert.id, alert.symbol)
+                        }
                         className="scale-75"
                       />
                     )}
@@ -155,7 +174,7 @@ export function AlertsPanel() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => deleteAlert?.(alert.id)}
+                      onClick={() => deleteAlert?.(alert.id, alert.symbol)}
                       className="text-gray-400 hover:text-red-400 p-1 h-auto"
                     >
                       <Trash2 className="h-3 w-3" />

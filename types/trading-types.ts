@@ -17,6 +17,15 @@ export interface Order {
   filledAt?: string;
   filledQuantity?: number;
 }
+export type TradingContextType = {
+  portfolio: Portfolio;
+  orders: Order[];
+  placeOrder: (...args: any[]) => Promise<void>;
+  cancelOrder: (orderId: string) => Promise<void>;
+  getPositionBySymbol: (symbol: string) => Position | undefined;
+  isLoading: boolean;
+  refreshOrders: () => Promise<void>; // ✅ Add this
+};
 export interface Transaction {
   id: string;
   symbol: string;

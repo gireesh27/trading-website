@@ -1,73 +1,101 @@
-"use client"
-import { useEffect, useRef } from 'react'
-import { useWatchlist } from '@/contexts/watchlist-context'
-import { PriceAlert } from '@/types/watchlistypes'
+"use client";
+import { useEffect, useRef } from "react";
+import { useWatchlist } from "@/contexts/watchlist-context";
+import { PriceAlert } from "@/types/watchlistypes";
 
 export function useWatchlistNotifications() {
-  const { watchlists } = useWatchlist()
-  const previousPricesRef = useRef<Record<string, number>>({})
-  const notificationPermission = useRef<NotificationPermission>('default')
+  const { watchlists, fetchWatchlists } = useWatchlist();
+  const previousPricesRef = useRef<Record<string, number>>({});
+  const notificationPermission = useRef<NotificationPermission>("default");
 
   useEffect(() => {
-    // Request notification permission
-    if ('Notification' in window) {
+    if ("Notification" in window) {
       Notification.requestPermission().then((permission) => {
-        notificationPermission.current = permission
-      })
+        notificationPermission.current = permission;
+      });
     }
-  }, [])
+  }, []);
 
-  useEffect(() => {
-    // Check for triggered alerts
-    watchlists.forEach(watchlist => {
-      watchlist.items.forEach(item => {
-        const previousPrice = previousPricesRef.current[item.symbol]
-        
-        if (previousPrice !== undefined && item.alerts) {
-          item.alerts.forEach(alert => {
-            if (!alert.isActive || alert.triggeredAt) return
+useEffect(() => {
+  watchlists.forEach((watchlist) => {
+    watchlist.items.forEach((item) => {
+      // Skip if item.price is undefined
+      if (item.price === undefined) return;
 
-            const shouldTrigger = 
-              (alert.type === 'above' && previousPrice < alert.price && item.price >= alert.price) ||
-              (alert.type === 'below' && previousPrice > alert.price && item.price <= alert.price)
+      const previousPrice = previousPricesRef.current[item.symbol];
 
-            if (shouldTrigger) {
-              triggerAlert(alert, item.price)
-            }
-          })
-        }
+      if (previousPrice !== undefined && item.alerts) {
+        item.alerts.forEach((alert) => {
+          if (!alert.isActive || alert.triggeredAt) return;
 
-        previousPricesRef.current[item.symbol] = item.price
-      })
-    })
-  }, [watchlists])
+          const shouldTrigger =
+            (alert.type === "above" &&
+              previousPrice < alert.price &&
+              item.price! >= alert.price) ||
+            (alert.type === "below" &&
+              previousPrice > alert.price &&
+              item.price! <= alert.price);
 
-  const triggerAlert = (alert: PriceAlert, currentPrice: number) => {
+          if (shouldTrigger) {
+            triggerAlert(alert, item.symbol, watchlist._id, item.price!);
+          }
+        });
+      }
+
+      // Save latest price only if it's defined
+      previousPricesRef.current[item.symbol] = item.price!;
+    });
+  });
+}, [watchlists]);
+
+
+  const triggerAlert = async (
+    alert: PriceAlert,
+    symbol: string,
+    watchlistId: string,
+    currentPrice: number
+  ) => {
     // Show browser notification
-    if (notificationPermission.current === 'granted') {
+    if (notificationPermission.current === "granted") {
       new Notification(`Price Alert: ${alert.symbol}`, {
-        body: `${alert.symbol} is now ${alert.type} $${alert.price.toFixed(2)} (Current: $${currentPrice.toFixed(2)})`,
-        icon: '/favicon.ico',
-        tag: alert.id
-      })
+        body: `${alert.symbol} is now ${alert.type} $${alert.price.toFixed(
+          2
+        )} (Current: $${currentPrice.toFixed(2)})`,
+        icon: "/favicon.ico",
+        tag: alert.id,
+      });
     }
 
-    // Play sound (optional)
+    // Play alert sound
     try {
-      const audio = new Audio('/notification-sound.mp3')
-      audio.play().catch(() => {
-        // Ignore audio play errors
-      })
+      const audio = new Audio("/notification-sound.mp3");
+      await audio.play();
     } catch (error) {
-      // Ignore audio errors
+      // ignore audio errors
     }
 
-    // Update alert as triggered
-    // This would typically update the alert in the context
-    console.log('Alert triggered:', alert)
-  }
+    // 🔄 Update backend
+    try {
+      await fetch("/api/watchlist/toggle-alert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          watchlistId,
+          symbol,
+          alertId: alert.id,
+          isActive: false,
+          triggeredAt: new Date().toISOString(),
+        }),
+      });
+
+      // Refresh watchlists from DB
+      fetchWatchlists?.();
+    } catch (err) {
+      console.error("Failed to update triggered alert:", err);
+    }
+  };
 
   return {
-    notificationPermission: notificationPermission.current
-  }
+    notificationPermission: notificationPermission.current,
+  };
 }

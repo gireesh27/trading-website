@@ -10,37 +10,55 @@ import Link from "next/link";
 import { useToast } from "../ui/use-toast";
 
 export function WatchlistWidget() {
-  const {
-    activeWatchlist,
-    addToWatchlist,
-    removeFromWatchlist,
-    isLoading,
-    error,
-  } = useWatchlist();
+  const { activeWatchlist, addToWatchlist, removeFromWatchlist } =
+    useWatchlist();
   const [newSymbol, setNewSymbol] = useState("");
   const { toast } = useToast();
+  const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const handleAddSymbol = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newSymbol || typeof newSymbol !== "string" || !newSymbol.trim())
-      return;
+    if (!newSymbol || !activeWatchlist?._id) return;
 
-    await addToWatchlist(activeWatchlist?.id || "default", newSymbol.trim());
+    const symbol = newSymbol.trim().toUpperCase();
+    setLoadingId("add");
 
-    if (error) {
-      toast({
-        title: "Error",
-        description: error,
-        variant: "destructive",
-      });
-    } else {
+    try {
+      await addToWatchlist(activeWatchlist._id, symbol);
       toast({
         title: "Success",
-        description: `${newSymbol
-          .trim()
-          .toUpperCase()} added to your watchlist.`,
+        description: `${symbol} added to your watchlist.`,
       });
       setNewSymbol("");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to add symbol",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const handleRemoveSymbol = async (symbol: string) => {
+    if (!activeWatchlist?._id) return;
+    setLoadingId(symbol);
+
+    try {
+      await removeFromWatchlist(activeWatchlist._id, symbol);
+      toast({
+        title: "Removed",
+        description: `${symbol.toUpperCase()} removed from your watchlist.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to remove symbol",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingId(null);
     }
   };
 
@@ -63,16 +81,16 @@ export function WatchlistWidget() {
               className="pl-10 bg-gray-700 border-gray-600 text-white"
             />
           </div>
-          <Button type="submit" size="icon" disabled={isLoading}>
+          <Button type="submit" size="icon" disabled={loadingId === "add"}>
             <Plus className="h-4 w-4" />
           </Button>
         </form>
 
         <div className="space-y-2 max-h-96 overflow-y-auto">
-          {activeWatchlist && activeWatchlist.items.length > 0 ? (
+          {activeWatchlist?.items?.length ? (
             activeWatchlist.items.map((item) => (
               <div
-                key={item.id}
+                key={item.symbol}
                 className="flex items-center justify-between p-3 bg-gray-700 rounded-lg hover:bg-gray-600"
               >
                 <Link
@@ -88,16 +106,18 @@ export function WatchlistWidget() {
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-white">
-                        ${item.price?.toFixed(2) || "N/A"}
+                        ${item.price?.toFixed(2) ?? "N/A"}
                       </p>
                       <p
                         className={`text-xs ${
-                          item.change >= 0 ? "text-green-400" : "text-red-400"
+                          (item.change ?? 0) >= 0
+                            ? "text-green-400"
+                            : "text-red-400"
                         }`}
                       >
-                        {item.change >= 0 ? "+" : ""}
-                        {item.change?.toFixed(2) || "0.00"} (
-                        {item.changePercent?.toFixed(2) || "0.00"}%)
+                        {(item.change ?? 0) >= 0 ? "+" : ""}
+                        {(item.change ?? 0).toFixed(2)} (
+                        {(item.changePercent ?? 0).toFixed(2)}%)
                       </p>
                     </div>
                   </div>
@@ -106,9 +126,8 @@ export function WatchlistWidget() {
                   variant="ghost"
                   size="icon"
                   className="ml-2 text-gray-400 hover:text-red-500"
-                  onClick={() =>
-                    removeFromWatchlist(activeWatchlist.id, item.symbol)
-                  }
+                  onClick={() => handleRemoveSymbol(item.symbol)}
+                  disabled={loadingId === item.symbol}
                 >
                   <X className="h-4 w-4" />
                 </Button>

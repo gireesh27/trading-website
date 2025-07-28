@@ -16,145 +16,80 @@ import type {
   WatchlistContextType,
   PriceAlert,
 } from "@/types/watchlistypes";
-
+import { useSession } from "next-auth/react";
 const WatchlistContext = createContext<WatchlistContextType | undefined>(
   undefined
 );
 
 export function WatchlistProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  const [watchlists, setWatchlists] = useState<Watchlist[]>([]);
   const [activeWatchlistId, setActiveWatchlistId] = useState<string | null>(
     null
   );
+  const { data: session } = useSession();
+  const [watchlists, setWatchlists] = useState<Watchlist[]>([]);
+  const activeWatchlist =
+    watchlists.find((w) => w._id === activeWatchlistId) || null;
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Load from localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem("watchlists");
-    if (stored) {
-      const parsed: Watchlist[] = JSON.parse(stored).map((w: { createdAt: string | number | Date; updatedAt: string | number | Date; items: any[]; }) => ({
-        ...w,
-        createdAt: new Date(w.createdAt),
-        updatedAt: new Date(w.updatedAt),
-        items: w.items.map((i: { addedAt: string | number | Date; }) => ({
-          ...i,
-          addedAt: new Date(i.addedAt),
-        })),
-      }));
-      setWatchlists(parsed);
-      setActiveWatchlistId(parsed[0]?.id ?? null);
-    } else {
-      const defaultList: Watchlist = {
-        id: "default",
-        name: "My Watchlist",
-        items: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isDefault: true,
-      };
-      setWatchlists([defaultList]);
-      setActiveWatchlistId(defaultList.id);
+  const fetchWatchlists = async () => {
+    const res = await fetch("/api/watchlist/get-all");
+    const data = await res.json();
+    if (data.success) {
+      setWatchlists(data.watchlists);
+      setActiveWatchlistId(data.watchlists[0]?._id ?? null);
     }
-  }, []);
-
+  };
   useEffect(() => {
-    localStorage.setItem("watchlists", JSON.stringify(watchlists));
-  }, [watchlists]);
+    if (session) fetchWatchlists();
+  }, [session]);
 
-  const activeWatchlist = watchlists.find((w) => w.id === activeWatchlistId) || null;
-
-  const addToWatchlist = async (watchlistId: string, symbol: string) => {
-    const upper = symbol.toUpperCase();
-    const watchlist = watchlists.find((w) => w.id === watchlistId);
-    if (!watchlist) return;
-
-    if (watchlist.items.some((item) => item.symbol === upper)) {
-      toast({
-        title: "Already Exists",
-        description: `${upper} is already in your watchlist.`,
-      });
-      return;
-    }
-
-    setIsLoading(true);
+  const removeFromWatchlist = async (watchlistId: string, symbol: string) => {
     try {
-      const data = await stockApi.getQuote(upper);
-      const newItem: WatchlistItem = {
-        id: upper,
-        symbol: upper,
-        name: data.name,
-        price: data.price,
-        change: data.change,
-        changePercent: data.changePercent,
-        addedAt: new Date(),
-      };
-
-      const updatedLists = watchlists.map((w) =>
-        w.id === watchlistId
-          ? {
-              ...w,
-              items: [...w.items, newItem],
-              updatedAt: new Date(),
-            }
-          : w
-      );
-
-      setWatchlists(updatedLists);
-      toast({
-        title: "Added to Watchlist",
-        description: `${upper} added successfully.`,
+      const res = await fetch("/api/watchlist/remove-stock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ watchlistId, symbol }),
       });
-    } catch (err: any) {
-      setError(err.message);
+      const data = await res.json();
+      if (data.success) {
+        setWatchlists((prev) =>
+          prev.map((w) => (w._id === watchlistId ? data.updated : w))
+        );
+        toast({ title: "Removed", description: symbol });
+      }
+    } catch (err) {
       toast({
         title: "Error",
-        description: err.message,
+        description: "Could not remove stock.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const removeFromWatchlist = (watchlistId: string, symbol: string) => {
-    const upper = symbol.toUpperCase();
-    const updatedLists = watchlists.map((w) =>
-      w.id === watchlistId
-        ? {
-            ...w,
-            items: w.items.filter((i) => i.symbol !== upper),
-            updatedAt: new Date(),
-          }
-        : w
-    );
-    setWatchlists(updatedLists);
-    toast({
-      title: "Removed",
-      description: `${upper} removed from your watchlist.`,
+  const createWatchlist = async (name: string) => {
+    const res = await fetch("/api/watchlist/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
     });
-  };
-
-  const createWatchlist = (name: string) => {
-    const id = name.toLowerCase().replace(/\s+/g, "-") + "-" + Date.now();
-    const newList: Watchlist = {
-      id,
-      name,
-      items: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setWatchlists((prev) => [...prev, newList]);
-    setActiveWatchlistId(id);
-  };
-
-  const deleteWatchlist = (id: string) => {
-    const remaining = watchlists.filter((w) => w.id !== id);
-    setWatchlists(remaining);
-    if (activeWatchlistId === id) {
-      setActiveWatchlistId(remaining[0]?.id ?? null);
+    const data = await res.json();
+    if (data.success) {
+      setWatchlists((prev) => [...prev, data.watchlist]);
+      setActiveWatchlistId(data.watchlist._id);
     }
+  };
+
+  const deleteWatchlist = async (id: string) => {
+    await fetch("/api/watchlist/delete-watchlist", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const remaining = watchlists.filter((w) => w._id !== id);
+    setWatchlists(remaining);
+    setActiveWatchlistId(remaining[0]?._id ?? null);
   };
 
   const moveItem = (
@@ -162,7 +97,7 @@ export function WatchlistProvider({ children }: { children: ReactNode }) {
     fromIndex: number,
     toIndex: number
   ) => {
-    const wl = watchlists.find((w) => w.id === watchlistId);
+    const wl = watchlists.find((w) => w._id === watchlistId);
     if (!wl) return;
 
     const updatedItems = [...wl.items];
@@ -170,64 +105,56 @@ export function WatchlistProvider({ children }: { children: ReactNode }) {
     updatedItems.splice(toIndex, 0, moved);
 
     const updatedLists = watchlists.map((w) =>
-      w.id === watchlistId ? { ...w, items: updatedItems } : w
+      w._id === watchlistId ? { ...w, items: updatedItems } : w
     );
 
     setWatchlists(updatedLists);
   };
 
-  const createAlert = (
+  const createAlert = async (
     symbol: string,
     type: "above" | "below",
     price: number
   ) => {
-    const id = `${symbol}-${type}-${price}-${Date.now()}`;
-    const newAlert: PriceAlert = {
-      id,
+    if (!activeWatchlistId) return;
+    const alert = {
+      id: `${symbol}-${type}-${price}-${Date.now()}`,
       symbol,
       type,
       price,
       isActive: true,
       createdAt: new Date(),
     };
-
-    const updated = watchlists.map((w) => ({
-      ...w,
-      items: w.items.map((i) =>
-        i.symbol === symbol
-          ? {
-              ...i,
-              alerts: [...(i.alerts ?? []), newAlert],
-            }
-          : i
-      ),
-    }));
-
-    setWatchlists(updated);
-    toast({
-      title: "Alert Created",
-      description: `${symbol} alert set for ${type} $${price}`,
+    const res = await fetch("/api/watchlist/create-alert", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ watchlistId: activeWatchlistId, symbol, alert }),
     });
+    const data = await res.json();
+    if (data.success) {
+      setWatchlists((prev) =>
+        prev.map((w) => (w._id === activeWatchlistId ? data.updated : w))
+      );
+    }
   };
 
-  const deleteAlert = (alertId: string) => {
-    const updated = watchlists.map((w) => ({
-      ...w,
-      items: w.items.map((i) => ({
-        ...i,
-        alerts: i.alerts?.filter((a) => a.id !== alertId),
-      })),
-    }));
-    setWatchlists(updated);
-  };
-
-  const searchSymbols = async (query: string) => {
-    // Implement with API call if needed
-    return [];
+  const deleteAlert = async (alertId: string, symbol: string) => {
+    if (!activeWatchlistId) return;
+    const res = await fetch("/api/watchlist/delete-alert", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ watchlistId: activeWatchlistId, symbol, alertId }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      setWatchlists((prev) =>
+        prev.map((w) => (w._id === activeWatchlistId ? data.updated : w))
+      );
+    }
   };
 
   const exportWatchlist = (id: string) => {
-    const wl = watchlists.find((w) => w.id === id);
+    const wl = watchlists.find((w) => w._id === id);
     if (!wl) return;
     const blob = new Blob([JSON.stringify(wl)], {
       type: "application/json",
@@ -263,6 +190,77 @@ export function WatchlistProvider({ children }: { children: ReactNode }) {
       });
     }
   };
+  const addToWatchlist = async (watchlistId: string, symbol: string) => {
+    const upper = symbol.toUpperCase();
+    const watchlist = watchlists.find((w) => w._id === watchlistId);
+    if (!watchlist) return;
+
+    if (watchlist.items.some((item) => item.symbol === upper)) {
+      toast({
+        title: "Already Exists",
+        description: `${upper} is already in your watchlist.`,
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // 1. Get stock data
+      const data = await stockApi.getQuote(upper);
+      const newItem: WatchlistItem = {
+        symbol: upper,
+        name: data.name,
+        price: data.price,
+        change: data.change,
+        changePercent: data.changePercent,
+        addedAt: new Date(),
+      };
+
+      // 2. Save to DB and get updated list
+      const res = await fetch("/api/watchlist/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ watchlistId, stock: newItem }),
+      });
+
+      const json = await res.json();
+      if (!json.success) throw new Error(json.message || "Failed to add");
+
+      // 3. Update local state with backend result
+      setWatchlists((prev) =>
+        prev.map((w) => (w._id === watchlistId ? json.updated : w))
+      );
+
+      toast({
+        title: "Added to Watchlist",
+        description: `${upper} added successfully.`,
+      });
+    } catch (err: any) {
+      setError(err.message);
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+const toggleAlert = async (alertId: string, symbol: string) => {
+  if (!activeWatchlistId) return;
+  const res = await fetch("/api/watchlist/toggle-alert", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ watchlistId: activeWatchlistId, symbol, alertId }),
+  });
+  const data = await res.json();
+  if (data.success) {
+    setWatchlists((prev) =>
+      prev.map((w) => (w._id === activeWatchlistId ? data.updated : w))
+    );
+  }
+};
+
 
   const value: WatchlistContextType = {
     watchlists,
@@ -276,8 +274,9 @@ export function WatchlistProvider({ children }: { children: ReactNode }) {
     removeFromWatchlist,
     moveItem,
     createAlert,
+    toggleAlert,
     deleteAlert,
-    searchSymbols,
+    fetchWatchlists,
     exportWatchlist,
     importWatchlist,
   };

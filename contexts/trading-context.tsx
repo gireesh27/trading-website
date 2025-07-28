@@ -87,6 +87,7 @@ interface TradingContextType {
   fetchOrders: () => void;
   updatePortfolio: () => void;
   getPositionBySymbol: (symbol: string) => Position | undefined;
+   refreshOrders: () => Promise<void>; // ✅ Add this
 }
 
 const TradingContext = createContext<TradingContextType | undefined>(undefined);
@@ -114,6 +115,20 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   const selectedStock = stocks.find(
     (s: { symbol: string }) => s.symbol === "AAPL"
   );
+const fetchOrders = async () => {
+  setIsLoading(true);
+  try {
+    const res = await fetch("/api/trading/orders");
+    const data = await res.json();
+    setOrders(data.orders || []);
+  } catch (error) {
+    console.error("Failed to fetch orders", error);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+const refreshOrders = fetchOrders; // ✅ Alias if fetchOrders already exists
 
   const fetchTradingData = useCallback(async () => {
     if (!user) return;
@@ -226,6 +241,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         portfolio,
         orders,
         transactions,
+        refreshOrders,
         bids,
         asks,
         selectedStock: selectedStock || null,

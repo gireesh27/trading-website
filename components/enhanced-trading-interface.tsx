@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, TrendingDown, Clock } from "lucide-react";
 import { useTrading } from "@/contexts/trading-context";
 import { useAuth } from "@/contexts/auth-context";
-
+import { TradingContextType } from "@/types/trading-types";
 interface EnhancedTradingInterfaceProps {
   symbol: string;
   name: string;
@@ -35,34 +35,48 @@ export function EnhancedTradingInterface({
   const {
     portfolio,
     orders,
-    placeOrder,
     cancelOrder,
+    placeOrder,
     isLoading,
     getPositionBySymbol,
+    refreshOrders,
   } = useTrading();
 
   const [orderType, setOrderType] = useState<OrderType>("market");
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState(currentPrice.toString());
-  const [stopPrice, setStopPrice] = useState("");
 
   const position = getPositionBySymbol(symbol);
-  const pendingOrders = orders.filter(
-    (order) => order.symbol === symbol && order.status === "pending"
-  );
+  // const pendingOrders = orders.filter(
+  //   (order) => order.symbol === symbol && order.status === "pending"
+  // );
 
-  const handleTrade = async (side: "buy" | "sell") => {
+const handleTrade = async (side: "buy" | "sell") => {
     const qty = Number.parseFloat(quantity);
     if (qty <= 0) return;
 
-    const limitPrice = orderType !== "market" ? Number.parseFloat(price) : undefined;
-    const stopLossPrice = orderType === "stop" ? Number.parseFloat(stopPrice) : undefined;
+    const limitPrice = orderType !== "market" ? Number.parseFloat(price) : currentPrice;
 
-    const success = await placeOrder(symbol, qty, side, orderType, limitPrice, stopLossPrice);
-    if (success) {
+    const res = await fetch("/api/trading/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        symbol,
+        quantity: qty,
+        price: limitPrice,
+        type: side,
+        orderType,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
       setQuantity("");
       setPrice(currentPrice.toString());
-      setStopPrice("");
+      refreshOrders();
+    } else {
+      alert(data.error || "Trade failed");
     }
   };
 
@@ -71,17 +85,13 @@ export function EnhancedTradingInterface({
     const orderPrice =
       orderType === "market" ? currentPrice : Number.parseFloat(price) || 0;
     const subtotal = qty * orderPrice;
-    const fees = subtotal * 0.001; // 0.1% fee
+    const fees = subtotal * 0.001;
     return (subtotal + fees).toFixed(2);
   };
 
   const calculateMaxQuantity = (side: "buy" | "sell") => {
     if (side === "sell") return position?.quantity || 0;
-
-    if (orderType === "market") {
-      return Math.floor(portfolio.availableCash / (currentPrice * 1.001));
-    }
-    const limitPrice = Number.parseFloat(price) || currentPrice;
+    const limitPrice = orderType === "market" ? currentPrice : Number.parseFloat(price) || currentPrice;
     return Math.floor(portfolio.availableCash / (limitPrice * 1.001));
   };
 
@@ -150,6 +160,7 @@ export function EnhancedTradingInterface({
           </div>
         </CardContent>
       </Card>
+
 
       <Card className="bg-gray-800 border-gray-700">
         <CardHeader>
@@ -246,7 +257,7 @@ export function EnhancedTradingInterface({
         </CardContent>
       </Card>
 
-      {pendingOrders.length > 0 && (
+      {/* {pendingOrders.length > 0 && (
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
             <CardTitle className="text-white text-sm flex items-center">
@@ -268,7 +279,7 @@ export function EnhancedTradingInterface({
             ))}
           </CardContent>
         </Card>
-      )}
+      )} */}
     </div>
   );
 }

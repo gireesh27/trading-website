@@ -1,25 +1,24 @@
-"use client"
-import React from 'react'
-import { WatchlistWidget } from '@/components/watchlist/watchlist-widget'
-import { WatchlistProvider } from '@/contexts/watchlist-context'
-// ... other imports
+"use client";
+
+import React from "react";
+import { WatchlistProvider } from "@/contexts/watchlist-context";
+import { WatchlistWidget } from "@/components/watchlist/watchlist-widget";
+import { WatchlistSummary } from "./watchlistSummary";
+import { AlertsPanel } from "./AlertsPanel";
+// import { EnhancedTradingInterface } from "../enhanced-trading-interface";
 
 export function TradingDashboard() {
+
   return (
     <WatchlistProvider>
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 p-6">
-        {/* Other dashboard components */}
-        
-        {/* Watchlist Widget */}
-        <div className="lg:col-span-1">
+        {/* Left Sidebar: Watchlist and Alerts */}
+        <div className="lg:col-span-1 space-y-6">
           <WatchlistWidget />
-        </div>
-        
-        {/* Chart and other components */}
-        <div className="lg:col-span-3">
-          {/* Your existing chart and trading components */}
+          <WatchlistSummary />
+          <AlertsPanel />
         </div>
       </div>
     </WatchlistProvider>
-  )
+  );
 }

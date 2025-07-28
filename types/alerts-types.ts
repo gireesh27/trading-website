@@ -2,10 +2,11 @@
 
 export interface PriceAlert {
   id: string;
-  symbol: string; // ✅ Make sure this exists
+  userId: string;
+  symbol: string;
   type: 'price' | 'percent_change' | 'volume';
-  condition: 'above' | 'below';
-  value: number;
+  direction: 'above' | 'below';
+  targetPrice: number;
   status: 'active' | 'triggered' | 'inactive';
   createdAt: string;
   triggeredAt?: string;
@@ -13,23 +14,23 @@ export interface PriceAlert {
 
 export interface NewsAlert {
   id: string;
-  symbol: string; // ✅ Also in NewsAlert
+  userId: string;
+  symbol: string;
   type: 'news';
-  keywords: string[];
+  keywords?: string[];
   status: 'active' | 'inactive';
   createdAt: string;
 }
 
-// A union type for all alert types
 export type Alert = PriceAlert | NewsAlert;
 
-// Context type
 export interface AlertContextType {
   alerts: Alert[];
   isLoading: boolean;
   addAlert: (
-    alertData: Omit<Alert, 'id' | 'createdAt' | 'status' | 'triggeredAt'>
+    alertData: Partial<Omit<Alert, "id" | "createdAt" | "status" | "triggeredAt">> & { userId: string }
   ) => Promise<void>;
   updateAlert: (alert: Alert) => Promise<void>;
   deleteAlert: (alertId: string) => Promise<void>;
+  fetchAlerts: (userId: string) => Promise<void>;
 }

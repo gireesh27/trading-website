@@ -1,12 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import React, { useState, useEffect, useMemo } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -17,18 +12,21 @@ import {
   TrendingUp,
   TrendingDown,
   Clock,
+  Search,
+  RefreshCw,
 } from "lucide-react";
 import { useWatchlist } from "@/contexts/watchlist-context";
 import { PriceAlert } from "@/types/watchlistypes";
 import { toast } from "@/components/ui/use-toast";
-
+import { Input } from "@/components/ui/input"; // Assuming this is correct
+import type { AlertContextType, Alert } from "@/types/alerts-types"; // Assuming this is correct
 export function AlertsPanel() {
   const { watchlists = [], deleteAlert } = useWatchlist();
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const allAlerts: PriceAlert[] = [];
-
     (watchlists ?? []).forEach((watchlist) => {
       (watchlist.items ?? []).forEach((item) => {
         if (Array.isArray(item.alerts)) {
@@ -38,7 +36,6 @@ export function AlertsPanel() {
         }
       });
     });
-
     setAlerts(
       allAlerts.sort(
         (a, b) =>
@@ -46,9 +43,6 @@ export function AlertsPanel() {
       )
     );
   }, [watchlists]);
-
-  const activeAlerts = alerts.filter((alert) => alert.isActive);
-  const triggeredAlerts = alerts.filter((alert) => alert.triggeredAt);
 
   const formatDate = (date: Date | string) => {
     return new Intl.DateTimeFormat("en-US", {
@@ -78,35 +72,57 @@ export function AlertsPanel() {
     }
   };
 
+  const filteredAlerts = useMemo(
+    () =>
+      alerts.filter((a) =>
+        a.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [alerts, searchTerm]
+  );
+
+  const activeCount = useMemo(
+    () => alerts.filter((a) => a.isActive).length,
+    [alerts]
+  );
+
   return (
     <Card className="bg-gray-800 border-gray-700">
-      <CardHeader>
+      <CardHeader className="pb-3">
         <CardTitle className="text-white flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Bell className="h-5 w-5" />
             <span>Price Alerts</span>
           </div>
           <Badge variant="secondary" className="bg-blue-600">
-            {activeAlerts.length} active
+            {activeCount} active
           </Badge>
         </CardTitle>
+        <div className="mt-2 flex items-center space-x-2">
+          <Search className="h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search symbol..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="bg-gray-700 text-white border-none"
+          />
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {alerts.length === 0 ? (
+        {filteredAlerts.length === 0 ? (
           <div className="text-center py-8">
             <BellOff className="h-12 w-12 text-gray-600 mx-auto mb-3" />
-            <p className="text-gray-400 mb-2">No alerts set</p>
+            <p className="text-gray-400 mb-2">No alerts found</p>
             <p className="text-gray-500 text-sm">
-              Create alerts from your watchlist
+              Try creating one from the watchlist
             </p>
           </div>
         ) : (
           <div className="space-y-3 max-h-96 overflow-y-auto">
-            {alerts.map((alert) => (
+            {filteredAlerts.map((alert) => (
               <div
                 key={alert.id}
-                className={`p-3 rounded-lg border ${
+                className={`p-3 rounded-lg border transition-all duration-200 ${
                   alert.triggeredAt
                     ? "bg-green-900/20 border-green-700"
                     : alert.isActive
@@ -118,12 +134,12 @@ export function AlertsPanel() {
                   <div className="flex items-center space-x-3">
                     <div
                       className={`p-1 rounded ${
-                        alert.type === "above"
+                        alert.condition === "above"
                           ? "bg-green-600"
                           : "bg-red-600"
                       }`}
                     >
-                      {alert.type === "above" ? (
+                      {alert.condition === "above" ? (
                         <TrendingUp className="h-3 w-3 text-white" />
                       ) : (
                         <TrendingDown className="h-3 w-3 text-white" />
@@ -136,7 +152,7 @@ export function AlertsPanel() {
                           {alert.symbol}
                         </span>
                         <span className="text-gray-400 text-sm">
-                          {alert.type} ${alert.price?.toFixed(2) ?? "0.00"}
+                          {alert.type} ${alert.value?.toFixed(2) ?? "0.00"}
                         </span>
                       </div>
 

@@ -1,6 +1,8 @@
+// types/alerts-types.ts
+
 export interface PriceAlert {
   id: string;
-  symbol: string;
+  symbol: string; // ✅ Make sure this exists
   type: 'price' | 'percent_change' | 'volume';
   condition: 'above' | 'below';
   value: number;
@@ -10,21 +12,24 @@ export interface PriceAlert {
 }
 
 export interface NewsAlert {
-    id: string;
-    symbol: string;
-    type: 'news';
-    keywords: string[]; // e.g., ['earnings', 'FDA']
-    status: 'active' | 'inactive';
-    createdAt: string;
+  id: string;
+  symbol: string; // ✅ Also in NewsAlert
+  type: 'news';
+  keywords: string[];
+  status: 'active' | 'inactive';
+  createdAt: string;
 }
 
-// A union type for all possible alert types
+// A union type for all alert types
 export type Alert = PriceAlert | NewsAlert;
 
+// Context type
 export interface AlertContextType {
   alerts: Alert[];
   isLoading: boolean;
-  addAlert: (alertData: Omit<Alert, 'id' | 'createdAt' | 'status'>) => Promise<void>;
+  addAlert: (
+    alertData: Omit<Alert, 'id' | 'createdAt' | 'status' | 'triggeredAt'>
+  ) => Promise<void>;
   updateAlert: (alert: Alert) => Promise<void>;
   deleteAlert: (alertId: string) => Promise<void>;
 }

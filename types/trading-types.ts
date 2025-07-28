@@ -5,7 +5,7 @@ export type OrderSide = "buy" | "sell";
 export type OrderType = "market" | "limit" | "stop";
 
 export interface Order {
-  id: string;
+  _id: string;
   symbol: string;
   type: OrderSide;            // buy or sell
   orderType: OrderType;       // market, limit, or stop

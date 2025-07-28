@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
   Search,
   Zap,
   ArrowUpRight,
@@ -27,10 +27,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { toast } from '@/components/ui/use-toast'
 
 export function QuickActions() {
   const [isTradeDialogOpen, setIsTradeDialogOpen] = useState(false)
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy')
+  const [isLoading, setIsLoading] = useState(false)
   const [quickTrade, setQuickTrade] = useState({
     symbol: '',
     quantity: '',
@@ -44,21 +46,50 @@ export function QuickActions() {
     { symbol: 'MSFT', name: 'Microsoft Corp.', price: 378.90 }
   ]
 
-  const executeQuickTrade = () => {
-    if (!quickTrade.symbol || !quickTrade.quantity) return
-    
-    console.log('Executing trade:', { ...quickTrade, type: tradeType })
-    // Here you would integrate with your trading API
-    
-    setQuickTrade({ symbol: '', quantity: '', orderType: 'market' })
-    setIsTradeDialogOpen(false)
+  const executeQuickTrade = async () => {
+    const { symbol, quantity, orderType } = quickTrade
+    const qty = Number.parseFloat(quantity)
+
+    if (!symbol || qty <= 0) {
+      toast({ title: "Invalid input", description: "Please provide valid symbol and quantity.", variant: "destructive" })
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      const res = await fetch("/api/trading/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          symbol: symbol.toUpperCase(),
+          quantity: qty,
+          price: 0, // backend will use price = 0 for market orders
+          type: tradeType,
+          orderType,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Trade failed")
+
+      toast({ title: "Trade Placed", description: `${tradeType.toUpperCase()} ${symbol.toUpperCase()} x${qty} successful.` })
+
+      // Reset state
+      setQuickTrade({ symbol: '', quantity: '', orderType: 'market' })
+      setIsTradeDialogOpen(false)
+    } catch (err: any) {
+      toast({ title: "Trade Failed", description: err.message, variant: "destructive" })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const openTradeDialog = (type: 'buy' | 'sell', symbol?: string) => {
     setTradeType(type)
-    if (symbol) {
-      setQuickTrade(prev => ({ ...prev, symbol }))
-    }
+    setQuickTrade((prev) => ({
+      ...prev,
+      symbol: symbol || '',
+    }))
     setIsTradeDialogOpen(true)
   }
 
@@ -76,7 +107,7 @@ export function QuickActions() {
         <div className="grid grid-cols-2 gap-3">
           <Dialog open={isTradeDialogOpen} onOpenChange={setIsTradeDialogOpen}>
             <DialogTrigger asChild>
-              <Button 
+              <Button
                 onClick={() => openTradeDialog('buy')}
                 className="bg-green-600 hover:bg-green-700 text-white h-12"
               >
@@ -84,9 +115,9 @@ export function QuickActions() {
                 Quick Buy
               </Button>
             </DialogTrigger>
-            
+
             <DialogTrigger asChild>
-              <Button 
+              <Button
                 onClick={() => openTradeDialog('sell')}
                 variant="outline"
                 className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white h-12"
@@ -107,7 +138,7 @@ export function QuickActions() {
                   <span>Quick {tradeType.charAt(0).toUpperCase() + tradeType.slice(1)}</span>
                 </DialogTitle>
               </DialogHeader>
-              
+
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="symbol" className="text-gray-300">Symbol</Label>
@@ -115,7 +146,9 @@ export function QuickActions() {
                     id="symbol"
                     placeholder="e.g., AAPL"
                     value={quickTrade.symbol}
-                    onChange={(e) => setQuickTrade(prev => ({ ...prev, symbol: e.target.value.toUpperCase() }))}
+                    onChange={(e) =>
+                      setQuickTrade(prev => ({ ...prev, symbol: e.target.value.toUpperCase() }))
+                    }
                     className="bg-gray-700 border-gray-600 text-white"
                   />
                 </div>
@@ -126,16 +159,20 @@ export function QuickActions() {
                     type="number"
                     placeholder="Number of shares"
                     value={quickTrade.quantity}
-                    onChange={(e) => setQuickTrade(prev => ({ ...prev, quantity: e.target.value }))}
+                    onChange={(e) =>
+                      setQuickTrade(prev => ({ ...prev, quantity: e.target.value }))
+                    }
                     className="bg-gray-700 border-gray-600 text-white"
                   />
                 </div>
 
                 <div>
                   <Label htmlFor="orderType" className="text-gray-300">Order Type</Label>
-                  <Select 
-                    value={quickTrade.orderType} 
-                    onValueChange={(value) => setQuickTrade(prev => ({ ...prev, orderType: value }))}
+                  <Select
+                    value={quickTrade.orderType}
+                    onValueChange={(value) =>
+                      setQuickTrade(prev => ({ ...prev, orderType: value }))
+                    }
                   >
                     <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                       <SelectValue />
@@ -149,18 +186,19 @@ export function QuickActions() {
                 </div>
 
                 <div className="flex space-x-2">
-                  <Button 
+                  <Button
                     onClick={executeQuickTrade}
+                    disabled={isLoading}
                     className={`flex-1 ${
-                      tradeType === 'buy' 
-                        ? 'bg-green-600 hover:bg-green-700' 
+                      tradeType === 'buy'
+                        ? 'bg-green-600 hover:bg-green-700'
                         : 'bg-red-600 hover:bg-red-700'
                     }`}
                   >
-                    {tradeType === 'buy' ? 'Buy' : 'Sell'} {quickTrade.symbol}
+                    {isLoading ? "Processing..." : `${tradeType === 'buy' ? 'Buy' : 'Sell'} ${quickTrade.symbol}`}
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => setIsTradeDialogOpen(false)}
                     className="border-gray-600 text-gray-300 hover:bg-gray-700"
                   >

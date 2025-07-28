@@ -36,6 +36,7 @@ interface MarketDataContextType {
     interval?: string
   ) => Promise<CandlestickData[]>;
   getQuote: (symbol: string) => Promise<StockQuote | null>;
+  selectedSymbol: string  | null;
 }
 
 const MarketDataContext = createContext<MarketDataContextType | undefined>(undefined);
@@ -58,6 +59,7 @@ export const MarketDataProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [candlestickLoading, setCandlestickLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
 
   const candlestickCache = useRef<Map<string, CandlestickData[]>>(new Map());
   const refreshTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -96,7 +98,10 @@ export const MarketDataProvider = ({ children }: { children: ReactNode }) => {
   }, [selectedStock]);
 
   const selectStock = (symbol: string) => {
-    const stock = stocks.find((s) => s.symbol === symbol);
+    setSelectedSymbol(symbol);
+    // Find the stock from the current list or fetch if not present
+    let stock = stocks.find((s) => s.symbol === symbol);
+    // TODO: If stock is not found, consider fetching it specifically
     if (stock) setSelectedStock(stock);
   };
 
@@ -148,6 +153,7 @@ export const MarketDataProvider = ({ children }: { children: ReactNode }) => {
 
 
   const value: MarketDataContextType = {
+    selectedSymbol,
     stocks,
     news,
     crypto,

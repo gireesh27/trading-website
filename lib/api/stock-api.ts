@@ -250,6 +250,25 @@ export class StockAPI {
       marketCap: priceData?.marketCap?.raw,
     };
   }
+  public async searchSymbol(query: string): Promise<{ symbol: string; name: string }[]> {
+    if (!query.trim()) return []; // ✅ Prevent empty calls
+
+    try {
+      const response = await this.fetchFromFinnhub<{ result: { symbol: string; description: string }[] }>(
+        `search?q=${encodeURIComponent(query)}`
+      );
+
+      return response.result.map((item) => ({
+        symbol: item.symbol,
+        name: item.description,
+      }));
+    } catch (err) {
+      console.error("❌ Error searching symbol:", err);
+      return [];
+    }
+  }
+
+
 
   public async getQuote(symbol: string): Promise<StockQuote> {
     return this.getStockQuote(symbol);

@@ -1,3 +1,16 @@
+export interface PriceAlert {
+  id: string;
+  symbol: string;
+  type: 'price' | 'percent_change' | 'volume';
+  condition: 'above' | 'below';
+  value: number;
+  status: 'active' | 'triggered' | 'inactive'; // status tracks full state
+  isActive: boolean; // ✅ Add this field for UI toggling logic
+  createdAt: string;
+  triggeredAt?: string;
+}
+
+
 export interface WatchlistItem {
   symbol: string;
   name?: string;
@@ -8,24 +21,15 @@ export interface WatchlistItem {
   alerts?: PriceAlert[];
 }
 
-export interface PriceAlert {
-  id: string;
-  symbol: string;
-  type: "above" | "below";
-  price: number;
-  isActive: boolean;
-  createdAt: Date;
-  triggeredAt?: string | Date;
-}
-
 export interface Watchlist {
-  _id: string; 
+  _id: string;
   name: string;
   items: WatchlistItem[];
   createdAt: Date;
   updatedAt: Date;
   isDefault?: boolean;
 }
+
 
 
 export interface WatchlistContextType {

@@ -1,4 +1,3 @@
-// lib/Database/Models/Watchlist.ts
 import mongoose, { Schema, Document, model, models } from "mongoose";
 
 export interface Alert {

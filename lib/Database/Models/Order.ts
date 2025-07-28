@@ -11,15 +11,24 @@ export interface IOrder extends Document {
   timestamp: Date;
 }
 
-const OrderSchema = new Schema<IOrder>({
-  userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-  symbol: { type: String, required: true },
-  quantity: { type: Number, required: true },
-  price: Number,
-  type: { type: String, enum: ["buy", "sell"], required: true },
-  orderType: { type: String, enum: ["market", "limit", "stop"], required: true },
-  status: { type: String, enum: ["completed", "pending", "cancelled"], default: "completed" },
-  timestamp: { type: Date, default: Date.now },
-});
+const OrderSchema = new Schema<IOrder>(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    symbol: { type: String, required: true },
+    quantity: { type: Number, required: true },
+    price: Number,
+    type: { type: String, enum: ["buy", "sell"], required: true },
+    orderType: { type: String, enum: ["market", "limit", "stop"], required: true },
+    status: {
+      type: String,
+      enum: ["completed", "pending", "cancelled"],
+      default: "completed",
+    },
+    timestamp: { type: Date, default: Date.now },
+  },
+  {
+    timestamps: true,
+  }
+);
 
 export const Order = models.Order || model<IOrder>("Order", OrderSchema);

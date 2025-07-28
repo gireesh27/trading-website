@@ -1,82 +1,103 @@
-"use client"
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { useToast } from '@/components/ui/use-toast';
-import type { Alert, AlertContextType } from '@/types/alerts-types'
+"use client";
+
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from "react";
+import { useToast } from "@/components/ui/use-toast";
+import type { Alert, AlertContextType } from "@/types/alerts-types";
 
 const AlertsContext = createContext<AlertContextType | undefined>(undefined);
 
 export function AlertsProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // Unified error handler
+  const showError = (message: string) =>
+    toast({ title: "Error", description: message, variant: "destructive" });
+
+  // Fetch all alerts
   const fetchAlerts = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/alerts');
-      if (!response.ok) throw new Error('Failed to fetch alerts.');
-      const data = await response.json();
-      setAlerts(data.data);
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      const res = await fetch("/api/alerts");
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Failed to fetch alerts");
+      setAlerts(json.data);
+    } catch (err: any) {
+      showError(err.message || "Could not load alerts");
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     fetchAlerts();
   }, [fetchAlerts]);
 
-  const addAlert = async (alertData: Omit<Alert, 'id' | 'createdAt' | 'status'>) => {
+  // Add new alert
+  const addAlert: AlertContextType["addAlert"] = async (alertData) => {
     try {
-      const response = await fetch('/api/alerts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/alerts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(alertData),
       });
-      if (!response.ok) throw new Error('Failed to create alert.');
-      const result = await response.json();
-      setAlerts(prev => [...prev, result.data]);
-      toast({ title: "Success", description: "Your new alert has been created." });
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Failed to create alert");
+      setAlerts((prev) => [...prev, json.data]);
+      toast({ title: "Alert Created", description: `${json.data.symbol}` });
+    } catch (err: any) {
+      showError(err.message);
     }
   };
 
-  const updateAlert = async (alert: Alert) => {
+  // Update existing alert
+  const updateAlert: AlertContextType["updateAlert"] = async (alert) => {
     try {
-      const response = await fetch(`/api/alerts`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(`/api/alerts`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(alert),
       });
-      if (!response.ok) throw new Error('Failed to update alert.');
-      const result = await response.json();
-      setAlerts(prev => prev.map(a => a.id === alert.id ? result.data : a));
-      toast({ title: "Success", description: "Alert has been updated." });
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Failed to update alert");
+      setAlerts((prev) =>
+        prev.map((a) => (a.id === alert.id ? json.data : a))
+      );
+      toast({ title: "Alert Updated", description: `${alert.symbol}` });
+    } catch (err: any) {
+      showError(err.message);
     }
   };
 
-  const deleteAlert = async (alertId: string) => {
+  // Delete alert
+  const deleteAlert: AlertContextType["deleteAlert"] = async (alertId) => {
     try {
-      const response = await fetch(`/api/alerts`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(`/api/alerts`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: alertId }),
       });
-      if (!response.ok) throw new Error('Failed to delete alert.');
-      setAlerts(prev => prev.filter(a => a.id !== alertId));
-      toast({ title: "Success", description: "Alert has been deleted." });
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Failed to delete alert");
+      setAlerts((prev) => prev.filter((a) => a.id !== alertId));
+      toast({ title: "Alert Deleted" });
+    } catch (err: any) {
+      showError(err.message);
     }
   };
 
   return (
-    <AlertsContext.Provider value={{ alerts, isLoading, addAlert, updateAlert, deleteAlert }}>
+    <AlertsContext.Provider
+      value={{ alerts, isLoading, addAlert, updateAlert, deleteAlert }}
+    >
       {children}
     </AlertsContext.Provider>
   );
@@ -85,7 +106,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
 export function useAlerts() {
   const context = useContext(AlertsContext);
   if (!context) {
-    throw new Error('useAlerts must be used within an AlertsProvider');
+    throw new Error("useAlerts must be used within an AlertsProvider");
   }
   return context;
 }

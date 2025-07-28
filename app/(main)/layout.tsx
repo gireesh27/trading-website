@@ -18,7 +18,6 @@ export default function MainLayout({ children }: { children: ReactNode }) {
           <MainNav />
           <main >{children}</main>
         </Providers>
-        
       </body>
     </html>
   );

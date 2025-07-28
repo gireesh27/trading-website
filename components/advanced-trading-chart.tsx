@@ -8,7 +8,7 @@ import React, {
   useReducer,
   Dispatch,
 } from "react";
-
+import { useToast } from "@/components/ui/use-toast";
 import {
   ComposedChart,
   Bar,
@@ -727,12 +727,12 @@ export function AdvancedTradingChart({
   const [selectedRange, setSelectedRange] = useState<Range>("1d");
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [chartHeight, setChartHeight] = useState(0);
-  const [chartWidth, setChartWidth] = useState(800); // fallback value
+  const [chartWidth, setChartWidth] = useState(800);
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [history, setHistory] = useState<Shape[][]>([]);
   const [redoStack, setRedoStack] = useState<Shape[][]>([]);
-
   const { addToWatchlist, activeWatchlist, isLoading } = useWatchlist();
+
   function StockChartHeader({ stock }: { stock: Stock | null }) {
     if (!stock) return null;
 
@@ -752,7 +752,7 @@ export function AdvancedTradingChart({
             size="sm"
             variant="outline"
             disabled={isLoading}
-            className="text-white border-gray-600 hover:bg-gray-800"
+            className="text-black dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
             onClick={() =>
               activeWatchlist &&
               addToWatchlist(activeWatchlist._id, stock.symbol)
@@ -866,7 +866,6 @@ export function AdvancedTradingChart({
     }
   }, [chartCandlestickData]);
 
-  // Fetch on range/interval change
   useEffect(() => {
     if (!symbol) return;
     const selectedInterval =
@@ -1179,7 +1178,7 @@ export function AdvancedTradingChart({
   return (
     <div className="space-y-4 bg-gray-900 text-white p-2 md:p-4 rounded-lg">
       <StockChartHeader stock={selectedStock} />
-
+     
       <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-2 sm:p-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-700/50 pb-4 mb-4">
           <div className="flex flex-wrap items-center gap-1 sm:gap-2">

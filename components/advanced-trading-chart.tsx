@@ -9,7 +9,6 @@ import React, {
   Dispatch,
 } from "react";
 import { useToast } from "@/components/ui/use-toast";
-
 import {StockChartHeader} from "./stock-chart-header";
 import {
   ComposedChart,
@@ -23,10 +22,6 @@ import {
   CartesianGrid,
   Cell,
 } from "recharts";
-import {
-  NameType,
-  ValueType,
-} from "recharts/types/component/DefaultTooltipContent";
 import {
   ArrowUp,
   ArrowDown,
@@ -46,7 +41,6 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { CustomTooltip } from "./customTool-Tip";
-import { useWatchlist } from "@/contexts/watchlist-context";
 import {
   ResponsiveContainer,
   LineChart,
@@ -741,8 +735,6 @@ export function AdvancedTradingChart({
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [history, setHistory] = useState<Shape[][]>([]);
   const [redoStack, setRedoStack] = useState<Shape[][]>([]);
-  const { addToWatchlist, activeWatchlist, isLoading } = useWatchlist();
-
 
   function getPixelCandles(
     candles: {

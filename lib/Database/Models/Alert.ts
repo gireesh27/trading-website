@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, models, model } from "mongoose";
 
 export interface Alert extends Document {
-  userId: string;
+  userId: mongoose.Types.ObjectId;
   symbol: string;
   type: "price" | "percent_change" | "volume" | "news";
   value?: number;
@@ -14,7 +14,7 @@ export interface Alert extends Document {
 
 const AlertSchema = new Schema<Alert>(
   {
-    userId: { type: String, required: true },
+     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     symbol: { type: String, required: true },
     type: { type: String, enum: ["price", "percent_change", "volume", "news"], required: true },
     value: { type: Number }, // only for non-news

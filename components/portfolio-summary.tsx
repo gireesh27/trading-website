@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Line } from "react-chartjs-2"
-import { useState } from "react"
+import { useEffect, useState } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,7 +12,7 @@ import {
   Title,
   Tooltip,
   Legend,
-} from 'chart.js';
+} from "chart.js";
 
 ChartJS.register(
   CategoryScale,
@@ -25,25 +25,52 @@ ChartJS.register(
 );
 
 export function PortfolioSummary() {
-  const [portfolio, setPortfolio] = useState({
-    totalValue: 152342.76,
-    availableFunds: 34500.00,
-    profitLoss: 13242.76,
-    chartData: [125000, 126500, 128000, 130200, 132000, 137500, 152342],
-  })
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<{
+    totalValue: number;
+    availableFunds: number;
+    profitLoss: number;
+    chartData: number[];
+    chartLabels: string[];
+  } | null>(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const res = await fetch("/api/portfolio");
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.message || "Failed to fetch portfolio summary");
+        setData(json);
+      } catch (err) {
+        console.error("Portfolio summary fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return <p className="text-gray-400 text-center py-6">Loading portfolio summary...</p>;
+  }
+
+  if (!data) {
+    return <p className="text-red-500 text-center py-6">Failed to load portfolio summary.</p>;
+  }
 
   const lineData = {
-    labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Today"],
+    labels: data.chartLabels,
     datasets: [
       {
         label: "Portfolio Value",
-        data: portfolio.chartData,
+        data: data.chartData,
         fill: false,
         borderColor: "#3b82f6",
         tension: 0.4,
       },
     ],
-  }
+  };
 
   const lineOptions = {
     responsive: true,
@@ -55,20 +82,12 @@ export function PortfolioSummary() {
     },
     scales: {
       x: {
-        ticks: {
-          color: '#9ca3af',
-        },
-        grid: {
-          color: 'rgba(255, 255, 255, 0.1)',
-        }
+        ticks: { color: "#9ca3af" },
+        grid: { color: "rgba(255, 255, 255, 0.1)" },
       },
       y: {
-        ticks: {
-          color: '#9ca3af',
-        },
-        grid: {
-          color: 'rgba(255, 255, 255, 0.1)',
-        }
+        ticks: { color: "#9ca3af" },
+        grid: { color: "rgba(255, 255, 255, 0.1)" },
       },
     },
   };
@@ -82,15 +101,21 @@ export function PortfolioSummary() {
         <div className="grid grid-cols-3 gap-4 text-white">
           <div>
             <p className="text-sm text-gray-400">Total Value</p>
-            <p className="text-xl font-bold">₹{portfolio.totalValue.toLocaleString()}</p>
+            <p className="text-xl font-bold">₹{data.totalValue.toLocaleString()}</p>
           </div>
           <div>
             <p className="text-sm text-gray-400">Available Funds</p>
-            <p className="text-xl font-bold">₹{portfolio.availableFunds.toLocaleString()}</p>
+            <p className="text-xl font-bold">₹{data.availableFunds.toLocaleString()}</p>
           </div>
           <div>
             <p className="text-sm text-gray-400">P&L</p>
-            <p className="text-xl font-bold text-green-400">₹{portfolio.profitLoss.toLocaleString()}</p>
+            <p
+              className={`text-xl font-bold ${
+                data.profitLoss >= 0 ? "text-green-400" : "text-red-400"
+              }`}
+            >
+              ₹{data.profitLoss.toLocaleString()}
+            </p>
           </div>
         </div>
         <div className="mt-6 h-60">
@@ -98,5 +123,5 @@ export function PortfolioSummary() {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

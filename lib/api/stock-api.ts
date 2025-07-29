@@ -1,3 +1,7 @@
+import yahooFinance from "yahoo-finance2";
+const FINNHUB_API_KEY = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
+const BASE_URL = "https://finnhub.io/api/v1";
+const POLYGON_API_KEY = process.env.NEXT_PUBLIC_POLYGON_API_KEY;
 export interface CandlestickData {
   time: string;
   open: number;
@@ -23,6 +27,23 @@ export interface StockQuote {
   rank?: number;
   dominance?: number;
 }
+export interface FinancialReport {
+  symbol: string;
+  year: number;
+  quarter: number;
+  reportDate: string;
+
+  report: {
+    bs: Record<string, string>; // Balance Sheet
+    ic: Record<string, string>; // Income Statement
+    cf: Record<string, string>; // Cash Flow Statement
+  };
+
+  cik?: string;
+  form?: string;
+  filedDate?: string;
+}
+
 
 export interface ChartApiResponse {
   meta: any;
@@ -249,8 +270,6 @@ export class StockAPI {
     }
   }
 
-
-
   public async getQuote(symbol: string): Promise<StockQuote> {
     return this.getStockQuote(symbol);
   }
@@ -265,6 +284,83 @@ export class StockAPI {
     const results = await Promise.all(promises);
     return results.filter((quote): quote is StockQuote => quote !== null);
   }
+ // inside StockAPI.ts
+private cachedSymbols: { symbol: string; name: string }[] | null = null;
+
+private async getUSStockSymbols(): Promise<{ symbol: string; name: string }[]> {
+  if (this.cachedSymbols) return this.cachedSymbols;
+
+  const res = await fetch(
+    `https://finnhub.io/api/v1/stock/symbol?exchange=US&token=${FINNHUB_API_KEY}`
+  );
+  const data = await res.json();
+
+  this.cachedSymbols = data
+    .filter((s: any) => s.symbol && s.displaySymbol && !s.symbol.includes('.'))
+    .map((s: any) => ({ symbol: s.symbol, name: s.description }))
+    .slice(0, 300); // limit to 300 for performance
+
+  return this.cachedSymbols ?? [];
 }
 
+public async getPaginatedQuotes(page = 1, limit = 12): Promise<StockQuote[]> {
+  try {
+    const symbols = await this.getUSStockSymbols();
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const selectedSymbols = symbols.slice(start, end).map((s) => s.symbol);
+
+    const quotePromises = selectedSymbols.map(async (symbol) => {
+      const res = await fetch(
+        `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`
+      );
+      const data = await res.json();
+      return {
+        symbol,
+        name: symbols.find((s) => s.symbol === symbol)?.name || symbol,
+        price: data.c,
+        change: data.d,
+        changePercent: data.dp,
+        high: data.h,
+        low: data.l,
+        open: data.o,
+        previousClose: data.pc,
+        volume: data.v,
+        marketCap: 0, // Finnhub does not provide marketCap here
+      };
+    });
+
+    return await Promise.all(quotePromises);
+  } catch (err: any) {
+    console.error("❌ Error fetching paginated quotes:", err.message);
+    return [];
+  }
+}
+
+
+public async  getFinancialsReported(symbol: string) {
+  try {
+    const url = `${BASE_URL}/stock/financials-reported?symbol=${symbol}&token=${FINNHUB_API_KEY}`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Finnhub API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    // Defensive check: ensure it's an object with expected structure
+    if (!data || !Array.isArray(data.data)) {
+      console.error("Unexpected financials format:", data);
+      return [];
+    }
+
+    return data.data; // Array of financial report items
+  } catch (err: any) {
+    console.error("❌ Error fetching financials reported:", err.message);
+    return [];
+  }
+}
+
+}
 export const stockApi = new StockAPI();

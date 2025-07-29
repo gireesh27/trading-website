@@ -21,10 +21,8 @@ import {
 import { useState, useEffect, useCallback } from "react";
 import CountUp from "react-countup";
 import {
-  AdvancedTradingChart,
   CandlestickPoint,
 } from "@/components/advanced-trading-chart";
-import { stockApi } from "@/lib/api/stock-api";
 import { useRouter } from "next/navigation";
 export interface CryptoQuote {
   symbol: string;
@@ -43,9 +41,8 @@ const getCleanSymbol = (raw: string): string =>
   raw.replace("-USD", "").toUpperCase();
 
 const normalizeToYahooSymbol = (clean: string): string => `${clean}-USD`;
-
 export default function CryptoPage() {
-  const { selectedStock, isLoading, error, selectStock, refreshData } =
+  const { isLoading, error, refreshData } =
     useMarketData();
 
   const [searchTerm, setSearchTerm] = useState("");

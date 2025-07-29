@@ -49,7 +49,7 @@ const WatchlistSchema = new Schema<IWatchlist>({
           price: Number,
           isActive: Boolean,
           createdAt: Date,
-          toggledAt: Date, 
+          toggledAt: Date,
         },
       ],
     },

@@ -1,3 +1,6 @@
+const FINNHUB_API_KEY = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
+const BASE_URL = "https://finnhub.io/api/v1";
+
 import { CryptoData } from "@/types/crypto-types";
 
 export interface CryptoQuote {
@@ -77,9 +80,6 @@ class CryptoAPI {
   }
 }
 
-
-
-
   private getCoinId(symbol: string): string {
     const cleanedSymbol = symbol.replace("-USD", "").toUpperCase();
 
@@ -100,7 +100,6 @@ class CryptoAPI {
     return mapping[cleanedSymbol] || cleanedSymbol.toLowerCase();
   }
 
-
   private getCoinName(symbol: string): string {
     const names: { [key: string]: string } = {
       BTC: "Bitcoin",
@@ -114,6 +113,8 @@ class CryptoAPI {
     };
     return names[symbol.toUpperCase()] || symbol;
   }
+
+
 }
 
 export const cryptoApi = new CryptoAPI();

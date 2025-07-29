@@ -251,31 +251,6 @@ export function QuickActions() {
           </div>
         </div>
 
-        {/* Quick Links */}
-        <div>
-          <h3 className="text-white font-semibold mb-3 flex items-center space-x-2">
-            <Search className="h-4 w-4" />
-            <span>Quick Links</span>
-          </h3>
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-gray-600 text-gray-300 hover:bg-gray-700 justify-start"
-            >
-              <DollarSign className="h-4 w-4 mr-2" />
-              Markets
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-gray-600 text-gray-300 hover:bg-gray-700 justify-start"
-            >
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Screener
-            </Button>
-          </div>
-        </div>
       </CardContent>
     </Card>
   )

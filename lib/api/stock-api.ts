@@ -1,47 +1,31 @@
-import yahooFinance from "yahoo-finance2";
-const FINNHUB_API_KEY = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
+const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
 const BASE_URL = "https://finnhub.io/api/v1";
+const POLYGON_BASE_URL = "https://api.polygon.io";
 const POLYGON_API_KEY = process.env.NEXT_PUBLIC_POLYGON_API_KEY;
 export interface CandlestickData {
-  time: string;
+  time: string;          // e.g., "2025-07-29T10:00:00Z"
   open: number;
   high: number;
   low: number;
   close: number;
   volume: number;
-  adjclose?: number;
+  adjclose?: number;     // Used mainly for adjusted charts
 }
 
 export interface StockQuote {
-  symbol: string;
-  name: string;
-  price: number;
-  change: number;
-  changePercent: number;
-  high?: number;
-  low?: number;
-  open?: number;
-  previousClose?: number;
-  volume?: number;
-  marketCap?: number;
-  rank?: number;
-  dominance?: number;
-}
-export interface FinancialReport {
-  symbol: string;
-  year: number;
-  quarter: number;
-  reportDate: string;
-
-  report: {
-    bs: Record<string, string>; // Balance Sheet
-    ic: Record<string, string>; // Income Statement
-    cf: Record<string, string>; // Cash Flow Statement
-  };
-
-  cik?: string;
-  form?: string;
-  filedDate?: string;
+  symbol: string;         // e.g., "AAPL"
+  name: string;           // e.g., "Apple Inc."
+  price: number;          // current price
+  change: number;         // absolute change
+  changePercent: number;  // percentage change
+  open?: number;          // opening price
+  high?: number;          // intraday high
+  low?: number;           // intraday low
+  previousClose?: number; // previous closing price
+  volume?: number;        // trading volume
+  marketCap?: number;     // fetched from /stock/metric
+  rank?: number;          // only applies to crypto (optional fallback support)
+  dominance?: number;     // also mainly for crypto
 }
 
 
@@ -60,6 +44,22 @@ export interface ChartApiResponse {
       adjclose: (number | null)[];
     }>;
   };
+}
+export interface FinancialReport {
+  symbol: string;
+  year: number;
+  quarter: number;
+  reportDate: string;
+
+  report: {
+    bs: Record<string, string>; // Balance Sheet
+    ic: Record<string, string>; // Income Statement
+    cf: Record<string, string>; // Cash Flow Statement
+  };
+
+  cik?: string;
+  form?: string;
+  filedDate?: string;
 }
 
 export class StockAPI {
@@ -91,6 +91,7 @@ export class StockAPI {
         },
       });
 
+      // Handle Rate Limit (429)
       if (response.status === 429 && retries > 0) {
         console.warn(`⚠️ RapidAPI rate limit hit. Retrying in ${backoff}ms...`);
         await new Promise((res) => setTimeout(res, backoff));
@@ -192,30 +193,6 @@ export class StockAPI {
 
     return { chartData: formattedData, apiResponse: data };
   }
-
-  public async getStockQuote(symbol: string): Promise<StockQuote> {
-    try {
-      const chart = await this.getFullChartData(symbol, "1d", "1d");
-      const latest = chart.chartData[chart.chartData.length - 1];
-
-      return {
-        symbol,
-        name: symbol,
-        price: latest.close,
-        change: latest.close - latest.open,
-        changePercent: ((latest.close - latest.open) / latest.open) * 100,
-        high: latest.high,
-        low: latest.low,
-        open: latest.open,
-        previousClose: latest.open,
-        volume: latest.volume,
-      };
-    } catch (err) {
-      console.warn(`getStockQuote failed for ${symbol}: ${(err as Error).message}`);
-      throw err;
-    }
-  }
-
   private async getQuoteFromRapidAPI(symbol: string): Promise<StockQuote> {
     const response = await this.fetchFromRapidApi<{
       price?: {
@@ -252,27 +229,81 @@ export class StockAPI {
       marketCap: priceData?.marketCap?.raw,
     };
   }
-  public async searchSymbol(query: string): Promise<{ symbol: string; name: string }[]> {
-    if (!query.trim()) return []; // ✅ Prevent empty calls
 
+  public async getStockQuote(symbol: string): Promise<StockQuote> {
     try {
-      const response = await this.fetchFromFinnhub<{ result: { symbol: string; description: string }[] }>(
-        `search?q=${encodeURIComponent(query)}`
+      const quoteData = await this.fetchFromFinnhub<{
+        c: number; d: number; dp: number; h: number;
+        l: number; o: number; pc: number; v?: number;
+      }>(`quote?symbol=${symbol}`);
+
+      if (typeof quoteData.c === "undefined" || quoteData.c === 0) {
+        throw new Error("Invalid or zero-value quote data from Finnhub, falling back.");
+      }
+
+      // Get company name
+      let companyName = symbol;
+      try {
+        const profile = await this.fetchFromFinnhub<{ name?: string }>(`stock/profile2?symbol=${symbol}`);
+        if (profile?.name) companyName = profile.name;
+      } catch {
+        console.warn(`Could not fetch company name for ${symbol}`);
+      }
+
+      // Get market cap
+      let marketCap: number | undefined;
+      try {
+        const metrics = await this.fetchFromFinnhub<{ metric: { marketCapitalization?: number } }>(
+          `stock/metric?symbol=${symbol}&metric=all`
+        );
+        marketCap = metrics.metric?.marketCapitalization;
+      } catch {
+        console.warn(`Could not fetch market cap for ${symbol}`);
+      }
+
+      // Use volume if available, else fallback later
+      let volume = quoteData.v;
+
+      if (volume === undefined || volume === 0) {
+        console.warn(`Volume missing in Finnhub for ${symbol}, trying fallback`);
+        const fallback = await this.getSingleQuote(symbol);
+        volume = fallback?.volume ?? 0;
+      }
+
+      return {
+        symbol,
+        name: companyName,
+        price: quoteData.c,
+        change: quoteData.d,
+        changePercent: quoteData.dp,
+        high: quoteData.h,
+        low: quoteData.l,
+        open: quoteData.o,
+        previousClose: quoteData.pc,
+        volume,
+        
+        marketCap,
+      };
+    } catch (err) {
+      console.warn(
+        `Finnhub quote failed for ${symbol}, falling back to Polygon. Error: ${(err as Error).message}`
       );
 
-      return response.result.map((item) => ({
-        symbol: item.symbol,
-        name: item.description,
-      }));
-    } catch (err) {
-      console.error("❌ Error searching symbol:", err);
-      return [];
+      const fallback = await this.getSingleQuote(symbol);
+      if (!fallback) {
+        throw new Error(`Fallback failed for ${symbol} — no quote data available.`);
+      }
+
+      return fallback;
     }
   }
+
+
 
   public async getQuote(symbol: string): Promise<StockQuote> {
     return this.getStockQuote(symbol);
   }
+
   public async getMultipleQuotes(symbols: string[]): Promise<StockQuote[]> {
     const promises = symbols.map(symbol =>
       this.getQuote(symbol).catch(err => {
@@ -284,83 +315,90 @@ export class StockAPI {
     const results = await Promise.all(promises);
     return results.filter((quote): quote is StockQuote => quote !== null);
   }
- // inside StockAPI.ts
-private cachedSymbols: { symbol: string; name: string }[] | null = null;
 
-private async getUSStockSymbols(): Promise<{ symbol: string; name: string }[]> {
-  if (this.cachedSymbols) return this.cachedSymbols;
-
-  const res = await fetch(
-    `https://finnhub.io/api/v1/stock/symbol?exchange=US&token=${FINNHUB_API_KEY}`
-  );
-  const data = await res.json();
-
-  this.cachedSymbols = data
-    .filter((s: any) => s.symbol && s.displaySymbol && !s.symbol.includes('.'))
-    .map((s: any) => ({ symbol: s.symbol, name: s.description }))
-    .slice(0, 300); // limit to 300 for performance
-
-  return this.cachedSymbols ?? [];
-}
-
-public async getPaginatedQuotes(page = 1, limit = 12): Promise<StockQuote[]> {
-  try {
-    const symbols = await this.getUSStockSymbols();
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    const selectedSymbols = symbols.slice(start, end).map((s) => s.symbol);
-
-    const quotePromises = selectedSymbols.map(async (symbol) => {
-      const res = await fetch(
-        `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`
-      );
-      const data = await res.json();
-      return {
-        symbol,
-        name: symbols.find((s) => s.symbol === symbol)?.name || symbol,
-        price: data.c,
-        change: data.d,
-        changePercent: data.dp,
-        high: data.h,
-        low: data.l,
-        open: data.o,
-        previousClose: data.pc,
-        volume: data.v,
-        marketCap: 0, // Finnhub does not provide marketCap here
-      };
-    });
-
-    return await Promise.all(quotePromises);
-  } catch (err: any) {
-    console.error("❌ Error fetching paginated quotes:", err.message);
-    return [];
+  public async fetchFromPolygon(path: string): Promise<any> {
+    const url = `${POLYGON_BASE_URL}${path}${path.includes("?") ? "&" : "?"}apiKey=${POLYGON_API_KEY}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Polygon API error: ${res.status}`);
+    return res.json();
   }
-}
 
+  public async getSingleQuote(symbol: string): Promise<StockQuote | null> {
+    try {
+      const data = await this.fetchFromPolygon(
+        `/v2/snapshot/locale/us/markets/stocks/tickers/${symbol.toUpperCase()}`
+      );
 
-public async  getFinancialsReported(symbol: string) {
-  try {
-    const url = `${BASE_URL}/stock/financials-reported?symbol=${symbol}&token=${FINNHUB_API_KEY}`;
-    const response = await fetch(url);
+      const t = data?.ticker;
 
-    if (!response.ok) {
-      throw new Error(`Finnhub API error: ${response.statusText}`);
+      if (!t || !t.lastTrade) {
+        console.warn(`No data found for symbol: ${symbol}`);
+        return null;
+      }
+
+      const volume = t.day?.volume ?? t.day?.v ?? 0;
+      if (!volume) {
+        console.warn(`Volume missing for ${symbol} from Polygon snapshot`);
+      }
+
+      return {
+        symbol: t.ticker,
+        name: t.ticker,
+        change: t.todaysChange ?? 0,
+        price: t.lastTrade?.p ?? 0,
+        changePercent: t.todaysChangePerc ?? 0,
+        volume,
+        
+        marketCap: t.marketCap ?? 0,
+        high: t.day?.h ?? 0,
+        low: t.day?.l ?? 0,
+      };
+    } catch (err) {
+      console.error(`❌ Failed to fetch quote for ${symbol}:`, err);
+      return null;
     }
+  }
 
-    const data = await response.json();
+  // 🔁 Batch via Promise.all (client-side throttled)
+  public async getMultipleQuotes_polygon(symbols: string[]): Promise<StockQuote[]> {
+    const results = await Promise.all(
+      symbols.map((symbol) => this.getSingleQuote(symbol))
+    );
+    return results.filter((r): r is StockQuote => r !== null);
+  }
+  private async normalizeVolume(symbol: string, volume?: number): Promise<number> {
+    if (volume && volume > 0) return volume;
 
-    // Defensive check: ensure it's an object with expected structure
-    if (!data || !Array.isArray(data.data)) {
-      console.error("Unexpected financials format:", data);
+    const fallback = await this.getSingleQuote(symbol);
+    if (fallback?.volume && fallback.volume > 0) return fallback.volume;
+
+    console.warn(`⚠️ Volume unavailable for ${symbol}`);
+    return 0;
+  }
+
+  public async getFinancialsReported(symbol: string) {
+    try {
+      const url = `${BASE_URL}/stock/financials-reported?symbol=${symbol}&token=${FINNHUB_API_KEY}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`Finnhub API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Defensive check: ensure it's an object with expected structure
+      if (!data || !Array.isArray(data.data)) {
+        console.error("Unexpected financials format:", data);
+        return [];
+      }
+
+      return data.data; // Array of financial report items
+    } catch (err: any) {
+      console.error("❌ Error fetching financials reported:", err.message);
       return [];
     }
-
-    return data.data; // Array of financial report items
-  } catch (err: any) {
-    console.error("❌ Error fetching financials reported:", err.message);
-    return [];
   }
 }
 
-}
 export const stockApi = new StockAPI();

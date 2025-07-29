@@ -84,6 +84,22 @@ export interface Stock {
   
   isWatchlisted?: boolean
 }
+export interface StockQuote {
+  symbol: string;         // e.g., "AAPL"
+  name: string;           // e.g., "Apple Inc."
+  price: number;          // current price
+  change: number;         // absolute change
+  changePercent: number;  // percentage change
+  open?: number;          // opening price
+  high?: number;          // intraday high
+  low?: number;           // intraday low
+  previousClose?: number; // previous closing price
+  volume?: number;        // trading volume
+  marketCap?: number;     // fetched from /stock/metric
+  rank?: number;          // only applies to crypto (optional fallback support)
+  dominance?: number;     // also mainly for crypto
+}
+
 
 export interface CandlestickPoint {
   time: string;

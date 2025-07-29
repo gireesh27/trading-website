@@ -42,7 +42,7 @@ const getCleanSymbol = (raw: string): string =>
 
 const normalizeToYahooSymbol = (clean: string): string => `${clean}-USD`;
 export default function CryptoPage() {
-  const { isLoading, error, refreshData } =
+  const { isLoading, error, refreshCrypto } =
     useMarketData();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -188,9 +188,9 @@ export default function CryptoPage() {
     setOverviewPage(1);
     setTablePage(1);
     setHasMoreData(true);
-    refreshData();
+    refreshCrypto();
     fetchCryptoData(1, true);
-  }, [refreshData, fetchCryptoData]);
+  }, [refreshCrypto, fetchCryptoData]);
 
   //use Effect Hooks
   useEffect(() => {

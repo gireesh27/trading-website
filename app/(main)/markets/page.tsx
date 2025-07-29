@@ -1,7 +1,6 @@
-// Enhanced stock markets page with modern UI, pagination, tabs, search, overview stats
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useMarketData } from "@/contexts/enhanced-market-data-context";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,50 +9,77 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import FooterTime from "./FooterTime";
 import { Search, RefreshCw } from "lucide-react";
 import CountUp from "react-countup";
-import Link from "next/link";
+import { StockQuote } from "@/lib/api/stock-api";
+import { OverviewCard } from "./OverViewCard";
+import {
+  TableCell,
+  TableHead,
+  TableRow,
+  Table,
+  TableBody,
+  TableHeader,
+  TableFooter,
+} from "@/components/ui/table";
 
+import { formatNumber, formatCurrency } from "@/lib/utils/market";
 const ITEMS_PER_PAGE = 12;
 
 export default function MarketsPage() {
-  const { stocks, isLoading, error, refreshData } = useMarketData();
+  const { stocks, isLoading, error, refreshData, loadMoreStocks } =
+    useMarketData();
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<"price" | "change" | "volume" | "marketCap">("price");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [activeTab, setActiveTab] = useState<"overview" | "table">("overview");
+  const [activeTab, setActiveTab] = useState("overview");
   const [overviewPage, setOverviewPage] = useState(1);
-  const [tablePage, setTablePage] = useState(1);
+  const [tableStocks, setTableStocks] = useState<StockQuote[]>([]);
+  const [overviewPagesData, setOverviewPagesData] = useState<
+    Record<number, StockQuote[]>
+  >({});
 
+  // Initialize tableStocks and page 1 overview
   useEffect(() => {
-    const page = activeTab === "overview" ? overviewPage : tablePage;
-    refreshData({ stockPage: page, ITEMS_PER_PAGE });
-  }, [refreshData, overviewPage, tablePage, activeTab]);
+    if (stocks.length > 0) {
+      setTableStocks((prev) => {
+        const existing = new Set(prev.map((s) => s.symbol));
+        const newStocks = stocks.filter((s) => !existing.has(s.symbol));
+        return [...prev, ...newStocks];
+      });
 
-  useEffect(() => {
-    if (activeTab === "overview") setOverviewPage(1);
-    else if (activeTab === "table") setTablePage(1);
-  }, [searchTerm, sortBy, sortOrder, activeTab]);
+      setOverviewPagesData((prev) => {
+        if (!prev[1]) {
+          return { ...prev, 1: stocks.slice(0, ITEMS_PER_PAGE) };
+        }
+        return prev;
+      });
+    }
+  }, [stocks]);
 
-  const filteredAndSorted = stocks
-    .filter(
+  const filteredStocks = useMemo(() => {
+    return tableStocks.filter(
       (s) =>
-        (s.name?.toLowerCase() ?? "").includes(searchTerm.toLowerCase()) ||
-        (s.symbol?.toLowerCase() ?? "").includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      const aVal = a[sortBy] || 0;
-      const bVal = b[sortBy] || 0;
-      return sortOrder === "desc" ? bVal - aVal : aVal - bVal;
-    });
+        s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.symbol?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [tableStocks, searchTerm]);
 
-  const overviewData = filteredAndSorted;
-  const tableData = filteredAndSorted;
+  const currentOverviewData = useMemo(() => {
+    return overviewPagesData[overviewPage] || [];
+  }, [overviewPagesData, overviewPage]);
 
-  const marketStats = {
-    totalMarketCap: stocks.reduce((sum, s) => sum + (s.marketCap || 0), 0),
-    totalVolume: stocks.reduce((sum, s) => sum + (s.volume || 0), 0),
-    gainers: stocks.filter((s) => s.changePercent > 0).length,
-    losers: stocks.filter((s) => s.changePercent < 0).length,
-  };
+  const marketStats = useMemo(() => {
+    const totalMarketCap = tableStocks.reduce(
+      (sum, s) => sum + (s.marketCap ?? 0),
+      0
+    );
+    const totalVolume = tableStocks.reduce(
+      (sum, s) => sum + (s.volume ?? 0),
+      0
+    );
+    const gainers = tableStocks.filter((s) => s.changePercent > 0).length;
+    const losers = tableStocks.filter((s) => s.changePercent < 0).length;
+
+    return { totalMarketCap, totalVolume, gainers, losers };
+  }, [tableStocks]);
 
   const formatLargeNumber = (num: number | undefined): string => {
     if (!num || isNaN(num)) return "N/A";
@@ -64,13 +90,90 @@ export default function MarketsPage() {
     return `$${num.toFixed(2)}`;
   };
 
+  const handleLoadMoreTable = async () => {
+    const newStocks = await loadMoreStocks();
+    if (newStocks.length > 0) {
+      setTableStocks((prev) => {
+        const unique = new Map(
+          [...prev, ...newStocks].map((s) => [s.symbol, s])
+        );
+        return Array.from(unique.values());
+      });
+    }
+  };
+
+  const handleNextOverview = async () => {
+    const nextPage = overviewPage + 1;
+    if (overviewPagesData[nextPage]) {
+      setOverviewPage(nextPage);
+      return;
+    }
+
+    const newStocks = await loadMoreStocks();
+    if (newStocks?.length) {
+      setOverviewPagesData((prev) => ({
+        ...prev,
+        [nextPage]: newStocks,
+      }));
+      setOverviewPage(nextPage);
+    }
+  };
+
+  const handlePrevOverview = () => {
+    if (overviewPage > 1) {
+      setOverviewPage((prev) => prev - 1);
+    }
+  };
+  const [sortBy, setSortBy] = useState<
+    | "symbol"
+    | "name"
+    | "price"
+    | "change"
+    | "marketCap"
+    | "volume"
+    | "previousClose"
+    | null
+  >(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const handleSort = (key: typeof sortBy) => {
+    if (sortBy === key) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(key);
+      setSortDirection("asc");
+    }
+  };
+  const sortedStocks = [...(stocks ?? [])].sort((a, b) => {
+    if (!sortBy) return 0;
+    const dir = sortDirection === "asc" ? 1 : -1;
+
+    switch (sortBy) {
+      case "symbol":
+        return a.symbol.localeCompare(b.symbol) * dir;
+      case "name":
+        return a.name.localeCompare(b.name) * dir;
+      case "price":
+        return ((a.price ?? 0) - (b.price ?? 0)) * dir;
+      case "change":
+        return ((a.change ?? 0) - (b.change ?? 0)) * dir;
+      case "marketCap":
+        return ((a.marketCap ?? 0) - (b.marketCap ?? 0)) * dir;
+      case "volume":
+        return ((a.volume ?? 0) - (b.volume ?? 0)) * dir;
+      case "previousClose":
+        return ((a.previousClose ?? 0) - (b.previousClose ?? 0)) * dir;
+      default:
+        return 0;
+    }
+  });
+
   return (
     <div className="min-h-screen bg-[#131722] text-white">
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold mb-2">Stock Markets</h1>
-            <p className="text-gray-400">Live stock prices and market data</p>
+            <h1 className="text-2xl font-bold mb-2">Stock Market</h1>
+            <p className="text-gray-400">Live stock quotes and data</p>
           </div>
           <div className="flex items-center space-x-4 mt-4 md:mt-0">
             <div className="relative">
@@ -83,7 +186,7 @@ export default function MarketsPage() {
               />
             </div>
             <Button
-              onClick={() => refreshData({ stockPage: activeTab === "overview" ? overviewPage : tablePage, ITEMS_PER_PAGE })}
+              onClick={() => refreshData({ stockPage: 1, ITEMS_PER_PAGE })}
               className="bg-blue-600 hover:bg-blue-700"
             >
               <RefreshCw className="h-4 w-4 mr-2" /> Refresh
@@ -91,122 +194,228 @@ export default function MarketsPage() {
           </div>
         </div>
 
-        {/* Market Stats */}
+        {/* Stats Section */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="bg-gray-800 border-gray-700">
-            <CardContent className="p-4">
-              <p className="text-gray-400 text-sm">Total Market Cap</p>
-              <p className="text-white text-lg font-semibold">
-                {formatLargeNumber(marketStats.totalMarketCap)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gray-800 border-gray-700">
-            <CardContent className="p-4">
-              <p className="text-gray-400 text-sm">Total Volume</p>
-              <p className="text-white text-lg font-semibold">
-                {formatLargeNumber(marketStats.totalVolume)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gray-800 border-gray-700">
-            <CardContent className="p-4">
-              <p className="text-gray-400 text-sm">Gainers</p>
-              <p className="text-green-500 text-lg font-semibold">
-                <CountUp end={marketStats.gainers} duration={1.5} />
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gray-800 border-gray-700">
-            <CardContent className="p-4">
-              <p className="text-gray-400 text-sm">Losers</p>
-              <p className="text-red-500 text-lg font-semibold">
-                <CountUp end={marketStats.losers} duration={1.5} />
-              </p>
-            </CardContent>
-          </Card>
+          {["Market Cap", "Volume", "Gainers", "Losers"].map((label) => (
+            <Card key={label} className="bg-gray-800 border-gray-700">
+              <CardContent className="p-4">
+                <p className="text-gray-400 text-sm">Total {label}</p>
+                <p
+                  className={`text-lg font-semibold ${
+                    label === "Gainers"
+                      ? "text-green-500"
+                      : label === "Losers"
+                      ? "text-red-500"
+                      : "text-white"
+                  }`}
+                >
+                  {label === "Market Cap" ? (
+                    formatLargeNumber(marketStats.totalMarketCap)
+                  ) : label === "Volume" ? (
+                    formatLargeNumber(marketStats.totalVolume)
+                  ) : (
+                    <CountUp
+                      end={
+                        label === "Gainers"
+                          ? marketStats.gainers
+                          : marketStats.losers
+                      }
+                      duration={1.5}
+                    />
+                  )}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-          <TabsList className="bg-gray-800 border-gray-700 mb-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="bg-gray-800 border border-gray-700 mb-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="table">Table View</TabsTrigger>
+            <TabsTrigger value="table">Table</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
           <TabsContent value="overview">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {overviewData.map((stock) => (
-                <Link key={stock.symbol} href={`/trade/${stock.symbol.toLowerCase()}`}>
-                  <div className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-colors cursor-pointer">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-white font-semibold">
-                        {stock.name} ({stock.symbol})
-                      </h3>
-                      <span
-                        className={`text-sm font-medium ${
-                          stock.changePercent >= 0 ? "text-green-500" : "text-red-500"
-                        }`}
-                      >
-                        {stock.changePercent >= 0 ? "+" : ""}
-                        {typeof stock.changePercent === "number"
-                          ? stock.changePercent.toFixed(2)
-                          : "0.00"}
-                        %
-                      </span>
-                    </div>
-                    <div className="mt-2 text-white text-lg font-bold">
-                      {typeof stock.price === "number"
-                        ? `$${stock.price.toFixed(2)}`
-                        : "N/A"}
-                    </div>
+            {isLoading && currentOverviewData.length === 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="bg-gray-700 h-40 rounded-lg"></div>
                   </div>
-                </Link>
-              ))}
+                ))}
+              </div>
+            ) : error ? (
+              <div className="text-center py-8">
+                <p className="text-red-400 mb-4">{error}</p>
+                <Button
+                  onClick={() => refreshData({ stockPage: 1, ITEMS_PER_PAGE })}
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {currentOverviewData.map((stock) => (
+                    <div
+                      key={`${stock.symbol}-${stock.name}`}
+                      className="bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer"
+                    >
+                      <CardContent className="p-4">
+                        <OverviewCard quote={stock} />
+                      </CardContent>
+                    </div>
+                  ))}
+                </div>
+
+                {!isLoading && currentOverviewData.length === 0 && (
+                  <div className="text-center py-8">
+                    <p className="text-gray-400">
+                      No stocks found matching your search.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {isLoading && currentOverviewData.length > 0 && (
+              <div className="flex justify-center mt-4">
+                <RefreshCw className="h-6 w-6 animate-spin text-blue-500" />
+              </div>
+            )}
+
+            <div className="flex items-center justify-center gap-6 mt-6">
+              <Button
+                onClick={handlePrevOverview}
+                disabled={overviewPage <= 1}
+                className="bg-gray-700 disabled:opacity-50"
+              >
+                ← Prev
+              </Button>
+              <div className="text-sm text-gray-300 font-medium">
+                Page <span className="text-white">{overviewPage}</span>
+              </div>
+              <Button
+                onClick={handleNextOverview}
+                disabled={isLoading}
+                className="bg-gray-700 disabled:opacity-50"
+              >
+                Next →
+              </Button>
             </div>
           </TabsContent>
 
-          {/* Table View Tab */}
+          {/* Table Tab */}
           <TabsContent value="table">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-700 text-left text-gray-400 text-sm">
-                    <th className="p-2">Symbol</th>
-                    <th className="p-2">Name</th>
-                    <th className="p-2 text-right">Price</th>
-                    <th className="p-2 text-right">Change %</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tableData.map((stock) => (
-                    <tr
-                      key={stock.symbol}
-                      className="border-b border-gray-800 hover:bg-gray-700 cursor-pointer"
-                      onClick={() => (window.location.href = `/trade/${stock.symbol.toLowerCase()}`)}
+            <div className="overflow-x-auto border border-gray-700 rounded-md">
+              <Table className="text-lg">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead
+                      onClick={() => handleSort("symbol")}
+                      className="cursor-pointer text-base font-semibold"
                     >
-                      <td className="p-2 text-white font-medium">{stock.symbol}</td>
-                      <td className="p-2 text-white">{stock.name}</td>
-                      <td className="p-2 text-right text-white">
-                        {typeof stock.price === "number"
-                          ? `$${stock.price.toFixed(2)}`
-                          : "N/A"}
-                      </td>
-                      <td
-                        className={`p-2 text-right font-medium ${
-                          stock.changePercent >= 0 ? "text-green-500" : "text-red-500"
-                        }`}
+                      Symbol{" "}
+                      {sortBy === "symbol" &&
+                        (sortDirection === "asc" ? "↑" : "↓")}
+                    </TableHead>
+                    <TableHead
+                      onClick={() => handleSort("name")}
+                      className="cursor-pointer text-base font-semibold"
+                    >
+                      Name{" "}
+                      {sortBy === "name" &&
+                        (sortDirection === "asc" ? "↑" : "↓")}
+                    </TableHead>
+                    <TableHead
+                      onClick={() => handleSort("price")}
+                      className="cursor-pointer text-base font-semibold"
+                    >
+                      Price{" "}
+                      {sortBy === "price" &&
+                        (sortDirection === "asc" ? "↑" : "↓")}
+                    </TableHead>
+                    <TableHead
+                      onClick={() => handleSort("change")}
+                      className="cursor-pointer text-base font-semibold"
+                    >
+                      Change{" "}
+                      {sortBy === "change" &&
+                        (sortDirection === "asc" ? "↑" : "↓")}
+                    </TableHead>
+                    <TableHead
+                      onClick={() => handleSort("marketCap")}
+                      className="cursor-pointer text-base font-semibold"
+                    >
+                      Market Cap{" "}
+                      {sortBy === "marketCap" &&
+                        (sortDirection === "asc" ? "↑" : "↓")}
+                    </TableHead>
+                    <TableHead
+                      onClick={() => handleSort("volume")}
+                      className="cursor-pointer text-base font-semibold"
+                    >
+                      Volume{" "}
+                      {sortBy === "volume" &&
+                        (sortDirection === "asc" ? "↑" : "↓")}
+                    </TableHead>
+                    <TableHead
+                      onClick={() => handleSort("previousClose")}
+                      className="cursor-pointer text-base font-semibold"
+                    >
+                      Prev Close{" "}
+                      {sortBy === "previousClose" &&
+                        (sortDirection === "asc" ? "↑" : "↓")}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedStocks.map((stock) => (
+                    <TableRow key={stock.symbol} className="text-lg">
+                      <TableCell className="font-bold">
+                        {stock.symbol}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {stock.name}
+                      </TableCell>
+                      <TableCell>{formatCurrency(stock.price)}</TableCell>
+                      <TableCell
+                        className={
+                          stock.change > 0
+                            ? "text-green-600"
+                            : stock.change < 0
+                            ? "text-red-600"
+                            : "text-muted-foreground"
+                        }
                       >
-                        {stock.changePercent >= 0 ? "+" : ""}
-                        {typeof stock.changePercent === "number"
-                          ? stock.changePercent.toFixed(2)
-                          : "0.00"}
-                        %
-                      </td>
-                    </tr>
+                        {stock.change?.toFixed(2)} (
+                        {stock.changePercent?.toFixed(2)}%)
+                      </TableCell>
+                      <TableCell>
+                        {stock.marketCap ? formatNumber(stock.marketCap) : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {stock.volume ? formatNumber(stock.volume) : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {stock.previousClose
+                          ? formatCurrency(stock.previousClose)
+                          : "—"}
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex justify-center mt-6">
+              <Button
+                onClick={handleLoadMoreTable}
+                disabled={isLoading}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Load More
+              </Button>
             </div>
           </TabsContent>
         </Tabs>

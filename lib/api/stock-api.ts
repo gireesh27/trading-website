@@ -281,7 +281,7 @@ export class StockAPI {
         open: quoteData.o,
         previousClose: quoteData.pc,
         volume,
-        
+
         marketCap,
       };
     } catch (err) {
@@ -348,7 +348,7 @@ export class StockAPI {
         price: t.lastTrade?.p ?? 0,
         changePercent: t.todaysChangePerc ?? 0,
         volume,
-        
+
         marketCap: t.marketCap ?? 0,
         high: t.day?.h ?? 0,
         low: t.day?.l ?? 0,
@@ -365,15 +365,6 @@ export class StockAPI {
       symbols.map((symbol) => this.getSingleQuote(symbol))
     );
     return results.filter((r): r is StockQuote => r !== null);
-  }
-  private async normalizeVolume(symbol: string, volume?: number): Promise<number> {
-    if (volume && volume > 0) return volume;
-
-    const fallback = await this.getSingleQuote(symbol);
-    if (fallback?.volume && fallback.volume > 0) return fallback.volume;
-
-    console.warn(`⚠️ Volume unavailable for ${symbol}`);
-    return 0;
   }
 
   public async getFinancialsReported(symbol: string) {
@@ -399,6 +390,24 @@ export class StockAPI {
       return [];
     }
   }
+  public async searchSymbol(query: string): Promise<{ symbol: string; name: string }[]> {
+    if (!query.trim()) return []; // ✅ Prevent empty calls
+
+    try {
+      const response = await this.fetchFromFinnhub<{ result: { symbol: string; description: string }[] }>(
+        `search?q=${encodeURIComponent(query)}`
+      );
+
+      return response.result.map((item) => ({
+        symbol: item.symbol,
+        name: item.description,
+      }));
+    } catch (err) {
+      console.error("❌ Error searching symbol:", err);
+      return [];
+    }
+  }
+
 }
 
 export const stockApi = new StockAPI();

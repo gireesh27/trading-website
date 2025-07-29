@@ -22,13 +22,15 @@ import {
 } from "@/components/ui/table";
 
 import { formatNumber, formatCurrency } from "@/lib/utils/market";
+import { useSearchContext } from "@/contexts/Search-context";
+import { SymbolSearchBar } from "./Input_autocomplete";
 const ITEMS_PER_PAGE = 12;
 
 export default function MarketsPage() {
-  const { stocks, isLoading, error, refreshData, loadMoreStocks } =
+  const { stocks, isLoading, error, refreshData, loadMoreStocks,selectStock } =
     useMarketData();
-
   const [searchTerm, setSearchTerm] = useState("");
+
   const [activeTab, setActiveTab] = useState("overview");
   const [overviewPage, setOverviewPage] = useState(1);
   const [tableStocks, setTableStocks] = useState<StockQuote[]>([]);
@@ -53,7 +55,12 @@ export default function MarketsPage() {
       });
     }
   }, [stocks]);
-
+  const handleRefresh = async () => {
+    setOverviewPage(1);
+    setOverviewPagesData({});
+    setTableStocks([]);
+    await refreshData({ stockPage: 1, ITEMS_PER_PAGE });
+  };
   const filteredStocks = useMemo(() => {
     return tableStocks.filter(
       (s) =>
@@ -166,7 +173,13 @@ export default function MarketsPage() {
         return 0;
     }
   });
+  const { suggestions, handleSymbolChange } = useSearchContext();
 
+  const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    handleSymbolChange("global", value); // "global" can be a general ID for non-watchlist cases
+  };
   return (
     <div className="min-h-screen bg-[#131722] text-white">
       <div className="container mx-auto px-4 py-6">
@@ -176,17 +189,14 @@ export default function MarketsPage() {
             <p className="text-gray-400">Live stock quotes and data</p>
           </div>
           <div className="flex items-center space-x-4 mt-4 md:mt-0">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search stocks..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-gray-800 border-gray-700 text-white"
-              />
-            </div>
+            <SymbolSearchBar
+              onSelectSymbol={(symbol) => {
+                selectStock(symbol);
+                setSearchTerm(symbol);
+              }}
+            />
             <Button
-              onClick={() => refreshData({ stockPage: 1, ITEMS_PER_PAGE })}
+              onClick={() => handleRefresh()}
               className="bg-blue-600 hover:bg-blue-700"
             >
               <RefreshCw className="h-4 w-4 mr-2" /> Refresh

@@ -7,7 +7,8 @@ import { MarketDataProvider } from "@/contexts/enhanced-market-data-context";
 import { TradingProvider } from "@/contexts/trading-context";
 import { WatchlistProvider } from "@/contexts/watchlist-context";
 import { NotificationProvider } from "@/contexts/notification-context";
-import { OrderProvider } from "@/contexts/order-context"; // ✅ Add this line
+import { OrderProvider } from "@/contexts/order-context";
+import { SearchProvider } from "@/contexts/Search-context"; // ✅ IMPORT
 import { Toaster } from "@/components/ui/toaster";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -16,16 +17,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         <WalletProvider>
           <MarketDataProvider>
-            <TradingProvider>
-              <OrderProvider> 
-                <WatchlistProvider>
-                  <NotificationProvider>
-                    {children}
-                    <Toaster />
-                  </NotificationProvider>
-                </WatchlistProvider>
-              </OrderProvider>
-            </TradingProvider>
+            <SearchProvider>
+              <TradingProvider>
+                <OrderProvider>
+                  <WatchlistProvider>
+                    <NotificationProvider>
+                      {children}
+                      <Toaster />
+                    </NotificationProvider>
+                  </WatchlistProvider>
+                </OrderProvider>
+              </TradingProvider>
+            </SearchProvider>
           </MarketDataProvider>
         </WalletProvider>
       </AuthProvider>

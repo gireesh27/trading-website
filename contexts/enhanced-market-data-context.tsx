@@ -266,6 +266,7 @@ const loadMoreStocks = async (): Promise<StockQuote[]> => {
     },
     []
   );
+  
 
   const getQuote = async (symbol: string): Promise<StockQuote | null> => {
     try {

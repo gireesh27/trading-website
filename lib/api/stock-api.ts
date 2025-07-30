@@ -27,7 +27,24 @@ export interface StockQuote {
   rank?: number;          // only applies to crypto (optional fallback support)
   dominance?: number;     // also mainly for crypto
 }
+export interface FinnhubMetricsResponse {
+  metric: Record<string, any>;
+  series?: Record<string, Record<string, number | null>>;
+}
 
+export interface StockMetrics {
+  marketCap?: number;
+  peRatio?: number;
+  eps?: number;
+  marginGross?: number;
+  marginOperating?: number;
+  marginNet?: number;
+  growthRevenue?: number;
+  growthEps?: number;
+  priceToBook?: number;
+  dividendYield?: number;
+  [key: string]: any;
+}
 
 export interface ChartApiResponse {
   meta: any;
@@ -241,38 +258,9 @@ export class StockAPI {
         throw new Error("Invalid or zero-value quote data from Finnhub, falling back.");
       }
 
-      // Get company name
-      let companyName = symbol;
-      try {
-        const profile = await this.fetchFromFinnhub<{ name?: string }>(`stock/profile2?symbol=${symbol}`);
-        if (profile?.name) companyName = profile.name;
-      } catch {
-        console.warn(`Could not fetch company name for ${symbol}`);
-      }
-
-      // Get market cap
-      let marketCap: number | undefined;
-      try {
-        const metrics = await this.fetchFromFinnhub<{ metric: { marketCapitalization?: number } }>(
-          `stock/metric?symbol=${symbol}&metric=all`
-        );
-        marketCap = metrics.metric?.marketCapitalization;
-      } catch {
-        console.warn(`Could not fetch market cap for ${symbol}`);
-      }
-
-      // Use volume if available, else fallback later
-      let volume = quoteData.v;
-
-      if (volume === undefined || volume === 0) {
-        console.warn(`Volume missing in Finnhub for ${symbol}, trying fallback`);
-        const fallback = await this.getSingleQuote(symbol);
-        volume = fallback?.volume ?? 0;
-      }
-
       return {
         symbol,
-        name: companyName,
+        name: symbol, // No separate fetch for company name
         price: quoteData.c,
         change: quoteData.d,
         changePercent: quoteData.dp,
@@ -280,9 +268,8 @@ export class StockAPI {
         low: quoteData.l,
         open: quoteData.o,
         previousClose: quoteData.pc,
-        volume,
-
-        marketCap,
+        volume: quoteData.v,
+        marketCap: undefined, // No fetch for market cap
       };
     } catch (err) {
       console.warn(
@@ -297,8 +284,6 @@ export class StockAPI {
       return fallback;
     }
   }
-
-
 
   public async getQuote(symbol: string): Promise<StockQuote> {
     return this.getStockQuote(symbol);
@@ -369,27 +354,30 @@ export class StockAPI {
 
   public async getFinancialsReported(symbol: string) {
     try {
-      const url = `${BASE_URL}/stock/financials-reported?symbol=${symbol}&token=${FINNHUB_API_KEY}`;
+      const url = `https://finnhub.io/api/v1/stock/financials-reported?symbol=${symbol}&token=${this.finnhubApiKey}`;
+      console.log("📤 Fetching financials with URL:", url);
+
       const response = await fetch(url);
 
       if (!response.ok) {
-        throw new Error(`Finnhub API error: ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`Finnhub API error (${response.status}): ${errorText}`);
       }
 
       const data = await response.json();
 
-      // Defensive check: ensure it's an object with expected structure
-      if (!data || !Array.isArray(data.data)) {
+      if (!data || typeof data !== "object" || !Array.isArray(data.data)) {
         console.error("Unexpected financials format:", data);
         return [];
       }
 
-      return data.data; // Array of financial report items
+      return data.data;
     } catch (err: any) {
       console.error("❌ Error fetching financials reported:", err.message);
       return [];
     }
   }
+
   public async searchSymbol(query: string): Promise<{ symbol: string; name: string }[]> {
     if (!query.trim()) return []; // ✅ Prevent empty calls
 
@@ -407,7 +395,32 @@ export class StockAPI {
       return [];
     }
   }
+  public async getStockMetrics(symbol: string): Promise<StockMetrics> {
+    try {
+      const data = await this.fetchFromFinnhub<FinnhubMetricsResponse>(
+        `stock/metric?symbol=${symbol}&metric=all`
+      );
+      const m = data.metric || {};
 
+      return {
+        marketCap: m.marketCapitalization,
+        peRatio: m.peBasicExclExtraItemsTTM,
+        eps: m.epsInclExtraItemsTTM,
+        marginGross: m.grossMarginTTM,
+        marginOperating: m.operatingMarginTTM,
+        marginNet: m.netMarginTTM,
+        growthRevenue: m.revenueGrowthQuarterly,
+        growthEps: m.epsGrowthQuarterly,
+        priceToBook: m.priceToBookAnnual,
+        dividendYield: m.dividendYieldIndicatedAnnual,
+        // Spread in case you want all:
+        ...m
+      };
+    } catch (err) {
+      console.warn(`Error fetching metrics for ${symbol}:`, (err as Error).message);
+      throw err;
+    }
+  }
 }
 
 export const stockApi = new StockAPI();

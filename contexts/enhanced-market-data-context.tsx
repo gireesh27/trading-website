@@ -14,6 +14,7 @@ import {
   StockQuote,
   CandlestickData,
   FinancialReport,
+  StockMetrics,
 } from "@/lib/api/stock-api";
 import { newsAPI, NewsItem } from "@/lib/api/news-api";
 import { cryptoApi } from "@/lib/api/crypto-api";
@@ -50,7 +51,15 @@ interface MarketDataContextType {
   stockPage: number;
   setStockPage: React.Dispatch<React.SetStateAction<number>>;
   refreshCrypto: () => void;
-   loadMoreStocks: () => Promise<StockQuote[]> 
+  loadMoreStocks: () => Promise<StockQuote[]>;
+  getStockMetrics: (symbol: string) => Promise<StockMetrics | null>;
+  fetchCompanyNews: (symbol: string) => void;
+  companyNews: Record<string, NewsItem[]>;
+  loadingNews: boolean;
+  loadingCryptoNews: boolean;
+  fetchCryptoNews:  (symbol: string) => void;
+  cryptoNews: NewsItem[];
+
 }
 
 const MarketDataContext = createContext<MarketDataContextType | undefined>(
@@ -68,8 +77,12 @@ export const MarketDataProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [stockPage, setStockPage] = useState(1);
-  const ITEMS_PER_PAGE = 9;
-
+  const [companyNews, setCompanyNews] = useState<Record<string, NewsItem[]>>(
+    {}
+  );
+  const ITEMS_PER_PAGE = 6;
+  const [cryptoNews, setCryptoNews] = useState<NewsItem[]>([]);
+  const [loadingCryptoNews, setLoadingCryptoNews] = useState(false);
   const refreshTimeout = useRef<NodeJS.Timeout | null>(null);
   const candlestickCache = useRef<Map<string, CandlestickData[]>>(new Map());
   const trackedSymbols = [
@@ -154,37 +167,37 @@ export const MarketDataProvider = ({ children }: { children: ReactNode }) => {
     "NVAX",
     "MRNA",
   ];
+  const [loadingNews, setLoadingNews] = useState(false);
+  const refreshData = useCallback(
+    ({ stockPage = 1, ITEMS_PER_PAGE = 6 }: RefreshDataArgs = {}) => {
+      if (refreshTimeout.current) clearTimeout(refreshTimeout.current);
 
-const refreshData = useCallback(
-  ({ stockPage = 1, ITEMS_PER_PAGE = 9 }: RefreshDataArgs = {}) => {
-    if (refreshTimeout.current) clearTimeout(refreshTimeout.current);
+      refreshTimeout.current = setTimeout(async () => {
+        setIsLoading(true);
+        setError(null);
 
-    refreshTimeout.current = setTimeout(async () => {
-      setIsLoading(true);
-      setError(null);
+        try {
+          const startIdx = (stockPage - 1) * ITEMS_PER_PAGE;
+          const endIdx = startIdx + ITEMS_PER_PAGE;
+          const paginatedSymbols = trackedSymbols.slice(startIdx, endIdx);
 
-      try {
-        const startIdx = (stockPage - 1) * ITEMS_PER_PAGE;
-        const endIdx = startIdx + ITEMS_PER_PAGE;
-        const paginatedSymbols = trackedSymbols.slice(startIdx, endIdx);
+          const [stockData, newsData] = await Promise.all([
+            stockApi.getMultipleQuotes(paginatedSymbols),
+            newsAPI.getMarketNews("general"),
+          ]);
 
-        const [stockData, newsData] = await Promise.all([
-          stockApi.getMultipleQuotes(paginatedSymbols),
-          newsAPI.getMarketNews("general"),
-        ]);
-
-        setStocks(stockData);
-        setNews(newsData);
-      } catch (err) {
-        console.error("Refresh error:", err);
-        setError("Failed to fetch market data. Please try again later.");
-      } finally {
-        setIsLoading(false);
-      }
-    }, 300);
-  },
-  []
-);
+          setStocks(stockData);
+          setNews(newsData);
+        } catch (err) {
+          console.error("Refresh error:", err);
+          setError("Failed to fetch market data. Please try again later.");
+        } finally {
+          setIsLoading(false);
+        }
+      }, 300);
+    },
+    []
+  );
 
   // Optional: Separate crypto loader
   const refreshCrypto = async () => {
@@ -197,23 +210,23 @@ const refreshData = useCallback(
     }
   };
 
-const loadMoreStocks = async (): Promise<StockQuote[]> => {
-  const nextPage = stockPage + 1;
-  const start = nextPage * ITEMS_PER_PAGE;
-  const end = start + ITEMS_PER_PAGE;
-  const newSymbols = trackedSymbols.slice(start, end);
+  const loadMoreStocks = async (): Promise<StockQuote[]> => {
+    const nextPage = stockPage + 1;
+    const start = nextPage * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    const newSymbols = trackedSymbols.slice(start, end);
 
-  try {
-    const newStocks = await stockApi.getMultipleQuotes(newSymbols);
-    setStocks((prev) => [...prev, ...newStocks]);
-    setStockPage(nextPage);
-    return newStocks; // ✅ RETURN for further use
-  } catch (err) {
-    console.error("Failed to load more stocks:", err);
-    setError("Failed to load more stocks.");
-    return []; // Return empty array on failure
-  }
-};
+    try {
+      const newStocks = await stockApi.getMultipleQuotes(newSymbols);
+      setStocks((prev) => [...prev, ...newStocks]);
+      setStockPage(nextPage);
+      return newStocks; // ✅ RETURN for further use
+    } catch (err) {
+      console.error("Failed to load more stocks:", err);
+      setError("Failed to load more stocks.");
+      return []; // Return empty array on failure
+    }
+  };
 
   const getFinancialsReported = async (
     symbol: string
@@ -223,6 +236,16 @@ const loadMoreStocks = async (): Promise<StockQuote[]> => {
     } catch (err) {
       console.error(`Financials fetch error (${symbol}):`, err);
       return [];
+    }
+  };
+  const getStockMetrics = async (
+    symbol: string
+  ): Promise<StockMetrics | null> => {
+    try {
+      return await stockApi.getStockMetrics(symbol);
+    } catch (err) {
+      console.error(`Stock metrics fetch error (${symbol}):`, err);
+      return null;
     }
   };
 
@@ -266,7 +289,6 @@ const loadMoreStocks = async (): Promise<StockQuote[]> => {
     },
     []
   );
-  
 
   const getQuote = async (symbol: string): Promise<StockQuote | null> => {
     try {
@@ -276,6 +298,38 @@ const loadMoreStocks = async (): Promise<StockQuote[]> => {
       return null;
     }
   };
+  const fetchCompanyNews = useCallback(async (symbol: string) => {
+    setLoadingNews(true);
+    try {
+      const news = await newsAPI.getCompanyNews(symbol);
+      setCompanyNews((prev) => ({
+        ...prev,
+        [symbol]: news,
+      }));
+      return news; // ✅ return the news
+    } catch (err) {
+      console.error(`Failed to fetch news for ${symbol}:`, err);
+      return [];
+    } finally {
+      setLoadingNews(false);
+    }
+  }, []);
+
+  const fetchCryptoNews = useCallback(async (symbol: string) => {
+  setLoadingCryptoNews(true);
+  try {
+    const news = await newsAPI.getCryptoNews(symbol);
+    setCryptoNews((prev) => ({
+      ...prev,
+      [symbol]: news,
+    }));
+  } catch (err) {
+    console.error("Failed to fetch crypto news for", symbol, err);
+  } finally {
+    setLoadingCryptoNews(false);
+  }
+}, []);
+
 
   useEffect(() => {
     refreshData({ stockPage, ITEMS_PER_PAGE });
@@ -291,7 +345,7 @@ const loadMoreStocks = async (): Promise<StockQuote[]> => {
   const value: MarketDataContextType = {
     selectedSymbol,
     stocks,
-    
+    getStockMetrics,
     news,
     crypto,
     candlestickData,
@@ -302,14 +356,20 @@ const loadMoreStocks = async (): Promise<StockQuote[]> => {
     error,
     refreshData,
     selectStock,
+    companyNews,
     refreshCrypto,
     getCandlestickData,
     getQuote,
     loadMoreStocks,
     getFinancialsReported,
     stockPage,
+    loadingNews,
     setStockPage,
-  };
+    fetchCompanyNews,
+    loadingCryptoNews,
+    fetchCryptoNews,
+    cryptoNews,
+      };
 
   return (
     <MarketDataContext.Provider value={value}>

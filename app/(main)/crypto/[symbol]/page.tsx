@@ -7,6 +7,7 @@ import { AdvancedTradingChart } from "@/components/advanced-trading-chart";
 import type { CryptoData } from "@/types/crypto-types";
 import type { CandlestickPoint } from "@/types/trading-types";
 import { EnhancedTradingInterface } from "@/components/enhanced-trading-interface";
+import { CryptoNewsFeed } from "@/components/Crypto-News";
 
 const getCleanSymbol = (raw: string): string =>
   raw.replace("-USD", "").toUpperCase();
@@ -140,28 +141,40 @@ export default function CryptoSymbolPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#131722] p-6 text-white">
-      {selectedStock && (
-        <div className="flex flex-col lg:flex-row mt-6 gap-6">
-          <div className="lg:w-2/3 w-full">
-            <AdvancedTradingChart
-              symbol={selectedStock.symbol}
-              selectedStock={selectedStock}
-              chartCandlestickData={chartCandlestickData}
-              isChartLoading={loadingPage}
-              getCandlestickData={loadChartData}
-              range={range}
-            />
-          </div>
-          <div className="lg:w-1/3 w-full">
-            <EnhancedTradingInterface
-              symbol={symbol}
-              name={selectedStock.name}
-              currentPrice={selectedStock.price || 0}
-            />
-          </div>
+   <div className="min-h-screen bg-[#131722] p-6 text-white rounded-2xl">
+  {selectedStock && (
+    <div className="flex flex-col lg:flex-row mt-6 gap-6">
+      {/* Left side: Chart + News */}
+      <div className="w-full flex flex-col gap-6 lg:w-3/4">
+        {/* AdvancedTradingChart */}
+        <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md shadow-md ">
+          <AdvancedTradingChart
+            symbol={selectedStock.symbol}
+            selectedStock={selectedStock}
+            chartCandlestickData={chartCandlestickData}
+            isChartLoading={loadingPage}
+            getCandlestickData={loadChartData}
+            range={range}
+          />
         </div>
-      )}
+
+        {/* CryptoNewsFeed */}
+        <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md shadow-md">
+          <CryptoNewsFeed symbol={symbol} />
+        </div>
+      </div>
+
+      {/* Right side: Trading Interface */}
+      <div className="lg:w-1/4 w-full ">
+        <EnhancedTradingInterface
+          symbol={symbol}
+          name={selectedStock.name}
+          currentPrice={selectedStock.price || 0}
+        />
+      </div>
     </div>
+  )}
+</div>
+
   );
 }

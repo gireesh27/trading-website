@@ -37,32 +37,7 @@ class NewsAPI {
       return []
     }
   }
-
-  async getCryptoNews(): Promise<NewsItem[]> {
-    try {
-      const response = await fetch(
-        `https://finnhub.io/api/v1/news?category=crypto&token=${NEWS_API_KEY}`
-      )
-      const data = await response.json()
-
-      return data.slice(0, 15).map((item: any, index: number) => ({
-        id: `crypto-${item.id || index}`,
-        title: item.headline,
-        summary: item.summary,
-        source: item.source,
-        publishedAt: new Date(item.datetime * 1000),
-        url: item.url,
-        category: 'crypto' as const,
-        sentiment: this.analyzeSentiment(item.headline),
-        relatedSymbols: this.extractCryptoSymbols(item.headline)
-      }))
-    } catch (error) {
-      console.error('Error fetching crypto news:', error)
-      return []
-    }
-  }
-
-  async getCompanyNews(symbol: string): Promise<NewsItem[]> {
+    public async getCompanyNews(symbol: string): Promise<NewsItem[]> {
     try {
       const from = new Date()
       from.setDate(from.getDate() - 7)
@@ -100,35 +75,87 @@ class NewsAPI {
     return mapping[category] || 'general'
   }
 
-  private analyzeSentiment(headline: string): 'positive' | 'negative' | 'neutral' {
-    const positiveWords = ['surge', 'rise', 'gain', 'up', 'bull', 'strong', 'beat', 'exceed', 'growth', 'profit']
-    const negativeWords = ['drop', 'fall', 'decline', 'down', 'bear', 'weak', 'miss', 'loss', 'crash', 'plunge']
-    
-    const lowerHeadline = headline.toLowerCase()
-    
-    const positiveCount = positiveWords.filter(word => lowerHeadline.includes(word)).length
-    const negativeCount = negativeWords.filter(word => lowerHeadline.includes(word)).length
-    
-    if (positiveCount > negativeCount) return 'positive'
-    if (negativeCount > positiveCount) return 'negative'
-    return 'neutral'
-  }
+async getCryptoNews(symbol: string): Promise<NewsItem[]> {
+  try {
+    const response = await fetch(
+      `https://finnhub.io/api/v1/news?category=crypto&token=${NEWS_API_KEY}`
+    )
+    const data = await response.json()
 
-  private extractCryptoSymbols(headline: string): string[] {
-    const cryptoSymbols = ['BTC', 'ETH', 'ADA', 'DOT', 'LINK', 'LTC', 'XRP', 'SOL']
-    const cryptoNames = ['bitcoin', 'ethereum', 'cardano', 'polkadot', 'chainlink', 'litecoin', 'ripple', 'solana']
-    
-    const found: string[] = []
-    const lowerHeadline = headline.toLowerCase()
-    
-    cryptoSymbols.forEach((symbol, index) => {
-      if (lowerHeadline.includes(symbol.toLowerCase()) || lowerHeadline.includes(cryptoNames[index])) {
-        found.push(symbol)
-      }
-    })
-    
-    return found
+    const normalizedSymbol = this.normalizeSymbol(symbol)
+
+    const allNews = data.slice(0, 30).map((item: any, index: number) => ({
+      id: `crypto-${item.id || index}`,
+      title: item.headline,
+      summary: item.summary,
+      source: item.source,
+      publishedAt: new Date(item.datetime * 1000),
+      url: item.url,
+      category: 'crypto' as const,
+      sentiment: this.analyzeSentiment(item.headline),
+      relatedSymbols: this.extractCryptoSymbols(item.headline),
+    }))
+
+    // Filter news where relatedSymbols include our normalizedSymbol
+    return allNews.filter((item: { relatedSymbols: string | any[] }) =>
+      item.relatedSymbols.includes(normalizedSymbol)
+    )
+  } catch (error) {
+    console.error('Error fetching crypto news:', error)
+    return []
   }
+}
+private normalizeSymbol(rawSymbol: string): string {
+  return rawSymbol.split('-')[0].toUpperCase(); // BTC-USD → BTC
+}
+
+private analyzeSentiment(headline: string): 'positive' | 'negative' | 'neutral' {
+  const positiveWords = ['surge', 'rise', 'gain', 'up', 'bull', 'strong', 'beat', 'exceed', 'growth', 'profit'];
+  const negativeWords = ['drop', 'fall', 'decline', 'down', 'bear', 'weak', 'miss', 'loss', 'crash', 'plunge'];
+
+  const lowerHeadline = headline.toLowerCase();
+
+  const positiveCount = positiveWords.filter(word => lowerHeadline.includes(word)).length;
+  const negativeCount = negativeWords.filter(word => lowerHeadline.includes(word)).length;
+
+  if (positiveCount > negativeCount) return 'positive';
+  if (negativeCount > positiveCount) return 'negative';
+  return 'neutral';
+}
+
+private extractCryptoSymbols(headline: string): string[] {
+  const cryptoSymbols = [
+  'BTC', 'ETH', 'ADA', 'DOT', 'LINK', 'LTC', 'XRP', 'SOL',
+  'BNB', 'DOGE', 'AVAX', 'MATIC', 'SHIB', 'TRX', 'XLM',
+  'ATOM', 'UNI', 'ETC', 'HBAR', 'ICP', 'APT', 'ARB', 'SAND',
+  'AAVE', 'EGLD', 'NEAR', 'FIL', 'XTZ', 'THETA', 'VET',
+  'MKR', 'KAVA', 'AXS', 'GRT', 'ALGO', 'FTM', 'STX', 'RNDR'
+]
+
+const cryptoNames = [
+  'bitcoin', 'ethereum', 'cardano', 'polkadot', 'chainlink', 'litecoin', 'ripple', 'solana',
+  'binance', 'dogecoin', 'avalanche', 'polygon', 'shiba', 'tron', 'stellar',
+  'cosmos', 'uniswap', 'ethereum classic', 'hedera', 'internet computer', 'aptos',
+  'arbitrum', 'sandbox', 'aave', 'elrond', 'near', 'filecoin', 'tezos', 'theta',
+  'vechain', 'maker', 'kava', 'axie', 'graph', 'algorand', 'fantom', 'stacks', 'render'
+]
+
+  
+  const found: string[] = []
+  const lowerHeadline = headline.toLowerCase()
+
+  cryptoSymbols.forEach((symbol, index) => {
+    if (
+      lowerHeadline.includes(symbol.toLowerCase()) ||
+      lowerHeadline.includes(cryptoNames[index])
+    ) {
+      found.push(symbol)
+    }
+  })
+
+  return found
+}
+
 }
 
 export const newsAPI = new NewsAPI()

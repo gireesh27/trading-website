@@ -49,6 +49,7 @@
     "date-fns": "4.1.0",
     "dayjs": "^1.11.13",
     "embla-carousel-react": "8.5.1",
+    "framer-motion": "^12.23.12",
     "input-otp": "1.4.1",
     "konva": "^9.3.22",
     "lightweight-charts": "^4.2.3",

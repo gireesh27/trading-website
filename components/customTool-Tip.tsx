@@ -1,5 +1,8 @@
 import React from "react";
-import {  ValueType, NameType } from "recharts/types/component/DefaultTooltipContent";
+import {
+  ValueType,
+  NameType,
+} from "recharts/types/component/DefaultTooltipContent";
 import { TooltipContentProps } from "recharts/types/component/Tooltip";
 
 type ChartData = {
@@ -31,25 +34,34 @@ export const CustomTooltip = ({
     const data = payload[0].payload as ChartData;
 
     return (
-      <div className="bg-gray-800/90 backdrop-blur-sm border border-gray-600 rounded-lg p-3 shadow-lg text-xs text-white">
-        <p className="font-bold mb-2">
+      <div className="bg-gray-800/90 backdrop-blur-md border border-gray-700 rounded-xl p-4 shadow-xl text-xs text-white duration-200 hover:scale-[1.02] hover:shadow-2xl transition-transform">
+        <p className="font-semibold text-sm text-indigo-400 mb-3 tracking-wide">
           {new Date(data.timestamp).toLocaleString()}
         </p>
-        <div className="grid grid-cols-2 gap-x-4">
-          <span>Open:</span>
-          <span className="text-right">${data.open?.toFixed(2)}</span>
-          <span>High:</span>
-          <span className="text-right text-green-400">
+
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <span className="text-gray-400">Open</span>
+          <span className="text-right font-medium text-white">
+            ${data.open?.toFixed(2)}
+          </span>
+
+          <span className="text-gray-400">High</span>
+          <span className="text-right font-semibold text-green-400">
             ${data.high?.toFixed(2)}
           </span>
-          <span>Low:</span>
-          <span className="text-right text-red-400">
+
+          <span className="text-gray-400">Low</span>
+          <span className="text-right font-semibold text-red-400">
             ${data.low?.toFixed(2)}
           </span>
-          <span>Close:</span>
-          <span className="text-right">${data.close?.toFixed(2)}</span>
-          <span>Volume:</span>
-          <span className="text-right text-blue-400">
+
+          <span className="text-gray-400">Close</span>
+          <span className="text-right font-medium text-white">
+            ${data.close?.toFixed(2)}
+          </span>
+
+          <span className="text-gray-400">Volume</span>
+          <span className="text-right font-medium text-blue-400">
             {data.volume?.toLocaleString()}
           </span>
         </div>
@@ -59,6 +71,5 @@ export const CustomTooltip = ({
 
   return null;
 };
-
 
 export default CustomTooltip;

@@ -9,7 +9,9 @@ import React, {
   Dispatch,
 } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import {StockChartHeader} from "./stock-chart-header";
+import {  TooltipContent,Tooltip } from "@/components/ui/tooltip";
+
+import { StockChartHeader } from "./stock-chart-header";
 import {
   ComposedChart,
   Bar,
@@ -46,13 +48,15 @@ import {
   LineChart,
   XAxis,
   YAxis,
-  Tooltip,
+  Tooltip as ChartTooltip,
   Line,
 } from "recharts";
 import dayjs from "dayjs";
 import advancedFormat from "dayjs/plugin/advancedFormat";
 import isToday from "dayjs/plugin/isToday";
 import dynamic from "next/dynamic";
+import { AnimatePresence, motion } from "framer-motion";
+import { TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 const DrawingCanvas = dynamic(() => import("./DrawingCanva"), {
   ssr: false,
 });
@@ -83,7 +87,6 @@ export interface Stock {
   rank?: number;
   dominance?: number;
 }
-
 
 /**
  * A single data point from the charting API.
@@ -676,25 +679,58 @@ const SubChartCard = ({
   children: React.ReactNode;
 }) => {
   return (
-    <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg">
-      <div className="px-4 py-2 flex justify-between items-center border-b border-gray-700/50">
-        <h3 className="text-sm font-semibold text-white">{title}</h3>
-        <button onClick={onToggle} className="text-gray-400 hover:text-white">
-          {isVisible ? (
-            <EyeOff className="h-4 w-4" />
-          ) : (
-            <Eye className="h-4 w-4" />
-          )}
-        </button>
+    <div className="bg-gray-800/60 backdrop-blur-md border border-gray-700/60 rounded-xl shadow-lg transition-all">
+      <div className="px-4 py-3 flex items-center justify-between border-b border-gray-700/50">
+        <h3 className="text-white text-sm sm:text-base font-semibold tracking-wide">
+          {title}
+        </h3>
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onToggle}
+                className="text-gray-400 hover:text-white transition-colors duration-150"
+                aria-label={isVisible ? "Hide chart" : "Show chart"}
+              >
+                {isVisible ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="text-xs text-white bg-gray-900 border border-gray-700">
+              {isVisible ? "Hide chart" : "Show chart"}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
-      <div className="p-2">
-        {isVisible ? (
-          children
-        ) : (
-          <p className="text-gray-400 text-sm italic">
-            Click above to view the {title} chart.
-          </p>
-        )}
+
+      <div className="p-4 text-sm min-h-[64px]">
+        <AnimatePresence mode="wait">
+          {isVisible ? (
+            <motion.div
+              key="visible"
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              transition={{ duration: 0.3 }}
+            >
+              {children}
+            </motion.div>
+          ) : (
+            <motion.p
+              key="hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-gray-400 italic"
+            >
+              Click the icon to view the <span className="text-white font-medium">{title}</span> chart.
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -1026,7 +1062,7 @@ export function AdvancedTradingChart({
           tickFormatter={(v) => `${(v / 1000000).toFixed(1)}M`}
         />
 
-        <Tooltip {...tooltipStyle} />
+        <ChartTooltip {...tooltipStyle} />
         <Bar
           dataKey="volume"
           barSize={2}
@@ -1057,7 +1093,7 @@ export function AdvancedTradingChart({
         />
         <XAxis dataKey="timestamp" hide={true} />
         <YAxis stroke="#9ca3af" fontSize={10} domain={[0, 100]} />
-        <Tooltip {...tooltipStyle} />
+        <ChartTooltip {...tooltipStyle} />
         <ReferenceLine y={70} stroke={THEME.negative} strokeDasharray="2 2" />
         <ReferenceLine y={30} stroke={THEME.positive} strokeDasharray="2 2" />
         <Line
@@ -1093,7 +1129,7 @@ export function AdvancedTradingChart({
           orientation="left"
           tickLine={{ stroke: "rgba(255, 255, 255, 0.2)" }}
         />
-        <Tooltip {...tooltipStyle} />
+        <ChartTooltip {...tooltipStyle} />
         <Line
           type="monotone"
           dataKey="macd"
@@ -1114,25 +1150,40 @@ export function AdvancedTradingChart({
     </ResponsiveContainer>
   );
 
-  if (isChartLoading)
-    return (
-      <div className="h-[800px] flex items-center justify-center text-gray-400">
-        <Activity className="h-12 w-12 animate-pulse" />
+  {
+    isChartLoading ? (
+      <div className="h-[800px] flex flex-col items-center justify-center text-gray-400 animate-fadeIn">
+        <Activity className="h-10 w-10 animate-spin-slow mb-3 text-indigo-500" />
+        <p className="text-lg font-medium tracking-wide">Loading chart...</p>
       </div>
-    );
-  if (!selectedStock)
-    return (
-      <div className="h-[800px] flex items-center justify-center text-gray-400">
-        <p>Select a stock to view the chart.</p>
+    ) : !selectedStock ? (
+      <div className="h-[800px] flex flex-col items-center justify-center text-gray-500 animate-fadeIn">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-12 w-12 text-gray-600 mb-3"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M12 8v4l3 3m-3-9a9 9 0 100 18 9 9 0 000-18z"
+          />
+        </svg>
+        <p className="text-lg font-medium">Select a stock to view the chart.</p>
       </div>
-    );
+    ) : null;
+  }
 
   return (
     <div className="space-y-4 bg-gray-900 text-white p-2 md:p-4 rounded-lg">
       <StockChartHeader stock={selectedStock} />
-     
+
       <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-2 sm:p-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-700/50 pb-4 mb-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-700/50 pb-4 mb-4 transition-all duration-300">
+          {/* Time Ranges */}
           <div className="flex flex-wrap items-center gap-1 sm:gap-2">
             {ranges.map((r) => (
               <Button
@@ -1140,19 +1191,31 @@ export function AdvancedTradingChart({
                 variant={range === r ? "secondary" : "ghost"}
                 size="sm"
                 onClick={() => dispatch({ type: "SET_RANGE", payload: r })}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
+                  range === r
+                    ? "bg-indigo-600 text-white shadow"
+                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                }`}
               >
                 {r.toUpperCase()}
               </Button>
             ))}
           </div>
+
+          {/* Intraday Intervals (Only if 1D) */}
           {range === "1d" && (
-            <div className="flex flex-wrap items-center gap-1 sm:gap-2 md:border-l md:border-gray-700 md:ml-2 md:pl-2">
+            <div className="flex flex-wrap items-center gap-1 sm:gap-2 md:border-l md:border-gray-700 md:ml-4 md:pl-4 transition-all duration-300">
               {intradayIntervals.map((i) => (
                 <Button
                   key={i}
                   variant={interval === i ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => dispatch({ type: "SET_INTERVAL", payload: i })}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
+                    interval === i
+                      ? "bg-indigo-600 text-white shadow"
+                      : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                  }`}
                 >
                   {i}
                 </Button>
@@ -1162,11 +1225,11 @@ export function AdvancedTradingChart({
         </div>
 
         <div className="relative" ref={chartContainerRef}>
-          <div className="absolute top-2 right-2 z-20 flex gap-1 bg-gray-900/50 backdrop-blur-sm rounded-md">
+          <div className="absolute top-2 right-2 z-20 flex gap-1 px-1 py-1 bg-gray-900/60 backdrop-blur-md border border-gray-700 rounded-lg shadow-md transition-all">
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8 text-gray-400 hover:text-white"
+              className="h-8 w-8 text-gray-400 hover:text-white hover:bg-gray-700/60 transition-colors duration-200 rounded-md"
               onClick={() => handleZoom("in")}
             >
               <Plus className="h-4 w-4" />
@@ -1174,12 +1237,13 @@ export function AdvancedTradingChart({
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8 text-gray-400 hover:text-white"
+              className="h-8 w-8 text-gray-400 hover:text-white hover:bg-gray-700/60 transition-colors duration-200 rounded-md"
               onClick={() => handleZoom("out")}
             >
               <Minus className="h-4 w-4" />
             </Button>
           </div>
+
           {!visibleChartData.length ? (
             <div className="h-[400px] flex items-center justify-center text-gray-500">
               <p>No data available.</p>
@@ -1244,7 +1308,7 @@ export function AdvancedTradingChart({
                     allowDataOverflow
                     tickLine={{ stroke: "rgba(255, 255, 255, 0.2)" }}
                   />
-                  <Tooltip
+                  <ChartTooltip
                     content={
                       <CustomTooltip
                         drawingTool={drawingTool}
@@ -1331,8 +1395,9 @@ export function AdvancedTradingChart({
             </>
           )}
         </div>
-        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 mt-4 pt-4 border-t border-gray-700/50">
-          <div className="flex flex-wrap gap-2 mb-4 justify-end">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6 mt-6 pt-6 border-t border-gray-700/50 transition-all duration-300">
+          {/* Drawing Tools */}
+          <div className="flex flex-wrap gap-2 mb-4 justify-end bg-gray-800/60 p-3 rounded-xl shadow-inner border border-gray-700">
             {[
               "line",
               "rectangle",
@@ -1345,7 +1410,7 @@ export function AdvancedTradingChart({
             ].map((tool) => (
               <Button
                 key={tool}
-                variant={drawingTool === tool ? "secondary" : "outline"}
+                variant={drawingTool === tool ? "default" : "ghost"}
                 onClick={() =>
                   dispatch({
                     type: "SET_DRAWING_TOOL",
@@ -1353,19 +1418,25 @@ export function AdvancedTradingChart({
                       drawingTool === tool ? null : (tool as DrawingTool),
                   })
                 }
-                className="capitalize"
+                className={`capitalize transition-all duration-200 ${
+                  drawingTool === tool
+                    ? "bg-indigo-600 text-white"
+                    : "text-gray-300 hover:bg-gray-700"
+                }`}
               >
                 {tool.replace("-", " ")}
               </Button>
             ))}
           </div>
 
-          <div className="flex items-center gap-x-4 gap-y-2 flex-wrap lg:border-l lg:border-gray-700 lg:ml-2 lg:pl-4">
+          {/* Indicators */}
+          <div className="flex items-center gap-4 flex-wrap lg:border-l lg:border-gray-700 lg:ml-4 lg:pl-6 bg-gradient-to-br from-gray-800/70 to-gray-900/70 p-4 rounded-2xl shadow-lg border border-gray-700/50 backdrop-blur-md transition-all duration-300">
             {indicatorSettings.map((ind) => (
               <div
                 key={ind.id}
-                className="relative flex items-center space-x-2"
+                className="relative flex items-center space-x-3 px-3 py-2 rounded-lg bg-gray-800/50 hover:bg-gray-700/60 transition-all duration-200 border border-gray-700 shadow-sm"
               >
+                {/* Checkbox */}
                 <input
                   type="checkbox"
                   id={ind.id}
@@ -1373,38 +1444,58 @@ export function AdvancedTradingChart({
                   onChange={() =>
                     dispatch({ type: "TOGGLE_INDICATOR", payload: ind.id })
                   }
-                  className="form-checkbox h-4 w-4 bg-gray-700 border-gray-600 text-indigo-600 focus:ring-indigo-500 rounded"
+                  className="form-checkbox h-4 w-4 text-indigo-500 bg-gray-700  rounded focus:ring-0 transition duration-200"
                 />
-                <label htmlFor={ind.id} className="text-sm text-white">
+
+                {/* Label */}
+                <label
+                  htmlFor={ind.id}
+                  className="text-sm font-medium text-gray-200"
+                >
                   {ind.name}
                 </label>
+
+                {/* Settings Icon */}
                 <button
                   onClick={() =>
                     setActiveSettings(activeSettings === ind.id ? null : ind.id)
                   }
-                  className="text-gray-400 hover:text-white"
+                  className="text-gray-400 hover:text-indigo-400 transition duration-200"
                 >
                   <Settings className="h-4 w-4" />
                 </button>
-                {activeSettings === ind.id && (
-                  <div className="absolute top-full left-0 mt-2 bg-gray-900 border border-gray-600 rounded-lg p-2 z-20 w-40">
-                    <label className="text-xs">Period</label>
-                    <input
-                      type="number"
-                      value={ind.period}
-                      onChange={(e) =>
-                        dispatch({
-                          type: "UPDATE_INDICATOR_PERIOD",
-                          payload: {
-                            id: ind.id,
-                            period: parseInt(e.target.value) || 1,
-                          },
-                        })
-                      }
-                      className="w-full bg-gray-700 rounded-md p-1 text-sm"
-                    />
-                  </div>
-                )}
+
+                {/* Settings Panel */}
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={
+                    activeSettings === ind.id
+                      ? { opacity: 1, y: 0 }
+                      : { opacity: 0, y: -8 }
+                  }
+                  transition={{ duration: 0.2 }}
+                  className={`absolute top-full left-0 mt-2 w-44 z-30 bg-gray-900 border border-gray-700 rounded-xl p-3 shadow-xl transition-all ${
+                    activeSettings === ind.id ? "block" : "hidden"
+                  }`}
+                >
+                  <label className="text-xs font-semibold text-gray-400 mb-1 block">
+                    Period
+                  </label>
+                  <input
+                    type="number"
+                    value={ind.period}
+                    onChange={(e) =>
+                      dispatch({
+                        type: "UPDATE_INDICATOR_PERIOD",
+                        payload: {
+                          id: ind.id,
+                          period: parseInt(e.target.value) || 1,
+                        },
+                      })
+                    }
+                    className="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-md px-2 py-1 outline-none focus:ring-1 focus:ring-indigo-500 transition duration-200"
+                  />
+                </motion.div>
               </div>
             ))}
           </div>

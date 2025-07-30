@@ -11,6 +11,7 @@ import { Search, RefreshCw } from "lucide-react";
 import CountUp from "react-countup";
 import { StockQuote } from "@/lib/api/stock-api";
 import { OverviewCard } from "./OverViewCard";
+import { useRouter } from "next/navigation";
 import {
   TableCell,
   TableHead,
@@ -27,10 +28,10 @@ import { SymbolSearchBar } from "./Input_autocomplete";
 const ITEMS_PER_PAGE = 12;
 
 export default function MarketsPage() {
-  const { stocks, isLoading, error, refreshData, loadMoreStocks,selectStock } =
+  const { stocks, isLoading, error, refreshData, loadMoreStocks, selectStock } =
     useMarketData();
   const [searchTerm, setSearchTerm] = useState("");
-
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
   const [overviewPage, setOverviewPage] = useState(1);
   const [tableStocks, setTableStocks] = useState<StockQuote[]>([]);
@@ -271,6 +272,7 @@ export default function MarketsPage() {
                     <div
                       key={`${stock.symbol}-${stock.name}`}
                       className="bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer"
+                      onClick={() => router.push(`/trade/${stock.symbol}`)}
                     >
                       <CardContent className="p-4">
                         <OverviewCard quote={stock} />
@@ -382,7 +384,11 @@ export default function MarketsPage() {
                 </TableHeader>
                 <TableBody>
                   {sortedStocks.map((stock) => (
-                    <TableRow key={stock.symbol} className="text-lg">
+                    <TableRow
+                      key={stock.symbol}
+                      className="text-lg"
+                      onClick={() => router.push(`/trade/${stock.symbol}`)}
+                    >
                       <TableCell className="font-bold">
                         {stock.symbol}
                       </TableCell>

@@ -1,16 +1,19 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import {
   AdvancedTradingChart,
   CandlestickPoint,
   Stock,
-  Range, // Import Range from advanced-trading-chart
+  Range,
 } from "@/components/advanced-trading-chart";
 import { EnhancedTradingInterface } from "@/components/enhanced-trading-interface";
 import { Activity } from "lucide-react";
 import { stockApi } from "@/lib/api/stock-api";
+import StockMetricsDisplay from "@/components/Market-Metrics";
+import StockFinancialsReportDisplay from "@/components/Financial_Report";
+import { CompanyNewsFeed } from "@/components/CompanyNewsFeed";
 
 export default function TradingPageContent() {
   const pathname = usePathname();
@@ -21,7 +24,7 @@ export default function TradingPageContent() {
   const [isChartLoading, setIsChartLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedRange, setSelectedRange] = useState<Range>("1mo");
-  // Extract symbol from the URL path
+
   useEffect(() => {
     const pathParts = pathname.split("/");
     const symbolFromPath = pathParts[pathParts.length - 1];
@@ -30,11 +33,10 @@ export default function TradingPageContent() {
     }
   }, [pathname]);
 
-  // Helper to convert CandlestickData[] → CandlestickPoint[]
   const convertToCandlestickPoints = (data: any[]): CandlestickPoint[] => {
     return data.map((d) => ({
       timestamp: new Date(d.time).getTime(),
-      time: d.time, // Add the 'time' property
+      time: d.time,
       open: d.open,
       high: d.high,
       low: d.low,
@@ -43,7 +45,6 @@ export default function TradingPageContent() {
     }));
   };
 
-  // Initial load
   const fetchStockData = useCallback(async () => {
     if (!symbol) return;
 
@@ -64,7 +65,7 @@ export default function TradingPageContent() {
         name: quote.name,
         price: quote.price,
         change: quote.change,
-        changesPercentage: quote.changePercent,
+        changePercent: quote.changePercent,
       });
 
       if (Array.isArray(chartData)) {
@@ -88,7 +89,6 @@ export default function TradingPageContent() {
     }
   }, [symbol, fetchStockData]);
 
-  // For range/interval switching inside the chart
   const handleChartDataFetch = useCallback(
     async (fetchSymbol: string, range: string, interval: string) => {
       setIsChartLoading(true);
@@ -113,7 +113,6 @@ export default function TradingPageContent() {
     []
   );
 
-  // Loading UI
   if (isLoading || !symbol) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-gray-900 text-white">
@@ -127,7 +126,6 @@ export default function TradingPageContent() {
     );
   }
 
-  // Error UI
   if (error || !selectedStock) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-gray-900 text-white">
@@ -144,7 +142,6 @@ export default function TradingPageContent() {
     );
   }
 
-  // Main layout
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 bg-gray-900 p-4 min-h-screen">
       <div className="lg:col-span-2 xl:col-span-3">
@@ -154,15 +151,18 @@ export default function TradingPageContent() {
           chartCandlestickData={chartData}
           isChartLoading={isChartLoading}
           getCandlestickData={handleChartDataFetch}
-          range={selectedRange} // ✅ NEW
+          range={selectedRange}
         />
+        <StockFinancialsReportDisplay symbol={symbol} />
+        <CompanyNewsFeed symbol={symbol}/>
       </div>
-      <div className="lg:col-span-1 xl:col-span-1">
+      <div className="lg:col-span-1 xl:col-span-1 space-y-4 ">
         <EnhancedTradingInterface
           symbol={symbol}
           name={selectedStock.name}
           currentPrice={selectedStock.price || 0}
         />
+        <StockMetricsDisplay symbol={symbol} />
       </div>
     </div>
   );

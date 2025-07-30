@@ -113,8 +113,6 @@ class CryptoAPI {
     };
     return names[symbol.toUpperCase()] || symbol;
   }
-
-
 }
 
 export const cryptoApi = new CryptoAPI();

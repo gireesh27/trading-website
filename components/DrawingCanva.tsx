@@ -254,11 +254,23 @@ const DrawingCanvas = ({
     >
       {/* Controls */}
       {drawingTool && (
-        <div className="absolute top-2 right-20 z-20 flex gap-2">
-          <Button onClick={undo} size="icon" variant="outline" title="Undo">
+        <div className="absolute top-3 right-24 z-30 flex gap-2 bg-gray-800/70 backdrop-blur-md border border-gray-700 rounded-lg px-3 py-2 shadow-xl transition-all">
+          <Button
+            onClick={undo}
+            size="icon"
+            variant="ghost"
+            title="Undo"
+            className="text-gray-300 hover:text-white hover:bg-gray-700 transition"
+          >
             <Undo className="h-4 w-4" />
           </Button>
-          <Button onClick={redo} size="icon" variant="outline" title="Redo">
+          <Button
+            onClick={redo}
+            size="icon"
+            variant="ghost"
+            title="Redo"
+            className="text-gray-300 hover:text-white hover:bg-gray-700 transition"
+          >
             <Redo className="h-4 w-4" />
           </Button>
           <Button
@@ -268,8 +280,9 @@ const DrawingCanvas = ({
               setShapes([]);
             }}
             size="icon"
-            variant="outline"
+            variant="ghost"
             title="Clear All"
+            className="text-red-400 hover:text-red-500 hover:bg-gray-700 transition"
           >
             <Trash2 className="h-4 w-4" />
           </Button>

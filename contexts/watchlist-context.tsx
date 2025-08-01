@@ -5,7 +5,7 @@ import {
   useContext,
   useState,
   useEffect,
-  useCallback,
+  
   ReactNode,
 } from "react";
 import { stockApi } from "@/lib/api/stock-api";

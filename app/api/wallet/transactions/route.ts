@@ -1,26 +1,44 @@
-import { NextResponse } from 'next/server';
-import type { Transaction } from '@/types/wallet-types';
+import { connectToDatabase as connectDB } from "@/lib/Database/mongodb";
+import { authOptions } from "../../auth/[...nextauth]/route";
+import { getServerSession } from "next-auth";
+import Transaction  from "@/lib/Database/Models/Transaction";
 
-const allTransactions: Transaction[] = [
-    // Add more transactions to simulate a larger dataset
-    { id: '1', date: new Date().toISOString(), type: 'Deposit', amount: 50000, status: 'Success' },
-    { id: '2', date: new Date(Date.now() - 86400000 * 2).toISOString(), type: 'Buy', symbol: 'AAPL', quantity: 10, price: 175, amount: -1750, status: 'Success' },
-    { id: '3', date: new Date(Date.now() - 86400000 * 3).toISOString(), type: 'Sell', symbol: 'TSLA', quantity: 5, price: 250, amount: 1250, status: 'Success' },
-    { id: '4', date: new Date(Date.now() - 86400000 * 5).toISOString(), type: 'Withdraw', amount: -10000, status: 'Pending' },
-    { id: '5', date: new Date(Date.now() - 86400000 * 7).toISOString(), type: 'Dividend', symbol: 'MSFT', amount: 50.75, status: 'Success' },
-];
+export const dynamic = "force-dynamic";
+type FilterParams = {
+  userId: string;
+  type?: string;
+  symbol?: string;
+  date?: {
+    $gte?: Date;
+    $lte?: Date;
+  };
+};
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  // In a real app, you would use these filters in your database query
-  const dateFrom = searchParams.get('dateFrom');
-  const dateTo = searchParams.get('dateTo');
-  const type = searchParams.get('type');
-  const symbol = searchParams.get('symbol');
 
-  // Simulate filtering
-  let filteredTransactions = allTransactions;
-  // ... add filtering logic here based on params
+export async function GET(req: Request) {
+  await connectDB();
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return new Response(JSON.stringify({ success: false, message: "Unauthorized" }), { status: 401 });
+  }
 
-  return NextResponse.json({ success: true, data: filteredTransactions });
+  const { searchParams } = new URL(req.url);
+  const type = searchParams.get("type");
+  const symbol = searchParams.get("symbol");
+  const from = searchParams.get("from");
+  const to = searchParams.get("to");
+
+  const filters: FilterParams = { userId: session.user.id };
+  if (type && type !== "all") filters.type = type;
+  if (symbol) filters.symbol = symbol;
+  if (from || to) {
+    filters.date = {};
+ if (from) filters.date.$gte = new Date(from);
+if (to) filters.date.$lte = new Date(to);
+
+  }
+
+  const transactions = await Transaction.find(filters).sort({ date: -1 });
+
+  return new Response(JSON.stringify({ success: true, transactions }), { status: 200 });
 }

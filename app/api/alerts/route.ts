@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     }
 
     const alert = await AlertModel.create({
-      userId,
+      userId: userId.toString(), // ✅ Ensure it's stored as a string
       symbol: symbol.toUpperCase(),
       type,
       value: type === "news" ? undefined : value,
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Missing userId in query" }, { status: 400 });
     }
 
-    const alerts = await AlertModel.find({ userId }).sort({ createdAt: -1 });
+    const alerts = await AlertModel.find({ userId: userId.toString() }).sort({ createdAt: -1 });
 
     return NextResponse.json({ success: true, data: alerts });
   } catch (err: any) {

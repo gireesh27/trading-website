@@ -1,40 +1,20 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type ReactNode,
+} from "react";
 import { useToast } from "@/hooks/use-toast";
-
-export interface Order {
-  _id: string;
-  symbol: string;
-  type: "buy" | "sell";
-  orderType: "market" | "limit" | "stop";
-  quantity: number;
-  price?: number;
-  stopPrice?: number;
-  targetPrice?: number;
-  status: "pending" | "partial" | "filled" | "cancelled" | "rejected";
-  filledQuantity: number;
-  averagePrice?: number;
-  createdAt: string;
-  updatedAt: string;
-  validTill?: string;
-  userId: string;
-}
-
-interface OrderContextType {
-  orders: Order[];
-  isLoading: boolean;
-  placeOrder: (orderData: Partial<Order>) => Promise<boolean>;
-  cancelOrder: (orderId: string) => Promise<boolean>;
-  getOrderHistory: () => Order[];
-  getOpenOrders: () => Order[];
-  fetchOrders: () => Promise<void>;
-}
+import type { Order, OrderContextType } from "@/types/Order-types";
 
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
 
 export function OrderProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders] = useState<Order[]>([]);
+
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -73,7 +53,9 @@ export function OrderProvider({ children }: { children: ReactNode }) {
         setOrders((prev) => [data.order, ...prev]);
         toast({
           title: "Order Placed",
-          description: `${orderData.type?.toUpperCase()} order for ${orderData.quantity} ${orderData.symbol} placed.`,
+          description: `${orderData.type?.toUpperCase()} order for ${
+            orderData.quantity
+          } ${orderData.symbol} placed.`,
         });
         return true;
       } else {
@@ -96,7 +78,9 @@ export function OrderProvider({ children }: { children: ReactNode }) {
   const cancelOrder = async (orderId: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/trading/orders/${orderId}`, { method: "DELETE" });
+      const res = await fetch(`/api/trading/orders/${orderId}`, {
+        method: "DELETE",
+      });
       const data = await res.json();
       if (data.success) {
         setOrders((prev) =>
@@ -124,11 +108,41 @@ export function OrderProvider({ children }: { children: ReactNode }) {
   };
 
   const getOrderHistory = () => {
-    return orders.filter((order) => ["filled", "cancelled"].includes(order.status)).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return orders
+      .filter((order) => ["cancelled", "completed"].includes(order.status))
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
   };
 
   const getOpenOrders = () => {
-    return orders.filter((order) => ["pending", "partial"].includes(order.status));
+    return orders.filter((order) => ["pending"].includes(order.status));
+  };
+  const getOrder = async (orderId: string): Promise<Order | null> => {
+    setIsLoading(true);
+
+    try {
+      const res = await fetch(`/api/trading/orders/${orderId}`, {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error("Order fetch failed:", data.error || res.statusText);
+        return null;
+      }
+
+      console.log("Fetched order:", data.order);
+      return data.order as Order;
+    } catch (err) {
+      console.error("Failed to fetch order:", err);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -141,6 +155,7 @@ export function OrderProvider({ children }: { children: ReactNode }) {
         getOrderHistory,
         getOpenOrders,
         fetchOrders,
+        getOrder,
       }}
     >
       {children}

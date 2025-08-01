@@ -2,13 +2,12 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
-import TwitterProvider from "next-auth/providers/twitter";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 import { connectToDatabase } from "@/lib/Database/mongodb";
-import { User, IUser } from "@/lib/Database/Models/User";
+import { User } from "@/lib/Database/Models/User";
 import bcrypt from "bcryptjs";
-import type { User as NextAuthUser } from "next-auth";
+import { use } from "react";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -20,11 +19,6 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
     }),
-    TwitterProvider({
-      clientId: process.env.TWITTER_CLIENT_ID!,
-      clientSecret: process.env.TWITTER_CLIENT_SECRET!,
-      // version: "2.0",
-    }),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -33,22 +27,18 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         await connectToDatabase();
-
         const { email, password } = credentials ?? {};
-
         if (!email || !password) return null;
 
         const user = await User.findOne({ email });
-        if (!user || !user.password) return null;
-
-        const isValid = await bcrypt.compare(password, user.password);
-        if (!isValid) return null;
+        if (!user) return null;
 
         return {
           id: user._id.toString(),
           name: user.name,
           email: user.email,
         };
+
       },
     }),
   ],
@@ -60,38 +50,37 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    async signIn({ user, account }) { // Add 'account' to the arguments
-      await connectToDatabase();
+    async signIn({ user, account }) {
+      if (account?.provider === "credentials") {
+        return true;
+      }
 
+      await connectToDatabase();
       const existingUser = await User.findOne({ email: user.email });
 
       if (!existingUser) {
-        if (!user.email) {
-          console.error(
-            "OAuth provider did not return an email for the user. Cannot create user without email."
-          );
-          return false;
-        }
-
         await User.create({
           name: user.name || "Unnamed",
           email: user.email,
-          isOAuth: account?.provider !== 'credentials', // Check if the provider is not 'credentials'
+          isOAuth: true,
           isVerified: true,
         });
-      }
-
+      } 
       return true;
     },
-
     async jwt({ token, user }) {
-      if (user) token.id = user.id;
+      if (user) {
+        await connectToDatabase();
+        const dbUser = await User.findOne({ email: user.email });
+        if (dbUser) {
+          token.id = dbUser._id.toString();
+        }
+      }
       return token;
     },
-
     async session({ session, token }) {
-      if (token?.id && session.user) {
-        (session.user as any).id = token.id?.toString(); // Make sure to cast to any to avoid type errors
+      if (token && session.user) {
+        session.user.id = token.id as string;
       }
       return session;
     },

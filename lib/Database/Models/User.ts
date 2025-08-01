@@ -1,29 +1,31 @@
-// lib/Database/Models/User.ts
+// models/User.ts
 import mongoose, { Schema, Document, model, models } from "mongoose";
 
 export interface IUser extends Document {
   name: string;
   email: string;
-  password?: string;
-  isVerified?: boolean;
+  passwordHash?: string;
+  walletPasswordHash?: string;
   isOAuth?: boolean;
-  availableCash: number; // ✅ Properly typed as number
+  isVerified?: boolean;
+  walletBalance?: number; // ✅ Add this
+  razorpayContactId?: string;
+  razorpayFundAccountId?: string;
 }
 
-const UserSchema = new Schema<IUser>({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: {
-    type: String,
-    required: function (this: IUser) {
-      return !this.isOAuth;
-    },
-    minlength: [6, "Password must be at least 6 characters long"],
-    trim: true,
+const UserSchema = new Schema<IUser>(
+  {
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    passwordHash: { type: String },
+    walletPasswordHash: { type: String },
+    isOAuth: { type: Boolean, default: false },
+    isVerified: { type: Boolean, default: false },
+    walletBalance: { type: Number }, // ✅ Added
+    razorpayContactId: {type: String},
+    razorpayFundAccountId: {type: String},
   },
-  isVerified: { type: Boolean, default: false },
-  isOAuth: { type: Boolean, default: false },
-  availableCash: { type: Number, default: 100000 }, // ✅ Start with ₹1L
-});
+  { timestamps: true }
+);
 
 export const User = models.User || model<IUser>("User", UserSchema);

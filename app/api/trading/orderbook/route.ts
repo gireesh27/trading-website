@@ -1,13 +1,14 @@
+// /app/api/trading/orderbook/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/Database/mongodb";
 import { Order } from "@/lib/Database/Models/Order";
 
-// Utility function to group and sort orders into price levels
+// Group and aggregate orders by price level
 function aggregateOrders(orders: any[], type: "buy" | "sell") {
   const grouped: Record<string, { price: number; quantity: number; total: number }> = {};
 
   for (const order of orders) {
-    const key = order.price.toFixed(2); // Round price to 2 decimals
+    const key = order.price.toFixed(2); // Normalize price precision
     if (!grouped[key]) {
       grouped[key] = {
         price: order.price,
@@ -36,10 +37,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Missing symbol parameter" }, { status: 400 });
     }
 
-    // Fetch live orders that are not yet filled or cancelled
     const [buyOrders, sellOrders] = await Promise.all([
-      Order.find({ symbol, type: "buy", status: { $in: ["pending", "partial"] } }),
-      Order.find({ symbol, type: "sell", status: { $in: ["pending", "partial"] } }),
+      Order.find({ symbol, type: "buy", status: { $in: ["pending"] } }),
+      Order.find({ symbol, type: "sell", status: { $in: ["pending"] } }),
     ]);
 
     const bids = aggregateOrders(buyOrders, "buy");

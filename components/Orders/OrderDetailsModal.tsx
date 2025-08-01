@@ -47,10 +47,7 @@ export const OrderDetailsModal = ({ open, onClose, order }: OrderDetailsModalPro
           <Detail label="Status" value={order.status} />
           <Detail label="Quantity" value={order.quantity} />
           <Detail label="Price" value={order.price ? `$${order.price}` : "Market"} />
-          <Detail label="Stop Price" value={order.stopPrice || "-"} />
-          <Detail label="Target Price" value={order.targetPrice || "-"} />
-          <Detail label="Filled Quantity" value={order.filledQuantity} />
-          <Detail label="Average Price" value={order.averagePrice || "-"} />
+          
           <Detail
             label="Created At"
             value={new Date(order.createdAt).toLocaleString()}

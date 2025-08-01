@@ -52,33 +52,34 @@ export function AlertForm({ isOpen, onClose, alert, userId }: AlertFormProps) {
   }, [alert, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const priceValue = parseFloat(targetPrice);
+  e.preventDefault();
+  const priceValue = parseFloat(targetPrice);
 
-    if (!symbol || (type !== "news" && isNaN(priceValue))) return;
+  if (!symbol || (type !== "news" && isNaN(priceValue))) return;
 
-    const payload: any = {
-      symbol: symbol.toUpperCase(),
-      type,
-    };
-
-    if (type !== "news") {
-      payload.direction = direction;
-      payload.targetPrice = priceValue;
-    }
-
-    if (alert) {
-      await updateAlert({ ...alert, ...payload });
-    } else {
-      if (!userId) {
-        console.error("User ID is missing for new alert.");
-        return;
-      }
-      await addAlert({ ...payload, userId });
-    }
-
-    onClose();
+  const payload: any = {
+    symbol: symbol.toUpperCase(),
+    type,
   };
+
+  if (type !== "news") {
+    payload.condition = direction;  // ✅ FIXED
+    payload.value = priceValue;     // ✅ FIXED
+  }
+
+  if (alert) {
+    await updateAlert({ ...alert, ...payload });
+  } else {
+    if (!userId) {
+      console.error("User ID is missing for new alert.");
+      return;
+    }
+    await addAlert({ ...payload, userId });
+  }
+
+  onClose();
+};
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

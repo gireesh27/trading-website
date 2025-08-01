@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PortfolioSummary } from "@/components/portfolio-summary";
+
 import { WatchlistWidget } from "@/components/watchlist/watchlist-widget";
 import { NewsWidget } from "@/components/newsWidget";
 import { QuickActions } from "@/components/quickActions";
 import { useMarketData } from "@/contexts/enhanced-market-data-context";
 import { useAuth } from "@/contexts/auth-context";
+import HoldingsChart from "@/components/Holdings/HoldingsChart";
 export interface CandlestickPoint {
   time: string;
   open: number;
@@ -26,8 +27,6 @@ export default function DashboardPage() {
     selectedStock,
     selectStock,
   } = useMarketData();
-
-  const [candlestickData, setCandlestickData] = useState<CandlestickPoint[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -63,7 +62,7 @@ export default function DashboardPage() {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <PortfolioSummary />
+             <HoldingsChart />
             <NewsWidget />
           </div>
           {/* Sidebar Column */}

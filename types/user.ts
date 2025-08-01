@@ -4,6 +4,9 @@ interface UserType {
   email: string
   password: string
   isVerified: boolean
+  isOAuth: boolean
+  createdAt: Date
+  updatedAt: Date
 }
 
 export default UserType

@@ -1,50 +1,45 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../../auth/[...nextauth]/route";
+import { connectToDatabase as connectDB } from "@/lib/Database/mongodb";
+import { User } from "@/lib/Database/Models/User";
+import { Wallet } from "@/lib/Database/Models/Wallet";
 
-// Mock Razorpay configuration
-const RAZORPAY_KEY_ID = "rzp_test_1234567890"
-const RAZORPAY_KEY_SECRET = "your_razorpay_secret"
+export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-export async function POST(request: NextRequest) {
+  const { amount } = await req.json();
+  if (typeof amount !== "number" || amount <= 0) {
+    return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
+  }
+
   try {
-    const { amount, currency = "INR" } = await request.json()
-    const userId = request.headers.get("x-user-id")
+    await connectDB();
 
-    if (!userId) {
-      return NextResponse.json({ error: "User ID is required" }, { status: 401 })
+    const user = await User.findById(session.user.id);
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    if (!amount || amount <= 0) {
-      return NextResponse.json({ error: "Valid amount is required" }, { status: 400 })
-    }
+    user.walletBalance += amount; // ✅ Set directly
+    await user.save(); // ✅ Persist change
 
-    // Create Razorpay order
-    const orderId = `order_${Date.now()}`
-    const orderAmount = amount * 100 // Convert to paise
+    // Update Wallet (create if missing)
+    const wallet = await Wallet.findOneAndUpdate(
+      { userId: user._id },
+      { $inc: { walletBalance: amount } }, // ✅ fix here
+      { new: true, upsert: true }
+    );
 
-    // In production, use actual Razorpay SDK
-    const order = {
-      id: orderId,
-      amount: orderAmount,
-      currency,
-      status: "created",
-      created_at: Math.floor(Date.now() / 1000),
-    }
-
-    // Store order in database (mock)
-    // In production, save to PostgreSQL
-    console.log("Created order:", order)
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        orderId: order.id,
-        amount: order.amount,
-        currency: order.currency,
-        key: RAZORPAY_KEY_ID,
-      },
-    })
-  } catch (error) {
-    console.error("Add money error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json(
+      { success: true, walletBalance: wallet.walletBalance },
+      { status: 200 }
+    );
+  } catch (err) {
+    console.error("Wallet credit error:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

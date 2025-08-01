@@ -1,238 +1,301 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Clock,
-  CheckCircle,
-  XCircle,
-  TrendingUp,
-  TrendingDown,
-  RefreshCw,
-} from "lucide-react";
-import type  { Order } from "@/types/Order-types";
-import { OrderMenu } from "./OrderMenu";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/components/ui/use-toast";
+import ConfirmOrderModal from "@/components/wallet/ConfirmOrderModal";
+import CancelModel from "./CancelModel";
+import type { Order } from "@/types/wallet-types";
+import { Loader2 } from "lucide-react";
+import { useOrders } from "@/contexts/order-context";
+import { OrderDetailsModal } from "./OrderDetailsModal";
 
-export function OrdersWidget() {
+export default function OrdersWidget() {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("open");
-  const [open, setOpen] = useState(false);
-  const [order, setOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedViewOrder, setSelectedViewOrder] = useState<Order | null>(
+    null
+  );
+  const [cancel, setCancel] = useState(false);
+  const [complete, setComplete] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+
+  const { toast } = useToast();
+  const {
+    isLoading,
+    placeOrder,
+    cancelOrder,
+    getOrderHistory,
+    getOpenOrders,
+    getOrder,
+  } = useOrders();
 
   const fetchOrders = async () => {
+    setLoading(true);
     try {
-      setIsLoading(true);
       const res = await fetch("/api/trading/orders");
       const data = await res.json();
-      if (data.success) {
-        setOrders(data.orders);
-      }
-    } catch (err) {
-      console.error("Failed to fetch orders", err);
+      setOrders(data.orders || []);
+    } catch (error) {
+      toast({ title: "Failed to fetch orders", variant: "destructive" });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const cancelOrder = async (orderId: string) => {
+  const handleComplete = (order: Order) => {
+    setSelectedOrder(order);
+    setModalOpen(true);
+    setCancel(false);
+    setComplete(true);
+  };
+
+  const handleCancel = (order: Order) => {
+    setSelectedOrder(order);
+    setModalOpen(true);
+    setComplete(false);
+    setCancel(true);
+  };
+
+  const handleViewOrder = async (orderId: string) => {
     try {
-      const res = await fetch(`/api/trading/orders/${orderId}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (data.success) {
-        setOrders((prev) =>
-          prev.map((o) =>
-            o._id === orderId ? { ...o, status: "cancelled" } : o
-          )
-        );
+      const data = await getOrder(orderId);
+      if (data) {
+        setSelectedViewOrder(data);
+        setIsViewModalOpen(true);
       }
     } catch (err) {
-      console.error("Failed to cancel order", err);
+      toast({ title: "Failed to load order details", variant: "destructive" });
     }
   };
-  
+
   useEffect(() => {
     fetchOrders();
   }, []);
 
-  const openOrders = orders.filter(
-    (order) => order.status === "pending" || order.status === "partial"
-  );
-  const closedOrders = orders.filter(
-    (order) => order.status === "filled" || order.status === "cancelled"
-  );
-
-  const getStatusColor = (status: Order["status"]) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-600";
-      case "filled":
-        return "bg-green-600";
-      case "cancelled":
-        return "bg-red-600";
-      case "partial":
-        return "bg-blue-600";
-      default:
-        return "bg-gray-600";
-    }
-  };
-
-  const getStatusIcon = (status: Order["status"]) => {
-    switch (status) {
-      case "pending":
-        return <Clock className="h-3 w-3" />;
-      case "filled":
-        return <CheckCircle className="h-3 w-3" />;
-      case "cancelled":
-        return <XCircle className="h-3 w-3" />;
-      case "partial":
-        return <Clock className="h-3 w-3" />;
-      default:
-        return <Clock className="h-3 w-3" />;
-    }
-  };
-
-  const formatDate = (date: string | Date) => {
-    const d = new Date(date);
-    const now = new Date();
-    const diff = now.getTime() - d.getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-    if (days > 0) return `${days}d ago`;
-    if (hours > 0) return `${hours}h ago`;
-    if (minutes > 0) return `${minutes}m ago`;
-    return "Just now";
-  };
-
-  const OrderItem = ({ order }: { order: Order }) => (
-    <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors">
-      <div className="flex items-center space-x-3">
-        <div
-          className={`p-1 rounded ${
-            order.type === "buy" ? "bg-green-600" : "bg-red-600"
-          }`}
-        >
-          {order.type === "buy" ? (
-            <TrendingUp className="h-3 w-3 text-white" />
-          ) : (
-            <TrendingDown className="h-3 w-3 text-white" />
-          )}
+  const renderOrderCard = (
+    order: Order,
+    showCompleteButton = false,
+    showCancelButton = false
+  ) => (
+    <div
+      key={order._id}
+      onClick={() => handleViewOrder(order._id)}
+      className="cursor-pointer bg-gradient-to-br from-black/50 to-black/30 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 flex flex-col gap-5 hover:shadow-2xl hover:border-white/30 transition-all shadow-inner shadow-black/40"
+    >
+      <div className="space-y-4 text-white w-full">
+        <div className="flex items-center justify-between">
+          <p className="text-xl font-semibold tracking-wide">
+            {order.symbol.toUpperCase()}
+          </p>
+          <p className="text-sm text-white/60">
+            {order.type.toUpperCase()} | {order.orderType.toUpperCase()}
+          </p>
         </div>
 
-        <div>
-          <div className="flex items-center space-x-2">
-            <span className="text-white font-semibold text-sm">
-              {order.symbol}
-            </span>
-            <Badge className={`${getStatusColor(order.status)} text-xs`}>
-              {getStatusIcon(order.status)}
-              <span className="ml-1">{order.status}</span>
-            </Badge>
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-3 text-sm">
+          <p className="text-muted-foreground">Quantity:</p>
+          <p className="text-white font-medium">{order.quantity}</p>
 
-          <div className="text-xs text-gray-400">
-            {order.orderType.toUpperCase()} • {order.quantity} shares
-            {order.price && ` @ $${order.price.toFixed(2)}`}
-          </div>
+          <p className="text-muted-foreground">Price:</p>
+          <p className="text-white font-medium">
+            ₹{order.price?.toFixed(2) ?? "0.00"}
+          </p>
 
-          <div className="text-xs text-gray-500">
-            {formatDate(order.createdAt)}
-          </div>
+          <p className="text-muted-foreground">Brokerage Fee:</p>
+          <p className="text-white font-medium">
+            ₹{order.feeBreakdown?.brokerage?.toFixed(2) ?? "0.00"}
+          </p>
+
+          <p className="text-muted-foreground">Convenience Fee:</p>
+          <p className="text-white font-medium">
+            ₹{order.feeBreakdown?.convenience?.toFixed(2) ?? "0.00"}
+          </p>
+
+          <p className="text-muted-foreground">Status:</p>
+          <p
+            className={`font-semibold ${
+              order.status === "completed"
+                ? "text-green-400"
+                : order.status === "cancelled"
+                ? "text-yellow-400"
+                : "text-white"
+            }`}
+          >
+            {order.status}
+          </p>
+
+          <p className="text-muted-foreground">Date:</p>
+          <p className="text-white/70 italic">
+            {new Date(order.createdAt).toLocaleString()}
+          </p>
         </div>
       </div>
 
-      <div className="flex items-center space-x-2">
-        <OrderMenu order={order} cancelOrder={cancelOrder} />
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
+        {showCancelButton && (
+          <Button
+            size="sm"
+            variant="destructive"
+            className="rounded-xl"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCancel(order);
+            }}
+          >
+            Cancel
+          </Button>
+        )}
+        {showCompleteButton && (
+          <Button
+            size="sm"
+            variant="secondary"
+            className="rounded-xl"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleComplete(order);
+            }}
+          >
+            Complete
+          </Button>
+        )}
       </div>
     </div>
   );
 
   return (
-<Card className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 shadow-xl rounded-2xl">
-  <CardHeader className="pb-3 border-b border-gray-700">
-    <div className="flex items-center justify-between">
-      <CardTitle className="text-white text-xl font-semibold tracking-tight flex items-center gap-2">
-        📋 Orders
-      </CardTitle>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={fetchOrders}
-        disabled={isLoading}
-        className="text-gray-400 hover:text-white hover:bg-gray-700 transition-colors duration-300"
-      >
-        <RefreshCw
-          className={`h-4 w-4 ${isLoading ? "animate-spin text-white" : ""}`}
+    <Card className="rounded-2xl shadow-2xl bg-zinc-900/50 border border-white/10 backdrop-blur-xl">
+      <CardContent className="p-6 space-y-6">
+        <h2 className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-indigo-400 tracking-wide animate-gradient">
+          Your Orders
+        </h2>
+
+        <Tabs defaultValue="pending" className="w-full">
+          <TabsList className="flex bg-black/30 backdrop-blur-md border border-white/10 text-white rounded-xl p-1 gap-1 transition-all duration-300 shadow-inner">
+            <TabsTrigger
+              value="pending"
+              className="flex-1 data-[state=active]:bg-white/10 data-[state=active]:shadow-md transition-all duration-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/5 data-[state=active]:text-blue-300"
+            >
+              Pending
+            </TabsTrigger>
+            <TabsTrigger
+              value="completed"
+              className="flex-1 data-[state=active]:bg-white/10 data-[state=active]:shadow-md transition-all duration-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/5 data-[state=active]:text-blue-300"
+            >
+              Completed
+            </TabsTrigger>
+            <TabsTrigger
+              value="cancelled"
+              className="flex-1 data-[state=active]:bg-white/10 data-[state=active]:shadow-md transition-all duration-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/5 data-[state=active]:text-blue-300"
+            >
+              Cancelled
+            </TabsTrigger>
+          </TabsList>
+
+          <div className="h-[480px] overflow-hidden">
+            <TabsContent value="pending" className="h-full">
+              {loading ? (
+                <div className="flex justify-center items-center h-full">
+                  <Loader2 className="animate-spin h-5 w-5 text-muted-foreground" />
+                </div>
+              ) : orders.filter((o) => o.status === "pending").length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No pending orders.
+                </p>
+              ) : (
+                <ScrollArea className="h-full pr-2">
+                  <div className="space-y-4">
+                    {orders
+                      .filter((o) => o.status === "pending")
+                      .map((order) => renderOrderCard(order, true, true))}
+                  </div>
+                </ScrollArea>
+              )}
+            </TabsContent>
+
+            <TabsContent value="completed" className="h-full">
+              {orders.filter((o) => o.status === "completed").length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No completed orders.
+                </p>
+              ) : (
+                <ScrollArea className="h-full pr-2">
+                  <div className="space-y-4">
+                    {orders
+                      .filter((o) => o.status === "completed")
+                      .map((order) => renderOrderCard(order))}
+                  </div>
+                </ScrollArea>
+              )}
+            </TabsContent>
+
+            <TabsContent value="cancelled" className="h-full">
+              {orders.filter((o) => o.status === "cancelled").length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No cancelled orders.
+                </p>
+              ) : (
+                <ScrollArea className="h-full pr-2">
+                  <div className="space-y-4">
+                    {orders
+                      .filter((o) => o.status === "cancelled")
+                      .map((order) => renderOrderCard(order))}
+                  </div>
+                </ScrollArea>
+              )}
+            </TabsContent>
+          </div>
+        </Tabs>
+      </CardContent>
+
+      {selectedOrder && complete && (
+        <ConfirmOrderModal
+          open={modalOpen}
+          onClose={() => {
+            setModalOpen(false);
+            setSelectedOrder(null);
+            setComplete(false);
+            setCancel(false);
+          }}
+          orderId={selectedOrder._id}
+          onSuccess={() => {
+            setModalOpen(false);
+            fetchOrders();
+          }}
         />
-      </Button>
-    </div>
-  </CardHeader>
+      )}
 
-  <CardContent className="p-0">
-    <Tabs value={activeTab} onValueChange={setActiveTab}>
-      <TabsList className="grid w-[95%] mx-auto mt-4 mb-5 grid-cols-2 bg-gray-700/50 backdrop-blur-md rounded-md overflow-hidden shadow">
-        <TabsTrigger
-          value="open"
-          className="data-[state=active]:bg-blue-600/70 data-[state=active]:text-white text-gray-300 transition-all text-sm font-medium py-2"
-        >
-          Open/Pending ({openOrders.length})
-        </TabsTrigger>
-        <TabsTrigger
-          value="history"
-          className="data-[state=active]:bg-purple-600/70 data-[state=active]:text-white text-gray-300 transition-all text-sm font-medium py-2"
-        >
-          Cancellled ({closedOrders.length})
-        </TabsTrigger>
-      </TabsList>
-
-      {/* OPEN ORDERS */}
-      <TabsContent value="open" className="px-4 pb-4">
-        <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
-          {isLoading && openOrders.length === 0 ? (
-            <div className="text-center py-8 text-gray-400 animate-pulse">
-              Loading open orders...
-            </div>
-          ) : openOrders.length === 0 ? (
-            <div className="text-center py-8">
-              <Clock className="h-8 w-8 text-gray-600 mx-auto mb-2" />
-              <p className="text-gray-400">No open orders</p>
-            </div>
-          ) : (
-            openOrders.map((order) => (
-              <OrderItem key={order._id} order={order} />
-            ))
-          )}
-        </div>
-      </TabsContent>
-
-      {/* ORDER HISTORY */}
-      <TabsContent value="history" className="px-4 pb-4">
-        <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
-          {isLoading && closedOrders.length === 0 ? (
-            <div className="text-center py-8 text-gray-400 animate-pulse">
-              Loading order history...
-            </div>
-          ) : closedOrders.length === 0 ? (
-            <div className="text-center py-8">
-              <CheckCircle className="h-8 w-8 text-gray-600 mx-auto mb-2" />
-              <p className="text-gray-400">No order history</p>
-            </div>
-          ) : (
-            closedOrders.map((order) => (
-              <OrderItem key={order._id} order={order} />
-            ))
-          )}
-        </div>
-      </TabsContent>
-    </Tabs>
-  </CardContent>
-</Card>
-
+      {selectedOrder && cancel && (
+        <CancelModel
+          open={modalOpen}
+          onClose={() => {
+            setModalOpen(false);
+            setSelectedOrder(null);
+            setComplete(false);
+            setCancel(false);
+          }}
+          orderId={selectedOrder._id}
+          onSuccess={() => {
+            setModalOpen(false);
+            fetchOrders();
+          }}
+        />
+      )}
+      {isViewModalOpen && selectedViewOrder && (
+        <OrderDetailsModal
+          open={isViewModalOpen}
+          onClose={() => {
+            setIsViewModalOpen(false);
+            setSelectedViewOrder(null);
+          }}
+          order={selectedViewOrder}
+        />
+      )}
+    </Card>
   );
 }

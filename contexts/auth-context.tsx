@@ -19,7 +19,6 @@ interface AuthContextType {
   logout: () => void
   loginWithGoogle: () => Promise<void>
   loginWithGithub: () => Promise<void>
-  loginWithTwitter: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -92,17 +91,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const loginWithTwitter = async () => {
-    const res = await signIn("twitter", {
-      callbackUrl: "/dashboard",
-      redirect: false,
-    })
-    if (res?.ok && res.url) {
-      router.push(res.url)
-    } else {
-      toast({ title: "Twitter sign-in failed", variant: "destructive" })
-    }
-  }
 
   const logout = () => {
     signOut({ callbackUrl: "/auth" })
@@ -125,7 +113,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout,
         loginWithGoogle,
         loginWithGithub,
-        loginWithTwitter,
       }}
     >
       {children}

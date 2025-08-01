@@ -42,6 +42,7 @@ export default function AuthPage() {
           redirect: false,
           email: emailForm.email,
           password: emailForm.password,
+
           callbackUrl,
         });
 
@@ -91,6 +92,7 @@ export default function AuthPage() {
             redirect: true,
             email: emailForm.email,
             password: emailForm.password,
+            
             callbackUrl,
           });
         } else {

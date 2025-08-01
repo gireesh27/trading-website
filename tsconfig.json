@@ -2,6 +2,7 @@
   "compilerOptions": {
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
+    "types": ["next-auth"],
     "target": "ES6",
     "skipLibCheck": true,
     "strict": true,

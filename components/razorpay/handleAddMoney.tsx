@@ -16,6 +16,7 @@ export default function AddMoney() {
   const [loading, setLoading] = useState(false);
 
   const handlePayment = async () => {
+    console.log("Razorpay Key:", process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID);
     if (!amount || amount < 1) {
       alert("Enter a valid amount");
       return;
@@ -31,7 +32,7 @@ export default function AddMoney() {
       const { orderId } = res.data;
 
       const options = {
-        key: process.env.RAZORPAY_KEY_ID!,
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
         amount: amount * 100,
         currency: "INR",
         name: "TradeView",

@@ -10,6 +10,7 @@ import CreateWalletPasswordForm from "@/components/wallet/CreateWalletPasswordFo
 import GetSubscriptionCard from "@/components/subscription/GetSubscription";
 import AddMoneyButton from "@/components/razorpay/handleAddMoney";
 import WithdrawCard from "@/components/razorpay/withDrawWallet";
+import WalletBalancePage from "@/components/wallet/WalletBalance";
 
 function WalletPageContent() {
   const { isLoading } = useWallet();
@@ -32,6 +33,9 @@ function WalletPageContent() {
           <div className="space-y-10">
             {/* Row 1: Create Password, Add Money, Withdraw */}
             <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
+              <div className="md:col-span-1">
+                <WalletBalancePage />
+              </div>
               <div className="md:col-span-2">
                 <CreateWalletPasswordForm />
               </div>

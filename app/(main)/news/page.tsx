@@ -5,6 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
+import { useRef } from "react";
+import { useEffect } from "react";
+
 import {
   Search,
   Clock,
@@ -15,8 +19,20 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useMarketData } from "@/contexts/enhanced-market-data-context";
+import { gsap } from "gsap";
 
 export default function EnhancedNewsPage() {
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+    if (cardRef.current) {
+      gsap.fromTo(
+        cardRef.current,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }
+      );
+    }
+  }, []);
   const { news, refreshData, isLoading } = useMarketData();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -86,7 +102,6 @@ export default function EnhancedNewsPage() {
 
   return (
     <div className="min-h-screen bg-[#131722]">
-
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>
@@ -98,7 +113,7 @@ export default function EnhancedNewsPage() {
 
           <div className="flex items-center space-x-4 mt-4 md:mt-0">
             <Button
-              onClick={refreshData}
+              onClick={() => refreshData()}
               disabled={isLoading}
               className="bg-blue-600 hover:bg-blue-700"
             >
@@ -161,97 +176,104 @@ export default function EnhancedNewsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Main News Feed */}
-          <div className="lg:col-span-3">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center justify-between">
-                  <div className="flex items-center">
-                    <TrendingUp className="h-5 w-5 mr-2" />
+          <motion.div
+            ref={cardRef}
+            className="lg:col-span-3 relative group"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            {/* Glow Gradient BG */}
+            <div className="absolute -inset-0.5 bg-gradient-to-br from-[#1f2937] to-[#0f172a] blur-xl rounded-3xl z-0 group-hover:scale-[1.02] transition-transform duration-500" />
+
+            <Card className="relative z-10 border border-gray-700/60 backdrop-blur-md bg-black/30 rounded-3xl shadow-lg overflow-hidden transition-all duration-300">
+              <CardHeader className="bg-gradient-to-tr from-[#1e293b]/80 to-[#0f172a]/80 rounded-t-3xl border-b border-slate-800">
+                <CardTitle className="text-white font-bold text-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-green-400" />
                     Latest News ({filteredNews.length})
                   </div>
                   {isLoading && (
-                    <div className="flex items-center text-sm text-gray-400">
-                      <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                    <div className="text-sm text-muted-foreground flex items-center">
+                      <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
                       Updating...
                     </div>
                   )}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+
+              <CardContent className="max-h-[800px] overflow-y-auto px-4 py-6 custom-scroll space-y-6">
                 {filteredNews.length > 0 ? (
-                  <div className="space-y-4 max-h-[800px] overflow-y-auto">
-                    {filteredNews.map((item) => (
-                      <div
-                        key={item.id}
-                        className="p-4 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center space-x-2">
-                            <Badge className={getCategoryColor(item.category)}>
-                              {item.category}
-                            </Badge>
-                            <Badge
-                              className={getSentimentColor(item.sentiment)}
-                            >
-                              {item.sentiment || "neutral"}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center text-xs text-gray-400">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {formatDate(item.publishedAt)}
-                          </div>
+                  filteredNews.map((item, idx) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05, duration: 0.5 }}
+                      className="rounded-xl p-5 bg-gradient-to-br from-[#1e293b]/60 to-[#0f172a]/60 hover:shadow-2xl hover:scale-[1.01] transition-transform border border-slate-700"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex flex-wrap gap-2">
+                          <Badge className={getCategoryColor(item.category)}>
+                            {item.category}
+                          </Badge>
+                          <Badge className={getSentimentColor(item.sentiment)}>
+                            {item.sentiment || "neutral"}
+                          </Badge>
                         </div>
-
-                        {item.image && (
-                          <div className="mb-3">
-                            <img
-                              src={item.image || "/placeholder.svg"}
-                              alt={item.title}
-                              className="w-full h-48 object-cover rounded-lg"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display =
-                                  "none";
-                              }}
-                            />
-                          </div>
-                        )}
-
-                        <h3 className="text-white font-medium mb-2 text-lg leading-tight">
-                          {item.title}
-                        </h3>
-                        <p className="text-gray-300 text-sm mb-3 leading-relaxed">
-                          {item.summary}
-                        </p>
-
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-400 font-medium">
-                            Source: {item.source}
-                          </span>
-                          {item.url && item.url !== "#" && (
-                            <a
-                              href={item.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-400 hover:text-blue-300 text-sm flex items-center transition-colors"
-                            >
-                              Read full article
-                              <ExternalLink className="h-3 w-3 ml-1" />
-                            </a>
-                          )}
+                        <div className="text-xs text-slate-400 flex items-center">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {formatDate(item.publishedAt)}
                         </div>
                       </div>
-                    ))}
-                  </div>
+
+                      {item.image && (
+                        <div className="mb-4 overflow-hidden rounded-lg">
+                          <img
+                            src={item.image || "/placeholder.svg"}
+                            alt={item.title}
+                            className="w-full h-44 object-cover rounded-md transition-all hover:scale-105 duration-500"
+                            onError={(e) =>
+                              ((e.target as HTMLImageElement).style.display =
+                                "none")
+                            }
+                          />
+                        </div>
+                      )}
+
+                      <h3 className="text-white text-lg font-semibold mb-2">
+                        {item.title}
+                      </h3>
+                      <p className="text-slate-300 text-sm mb-4 line-clamp-3">
+                        {item.summary}
+                      </p>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-400">
+                          Source: {item.source}
+                        </span>
+                        {item.url && item.url !== "#" && (
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:underline flex items-center gap-1 text-sm"
+                          >
+                            Read full article{" "}
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))
                 ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-400">
-                      No news articles found matching your criteria.
-                    </p>
+                  <div className="text-center text-slate-400 py-6">
+                    No news articles found matching your criteria.
                   </div>
                 )}
               </CardContent>
             </Card>
-          </div>
+          </motion.div>
 
           {/* Sidebar */}
           <div className="space-y-6">

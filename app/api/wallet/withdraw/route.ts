@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import{ connectToDatabase as connectDB }from "@/lib/Database/mongodb";
-import Wallet from "@/lib/Database/Models/Wallet";
+import {Wallet} from "@/lib/Database/Models/Wallet";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import bcrypt from "bcryptjs";

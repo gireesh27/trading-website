@@ -16,7 +16,7 @@ export default function AddMoney() {
   const [loading, setLoading] = useState(false);
 
   const handlePayment = async () => {
-    console.log("Razorpay Key:", process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID);
+    // console.log("Razorpay Key:", process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID);
     if (!amount || amount < 1) {
       alert("Enter a valid amount");
       return;
@@ -68,7 +68,7 @@ export default function AddMoney() {
   };
 
   return (
-    <Card className="max-w-sm mx-auto shadow-2xl rounded-2xl bg-white/10 backdrop-blur-lg border border-white/20 relative overflow-hidden group transition-all duration-300">
+    <Card className="w-full mx-auto shadow-2xl rounded-2xl bg-white/10 backdrop-blur-lg border border-white/20 relative overflow-hidden group transition-all duration-300">
       {/* Optional animated glowing background */}
       <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/10 via-purple-500/10 to-pink-500/10 opacity-30 rounded-2xl blur-2xl group-hover:opacity-60 transition duration-500 z-0" />
 

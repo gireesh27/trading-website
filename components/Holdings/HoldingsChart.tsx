@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ResponsiveContainer, LineChart, XAxis, YAxis, Tooltip, Line } from "recharts";
+import WalletBalance from "../wallet/WalletBalance";
 
 type Holding = {
   symbol: string;
@@ -25,14 +26,16 @@ export default function HoldingsChart() {
   return (
     <div className="p-6 bg-white rounded-xl shadow-lg">
       <h2 className="text-xl font-bold mb-4">Holdings P&L & Duration</h2>
-      <ResponsiveContainer width="100%" height={300}>
+      <WalletBalance />
+      
+      {/* <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data}>
           <XAxis dataKey="symbol" />
           <YAxis />
           <Tooltip />
           <Line type="monotone" dataKey="profitLoss" stroke="#4ade80" name="P&L" />
         </LineChart>
-      </ResponsiveContainer>
+      </ResponsiveContainer> */}
     </div>
   );
 }

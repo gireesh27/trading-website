@@ -1,68 +1,37 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/use-toast";
-import { useSession } from "next-auth/react";
+import { useToast } from "@/components/ui/use-toast";
+import { Card, CardContent } from "@/components/ui/card";
 
-const WithdrawForm = () => {
-  const { data: session } = useSession();
+export default function WithdrawPage() {
+  const { toast } = useToast();
 
-  const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    bankAccount: "",
-    ifsc: "",
-    amount: "",
-    remarks: "",
-  });
+  const [amount, setAmount] = useState("");
+  const [bank, setBankAccount] = useState("");
+  const [ifsc, setIfsc] = useState("");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
 
   const [loading, setLoading] = useState(false);
 
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async () => {
-    const { name, phone, email, bankAccount, ifsc, amount, remarks } = formData;
-
-    // Validation
-    if ( !name || !phone || !email || !bankAccount || !ifsc || !amount) {
-      toast({ title: "All fields are required", variant: "destructive" });
-      return;
-    }
-
-    if (!/^[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}$/.test(email)) {
-      toast({ title: "Invalid email format", variant: "destructive" });
-      return;
-    }
-
-    if (Number(amount) <= 0) {
-      toast({ title: "Amount must be greater than 0", variant: "destructive" });
-      return;
-    }
-
-    setLoading(true);
-
+  const handleWithdraw = async () => {
     try {
-      const beneId = `bene_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
-
       const res = await fetch("/api/wallet/cashfree/withdraw", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
-          
-          name,
-          phone,
-          email,
-          bankAccount,
-          ifsc,
-          amount: Number(amount),
-          beneId,
-          remarks,
+          amount: amount,
+          bank: bank,
+          ifsc: ifsc,
+          name: name,
+          phone: phone,
+          email: email,
         }),
       });
 
@@ -70,49 +39,78 @@ const WithdrawForm = () => {
       if (!res.ok) throw new Error(data.error || "Withdrawal failed");
 
       toast({
-        title: "Withdrawal successful",
-        description: `Txn ID: ${data.transferId}`,
-      });
-
-      setFormData({
-        name: "",
-        phone: "",
-        email: "",
-        bankAccount: "",
-        ifsc: "",
-        amount: "",
-        remarks: "",
+        title: "Withdrawal Successful",
+        description: "Funds are being transferred to your bank account.",
       });
     } catch (err: any) {
+      console.error(err);
       toast({
-        title: "Withdrawal failed",
-        description: err.message,
         variant: "destructive",
+        title: "Withdrawal Failed",
+        description: err?.message || "Please try again later.",
       });
-    } finally {
-      setLoading(false);
     }
   };
-
   return (
-    <div className="max-w-md mx-auto p-6 rounded-2xl shadow-2xl bg-white/10 backdrop-blur-lg border border-white/20 relative overflow-hidden group transition-all duration-300">
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-pink-500/10 to-blue-500/20 opacity-30 rounded-2xl blur-2xl group-hover:opacity-60 transition duration-500 z-0" />
-      <div className="relative z-10 space-y-4">
-        <h2 className="text-2xl font-bold text-white drop-shadow-sm tracking-wide">Withdraw Funds</h2>
+    <div className="max-w-md mx-auto mt-10 px-4">
+      <Card className="rounded-2xl border border-gray-700 bg-gradient-to-br from-[#1f1f1f]/80 to-[#131722]/90 backdrop-blur-xl shadow-[0_8px_30px_rgb(0,0,0,0.25)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.4)] transition duration-300">
+        <CardContent className="space-y-4 pt-6 px-6 pb-8">
+          <h2 className="text-2xl font-semibold text-white tracking-tight">
+            💸 Withdraw From Wallet
+          </h2>
 
-        <Input name="name" placeholder="Full Name" value={formData.name} onChange={handleChange} className="bg-white/20 backdrop-blur-sm text-white placeholder:text-white/70 border border-white/30" />
-        <Input name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleChange} className="bg-white/20 backdrop-blur-sm text-white placeholder:text-white/70 border border-white/30" />
-        <Input name="email" placeholder="Email" value={formData.email} onChange={handleChange} className="bg-white/20 backdrop-blur-sm text-white placeholder:text-white/70 border border-white/30" />
-        <Input name="bankAccount" placeholder="Bank Account Number" value={formData.bankAccount} onChange={handleChange} className="bg-white/20 backdrop-blur-sm text-white placeholder:text-white/70 border border-white/30" />
-        <Input name="ifsc" placeholder="IFSC Code" value={formData.ifsc} onChange={handleChange} className="bg-white/20 backdrop-blur-sm text-white placeholder:text-white/70 border border-white/30" />
-        <Input name="amount" placeholder="Amount" type="number" value={formData.amount} onChange={handleChange} className="bg-white/20 backdrop-blur-sm text-white placeholder:text-white/70 border border-white/30" />
+          <Input
+            placeholder="Amount"
+            type="number"
+            className="bg-black/30 border border-gray-600 text-white placeholder:text-gray-400"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
 
-        <Button onClick={handleSubmit} disabled={loading} className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:brightness-110 text-white font-semibold shadow-md shadow-indigo-600">
-          {loading ? "Processing..." : "Withdraw"}
-        </Button>
-      </div>
+          <Input
+            placeholder="Bank Account Number"
+            className="bg-black/30 border border-gray-600 text-white placeholder:text-gray-400"
+            value={bank}
+            onChange={(e) => setBankAccount(e.target.value)}
+          />
+
+          <Input
+            placeholder="IFSC Code"
+            className="bg-black/30 border border-gray-600 text-white placeholder:text-gray-400"
+            value={ifsc}
+            onChange={(e) => setIfsc(e.target.value)}
+          />
+
+          <Input
+            placeholder="Name"
+            className="bg-black/30 border border-gray-600 text-white placeholder:text-gray-400"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+
+          <Input
+            placeholder="Phone"
+            className="bg-black/30 border border-gray-600 text-white placeholder:text-gray-400"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+
+          <Input
+            placeholder="Email"
+            className="bg-black/30 border border-gray-600 text-white placeholder:text-gray-400"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+
+          <Button
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium hover:brightness-110 transition-all duration-200"
+            onClick={handleWithdraw}
+            disabled={loading}
+          >
+            {loading ? "Processing..." : "Withdraw"}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
-};
-
-export default WithdrawForm;
+}

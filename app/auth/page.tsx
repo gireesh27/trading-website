@@ -92,7 +92,7 @@ export default function AuthPage() {
             redirect: true,
             email: emailForm.email,
             password: emailForm.password,
-            
+
             callbackUrl,
           });
         } else {
@@ -112,57 +112,62 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#131722] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-gray-800 border-gray-700 text-white">
-        <CardHeader className="text-center">
-          <Link href="/" className="text-2xl font-bold text-white mb-2 block">
+    <div className="min-h-screen bg-[#0e0f1a] flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Light particle background */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="animate-pulse-slow absolute w-96 h-96 bg-purple-500 opacity-20 blur-3xl rounded-full top-[-10%] left-[-10%]" />
+        <div className="animate-pulse-slow absolute w-96 h-96 bg-blue-500 opacity-20 blur-3xl rounded-full bottom-[-10%] right-[-10%]" />
+      </div>
+
+      <Card className="w-full max-w-md z-10 backdrop-blur-lg bg-white/5 border border-white/10 shadow-2xl rounded-2xl text-white transition-all duration-500 hover:shadow-neon">
+        <CardHeader className="text-center space-y-2">
+          <Link
+            href="/"
+            className="text-3xl font-extrabold text-white neon-text drop-shadow-lg transition-all duration-300 hover:scale-105"
+          >
             TradeView
           </Link>
-          <CardTitle className="text-2xl">
+          <CardTitle className="text-xl text-blue-300 font-semibold drop-shadow">
             {isLogin ? "Welcome Back" : "Create an Account"}
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-gray-300">
             {isLogin
               ? "Sign in to access your dashboard."
               : "Get started with trading."}
           </CardDescription>
         </CardHeader>
+
         <CardContent>
           <ErrorMessage />
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-2">
-              <Button
-                variant="outline"
-                onClick={() => handleOAuth("google")}
-                className="border-gray-600 hover:bg-gray-700"
-              >
-                <Chrome className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleOAuth("github")}
-                className="border-gray-600 hover:bg-gray-700"
-              >
-                <Github className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleOAuth("twitter")}
-                className="border-gray-600 hover:bg-gray-700"
-              >
-                <Twitter className="h-4 w-4" />
-              </Button>
+              {[
+                ["google", Chrome],
+                ["github", Github],
+                ["twitter", Twitter],
+              ].map(([provider, Icon], i) => (
+                <Button
+                  key={i}
+                  variant="outline"
+                  onClick={() => handleOAuth(provider as "google" | "github" | "twitter")}
+                  className="border-white/20 bg-white/10 hover:bg-white/20 transition-all duration-300 backdrop-blur-md text-white"
+                >
+                  <Icon className="h-5 w-5" />
+                </Button>
+              ))}
             </div>
-            <div className="relative">
+
+            <div className="relative text-white">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-600" />
+                <span className="w-full border-t border-white/10" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-gray-800 px-2 text-gray-400">
+                <span className="bg-white/10 px-2 text-gray-300 backdrop-blur-md">
                   Or continue with
                 </span>
               </div>
             </div>
+
             <form onSubmit={handleEmailAuth} className="space-y-4">
               {!isLogin && (
                 <div>
@@ -174,7 +179,7 @@ export default function AuthPage() {
                     onChange={(e) =>
                       setEmailForm({ ...emailForm, name: e.target.value })
                     }
-                    className="bg-gray-700 border-gray-600"
+                    className="glass-input"
                     required
                   />
                 </div>
@@ -188,7 +193,7 @@ export default function AuthPage() {
                   onChange={(e) =>
                     setEmailForm({ ...emailForm, email: e.target.value })
                   }
-                  className="bg-gray-700 border-gray-600"
+                  className="glass-input"
                   required
                 />
               </div>
@@ -202,13 +207,13 @@ export default function AuthPage() {
                     onChange={(e) =>
                       setEmailForm({ ...emailForm, password: e.target.value })
                     }
-                    className="bg-gray-700 border-gray-600 pr-10"
+                    className="glass-input pr-10"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/70"
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -220,7 +225,7 @@ export default function AuthPage() {
               </div>
               <Button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                className="w-full neon-button"
                 disabled={isLoading}
               >
                 {isLoading
@@ -234,7 +239,7 @@ export default function AuthPage() {
           <div className="mt-6 text-center text-sm">
             <button
               onClick={() => setIsLogin(!isLogin)}
-              className="text-blue-400 hover:underline"
+              className="text-blue-400 hover:underline transition-all"
             >
               {isLogin
                 ? "Don't have an account? Sign up"

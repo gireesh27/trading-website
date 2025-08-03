@@ -267,3 +267,93 @@
   border-radius: 16px;
 }
 
+.glass-input {
+  @apply bg-white/10 border border-white/20 text-white placeholder-gray-300 backdrop-blur-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300;
+}
+
+.neon-button {
+  @apply bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all duration-300 border border-blue-400 shadow-lg;
+  box-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6;
+}
+
+.shadow-neon {
+  box-shadow: 0 0 20px #3b82f6, 0 0 40px #9333ea;
+}
+
+.neon-text {
+  text-shadow: 0 0 5px #3b82f6, 0 0 10px #3b82f6, 0 0 20px #9333ea;
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.2;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.4;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 8s ease-in-out infinite;
+}
+/* Neon header text */
+.neon-text {
+  text-shadow: 0 0 5px #3b82f6, 0 0 10px #3b82f6, 0 0 20px #9333ea;
+}
+
+/* Reuse neon-button from form */
+.neon-button {
+  @apply bg-blue-600 text-white font-semibold border border-blue-400 hover:bg-blue-700 transition-all duration-300;
+  box-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6;
+}
+
+/* Icon pulse glow */
+@keyframes glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px #3b82f6);
+  }
+  50% {
+    filter: drop-shadow(0 0 12px #3b82f6);
+  }
+}
+.animate-glow {
+  animation: glow 2.5s ease-in-out infinite;
+}
+/* Neon effect on text */
+.glow-text {
+  text-shadow: 0 0 6px #3b82f6, 0 0 12px #3b82f6;
+}
+
+/* Neon button effect */
+.neon-button {
+  @apply bg-blue-600 text-white font-bold transition-all duration-300 hover:bg-blue-700 border border-blue-400 shadow-lg;
+  box-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6;
+}
+
+/* Glass-style outline button */
+.glass-button {
+  backdrop-filter: blur(12px);
+  background-color: rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+}
+.glass-card {
+  @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-xl;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+}
+
+.glow-text {
+  text-shadow: 0 0 6px #3b82f6, 0 0 12px #3b82f6;
+}
+/* globals.css or tailwind.config.css */
+.custom-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 116, 139, 0.5);
+  border-radius: 10px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+  background-color: transparent;
+}

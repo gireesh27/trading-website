@@ -62,7 +62,10 @@ export function WatchlistDisplay() {
       addToWatchlist(watchlistId, symbol);
       setNewSymbols((prev) => ({ ...prev, [watchlistId]: "" }));
     } catch {
-      setErrors((prev) => ({ ...prev, [watchlistId]: `Symbol '${symbol}' not found.` }));
+      setErrors((prev) => ({
+        ...prev,
+        [watchlistId]: `Symbol '${symbol}' not found.`,
+      }));
     }
   };
 
@@ -79,33 +82,51 @@ export function WatchlistDisplay() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">Your Watchlists</h2>
+    <div className="space-y-8">
+      {/* Header + Create Button */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <h2 className="text-2xl font-bold text-white tracking-tight">
+          🗂️ Your Watchlists
+        </h2>
+
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" className="text-white border-gray-600 hover:bg-gray-800">
+            <Button
+              variant="outline"
+              className="text-white border-gray-600 hover:bg-gray-700"
+            >
               <Plus className="h-4 w-4 mr-2" /> Create Watchlist
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-gray-800 border-gray-700 max-w-sm">
+
+          <DialogContent className="bg-gray-800 border border-gray-700 max-w-sm">
             <DialogHeader>
-              <DialogTitle className="text-white">Create New Watchlist</DialogTitle>
+              <DialogTitle className="text-white text-lg font-semibold">
+                Create New Watchlist
+              </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 mt-2">
               <Input
                 placeholder="Watchlist name..."
                 value={newWatchlistName}
                 onChange={(e) => setNewWatchlistName(e.target.value)}
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400"
                 onKeyDown={(e) => e.key === "Enter" && handleCreateWatchlist()}
                 autoFocus
               />
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setOpen(false)} className="flex-1 border-gray-600 text-gray-300">
+                <Button
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                  className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleCreateWatchlist} disabled={!newWatchlistName.trim()} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                <Button
+                  onClick={handleCreateWatchlist}
+                  disabled={!newWatchlistName.trim()}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                >
                   Create
                 </Button>
               </div>
@@ -114,25 +135,36 @@ export function WatchlistDisplay() {
         </Dialog>
       </div>
 
+      {/* Watchlist Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {watchlists.map((watchlist) => (
-          <div key={watchlist._id} className="bg-gray-800 border border-gray-700 rounded-xl p-4 space-y-4 shadow-sm">
-            <div className="flex items-center justify-between">
+          <div
+            key={watchlist._id}
+            className="bg-gray-800 border border-gray-700 rounded-2xl p-5 space-y-5 shadow-md transition hover:border-gray-600"
+          >
+            {/* Header + Rename/Delete */}
+            <div className="flex items-start justify-between">
               {editId === watchlist._id ? (
                 <div className="flex gap-2 w-full">
                   <Input
                     value={editedName}
                     onChange={(e) => setEditedName(e.target.value)}
                     className="bg-gray-700 text-white flex-1"
-                    onKeyDown={(e) => e.key === "Enter" && handleRename(watchlist._id)}
+                    onKeyDown={(e) =>
+                      e.key === "Enter" && handleRename(watchlist._id)
+                    }
                     autoFocus
                   />
-                  <Button size="sm" onClick={() => handleRename(watchlist._id)}>
+                  <Button
+                    size="sm"
+                    onClick={() => handleRename(watchlist._id)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
                     Save
                   </Button>
                 </div>
               ) : (
-                <h3 className="text-white font-semibold">
+                <h3 className="text-white font-semibold text-lg flex items-center">
                   {watchlist.name}
                   <button
                     onClick={() => {
@@ -141,10 +173,11 @@ export function WatchlistDisplay() {
                     }}
                     className="ml-2 text-gray-400 hover:text-white"
                   >
-                    <Pencil className="w-4 h-4 inline" />
+                    <Pencil className="w-4 h-4" />
                   </button>
                 </h3>
               )}
+
               <Button
                 variant="ghost"
                 className="text-red-500 hover:text-red-700"
@@ -155,49 +188,73 @@ export function WatchlistDisplay() {
               </Button>
             </div>
 
-            <div className="space-y-1">
+            {/* Add Stock */}
+            <div className="space-y-2">
               <Input
                 placeholder="Add stock (e.g. AAPL)"
                 value={newSymbols[watchlist._id] || ""}
-                onChange={(e) => handleSymbolChange(watchlist._id, e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAddStock(watchlist._id)}
-                className="bg-gray-700 border-gray-600 text-white"
+                onChange={(e) =>
+                  handleSymbolChange(watchlist._id, e.target.value)
+                }
+                onKeyDown={(e) =>
+                  e.key === "Enter" && handleAddStock(watchlist._id)
+                }
+                className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400"
               />
-              {errors[watchlist._id] && <p className="text-red-500 text-xs ml-1">{errors[watchlist._id]}</p>}
+              {errors[watchlist._id] && (
+                <p className="text-red-500 text-xs">{errors[watchlist._id]}</p>
+              )}
               {suggestions[watchlist._id]?.length > 0 && (
-                <ul className="bg-gray-700 border border-gray-600 rounded-md mt-1 max-h-32 overflow-y-auto text-white text-sm">
+                <ul className="bg-gray-700 border border-gray-600 rounded-md mt-1 max-h-32 overflow-y-auto text-white text-sm shadow">
                   {suggestions[watchlist._id].map((s) => (
                     <li
                       key={s.symbol}
-                      className="px-3 py-1 hover:bg-gray-600 cursor-pointer"
+                      className="px-3 py-2 hover:bg-gray-600 cursor-pointer"
                       onClick={() => {
-                        setNewSymbols((prev) => ({ ...prev, [watchlist._id]: s.symbol }));
-                        setSuggestions((prev) => ({ ...prev, [watchlist._id]: [] }));
+                        setNewSymbols((prev) => ({
+                          ...prev,
+                          [watchlist._id]: s.symbol,
+                        }));
+                        setSuggestions((prev) => ({
+                          ...prev,
+                          [watchlist._id]: [],
+                        }));
                       }}
                     >
-                      {s.symbol} - {s.name}
+                      {s.symbol} —{" "}
+                      <span className="text-gray-400">{s.name}</span>
                     </li>
                   ))}
                 </ul>
               )}
-              <Button onClick={() => handleAddStock(watchlist._id)} className="bg-blue-600 hover:bg-blue-700 mt-2">
+              <Button
+                onClick={() => handleAddStock(watchlist._id)}
+                className="bg-blue-600 hover:bg-blue-700 w-full"
+              >
                 Add
               </Button>
             </div>
 
+            {/* Watchlist Items */}
             <div className="space-y-2">
               {(watchlist.items ?? []).map((item) => (
                 <div
                   key={item.symbol}
-                  className="flex justify-between items-center p-2 bg-gray-700 rounded-md hover:bg-gray-600 cursor-pointer transition"
+                  className="flex justify-between items-center p-3 bg-gray-700 rounded-md hover:bg-gray-600 transition cursor-pointer"
                   onClick={() => router.push(`/trade/${item.symbol}`)}
                 >
                   <div className="text-white font-medium">{item.symbol}</div>
-                  <div className="text-sm text-gray-300 text-right">
+                  <div className="text-sm text-right text-gray-300">
                     <div>{item.name}</div>
                     <div className="text-xs">
                       ₹{item.price?.toFixed(2) ?? "N/A"}{" "}
-                      <span className={(item.change ?? 0) >= 0 ? "text-green-400" : "text-red-400"}>
+                      <span
+                        className={
+                          (item.change ?? 0) >= 0
+                            ? "text-green-400"
+                            : "text-red-400"
+                        }
+                      >
                         ({(item.changePercent ?? 0).toFixed(2)}%)
                       </span>
                     </div>
@@ -216,7 +273,9 @@ export function WatchlistDisplay() {
                 </div>
               ))}
               {(watchlist.items ?? []).length === 0 && (
-                <p className="text-sm text-gray-400 text-center italic">No items in this watchlist.</p>
+                <p className="text-sm text-gray-400 text-center italic">
+                  No items in this watchlist.
+                </p>
               )}
             </div>
           </div>

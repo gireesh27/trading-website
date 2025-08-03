@@ -2,11 +2,11 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { useEnhancedMarketData } from "@/contexts/enhanced-market-data-context"
+import { useMarketData } from "@/contexts/enhanced-market-data-context"
 import { Clock, ExternalLink, TrendingUp } from "lucide-react"
 
 export function LiveNews() {
-  const { news, isLoading } = useEnhancedMarketData()
+  const { news, isLoading } = useMarketData()
 
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment) {

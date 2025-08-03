@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, models, model } from 'mongoose';
 
 export interface ITransaction extends Document {
-  userId: mongoose.Schema.Types.ObjectId | string;
+  userId: mongoose.Types.ObjectId | string;
   symbol?: string;
   type: 'buy' | 'sell' | 'credit' | 'debit';
   amount: number;
@@ -11,8 +11,8 @@ export interface ITransaction extends Document {
   executedAt?: Date;
   source?: 'wallet' | 'bank' | 'external';
   orderId?: string;
-  transferId?: string; // Added: for Cashfree/Razorpay payout references
-  remarks?: string;    // Added: optional user/admin note
+  transferId?: string;  // For Razorpay, Decentro, etc.
+  remarks?: string;
   feeBreakdown?: {
     brokerage?: number;
     convenience?: number;
@@ -28,15 +28,24 @@ const TransactionSchema = new Schema<ITransaction>(
       ref: 'User',
       required: true,
     },
-    symbol: { type: String },
+    symbol: {
+      type: String,
+    },
     type: {
       type: String,
       enum: ['buy', 'sell', 'credit', 'debit'],
       required: true,
     },
-    amount: { type: Number, required: true },
-    price: { type: Number },
-    quantity: { type: Number },
+    amount: {
+      type: Number,
+      required: true,
+    },
+    price: {
+      type: Number,
+    },
+    quantity: {
+      type: Number,
+    },
     status: {
       type: String,
       enum: ['pending', 'completed', 'failed'],
@@ -51,21 +60,42 @@ const TransactionSchema = new Schema<ITransaction>(
       enum: ['wallet', 'bank', 'external'],
       default: 'wallet',
     },
-    orderId: { type: String },
-    transferId: { type: String }, // <-- NEW
-    remarks: { type: String },    // <-- NEW
+    orderId: {
+      type: String,
+    },
+    transferId: {
+      type: String,
+      unique: true,
+      sparse: true, // only indexes when present
+    },
+    remarks: {
+      type: String,
+    },
     feeBreakdown: {
-      brokerage: { type: Number, default: 0 },
-      convenience: { type: Number, default: 0 },
+      brokerage: {
+        type: Number,
+        default: 0,
+      },
+      convenience: {
+        type: Number,
+        default: 0,
+      },
     },
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
 
-// Optimized index for recent user transactions
+// Index to optimize query: recent transactions per user
 TransactionSchema.index({ userId: 1, createdAt: -1 });
+
+// Optional: Virtual for total fees
+TransactionSchema.virtual('totalFee').get(function (this: ITransaction) {
+  return (this.feeBreakdown?.brokerage || 0) + (this.feeBreakdown?.convenience || 0);
+});
 
 const TransactionModel =
   models.Transaction || model<ITransaction>('Transaction', TransactionSchema);

@@ -5,41 +5,58 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { useNotifications } from "@/contexts/notification-context";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
-  TrendingUp,
-  BarChart3,
-  Wallet,
   Bell,
-  Settings,
-  User,
   LogOut,
   Menu,
   Home,
-  PieChart,
-  AlertTriangle,
-  Newspaper,
+  Wallet,
+  User,
   Shield,
+  Settings,
+  AlertTriangle,
   AlarmClock,
+  PieChart,
+  BarChart3,
+  Newspaper,
+  TrendingUp,
 } from "lucide-react";
+
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+
+import { motion } from "framer-motion";
+
+const navItems = [
+  { href: "/dashboard", label: "Dashboard", icon: Home },
+  { href: "/markets", label: "Markets", icon: BarChart3 },
+  { href: "/crypto", label: "Crypto", icon: PieChart },
+  { href: "/community", label: "Community", icon: Newspaper },
+  { href: "/watchlist", label: "Watchlist", icon: BarChart3 },
+  { href: "/news", label: "News", icon: Newspaper },
+  { href: "/orders", label: "Orders", icon: AlarmClock },
+  { href: "/alerts", label: "Alerts", icon: AlertTriangle },
+  { href: "/wallet", label: "Wallet", icon: Wallet },
+  { href: "/portfolio", label: "Portfolio", icon: PieChart },
+];
 
 export function MainNav() {
   const { user, logout } = useAuth();
@@ -52,59 +69,49 @@ export function MainNav() {
     router.push("/");
   };
 
-  const navItems = [
-    { href: "/dashboard", label: "Dashboard", icon: Home },
-    { href: "/markets", label: "Markets", icon: BarChart3 },
-    { href: "/crypto", label: "Crypto", icon: PieChart },
-    { href: "/community", label: "Community", icon: Newspaper },
-    { href: "/watchlist", label: "Watchlist", icon: BarChart3 },
-    { href: "/news", label: "News", icon: Newspaper },
-    { href: "/orders", label: "Orders", icon: AlarmClock },
-    { href: "/alerts", label: "Alerts", icon: AlertTriangle },
-    { href: "/wallet", label: "Wallet", icon: Wallet },
-    { href: "/portfolio", label: "Portfolio", icon: PieChart },
-  ];
-
   return (
-    <nav className="border-b border-gray-800 bg-gray-900">
+    <motion.nav
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="border-b border-zinc-800 backdrop-blur-md sticky top-0 z-50 bg-black/70 text-white"
+    >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center space-x-2">
-            <TrendingUp className="h-8 w-8 text-blue-500" />
-            <span className="text-2xl font-bold text-white">TradeView</span>
+            <TrendingUp className="h-7 w-7 text-primary" />
+            <span className="text-xl font-bold text-white">TradeView</span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="flex items-center space-x-1 text-gray-300 hover:text-white transition-colors"
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+          {/* Desktop Nav */}
+          <div className="hidden md:flex items-center space-x-6">
+            {navItems.map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className="flex items-center gap-1 text-zinc-400
+ hover:text-blue-400 
+ transition-colors font-medium"
+              >
+                <Icon className="h-4 w-4" />
+                <span>{label}</span>
+              </Link>
+            ))}
           </div>
 
-          {/* Right Side Actions */}
-          <div className="flex items-center space-x-4">
+          {/* Actions */}
+          <div className="flex items-center gap-3">
             {/* Notifications */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="relative text-gray-300 hover:text-white"
-                >
-                  <Bell className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell
+                    className="h-5 w-5 text-zinc-400
+"
+                  />
                   {unreadCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-600 text-xs">
+                    <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-xs text-white">
                       {unreadCount}
                     </Badge>
                   )}
@@ -112,139 +119,111 @@ export function MainNav() {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-80 bg-gray-800 border-gray-700"
+                className="w-80 bg-background border-muted"
               >
-                <DropdownMenuLabel className="text-white">
-                  Notifications
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-gray-700" />
-                {notifications.slice(0, 5).map((notification) => (
-                  <DropdownMenuItem
-                    key={notification.id}
-                    className="text-gray-300 hover:bg-gray-700"
-                  >
-                    <div className="flex flex-col space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-white">
-                          {notification.title}
-                        </span>
-                        {!notification.isRead && (
-                          <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
-                        )}
-                      </div>
-                      <span className="text-sm text-gray-400">
-                        {notification.message}
+                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {notifications.slice(0, 5).map((n) => (
+                  <DropdownMenuItem key={n.id} className="hover:bg-muted/50">
+                    <div className="flex flex-col space-y-0.5">
+                      <span className="text-sm font-semibold">{n.title}</span>
+                      <span
+                        className="text-xs text-zinc-400
+"
+                      >
+                        {n.message}
                       </span>
                     </div>
                   </DropdownMenuItem>
                 ))}
-                <DropdownMenuSeparator className="bg-gray-700" />
-                <DropdownMenuItem className="text-center text-blue-400 hover:bg-gray-700">
-                  View All Notifications
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-blue-400 justify-center">
+                  View All
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* User Menu */}
+            {/* User */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="relative h-8 w-8 rounded-full"
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage
-                      src="/placeholder.svg?height=32&width=32"
-                      alt={user?.name ?? "User avatar"} // ✅ fallback to a default
-                    />
-
-                    <AvatarFallback className="bg-blue-600 text-white">
-                      {user?.name?.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
+                <Avatar className="h-8 w-8 cursor-pointer border border-zinc-700">
+                  <AvatarImage src="/placeholder.svg" alt="User" />
+                  <AvatarFallback className="bg-primary text-white">
+                    {user?.name?.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
               </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-56 bg-gray-800 border-gray-700"
-                align="end"
-                forceMount
-              >
-                <DropdownMenuLabel className="font-normal text-white">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      {user?.name}
-                    </p>
-                    <p className="text-xs leading-none text-gray-400">
+              <DropdownMenuContent align="end" className="w-56 bg-background">
+                <DropdownMenuLabel>
+                  <div className="text-sm">
+                    {user?.name}
+                    <p
+                      className="text-xs text-zinc-400
+"
+                    >
                       {user?.email}
                     </p>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-gray-700" />
-                <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
                   <User className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
+                  Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                <DropdownMenuItem>
                   <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
+                  Settings
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                <DropdownMenuItem>
                   <Shield className="mr-2 h-4 w-4" />
-                  <span>Security</span>
+                  Security
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-gray-700" />
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  className="text-red-400 hover:bg-gray-700"
                   onClick={handleLogout}
+                  className="text-red-500 hover:bg-red-100/10"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
+                  Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Mobile Menu */}
+            {/* Mobile */}
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="md:hidden text-gray-300"
-                >
+                <Button variant="ghost" size="icon" className="md:hidden">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
               <SheetContent
                 side="right"
-                className="bg-gray-900 border-gray-800"
+                className="bg-background border-l border-zinc-700"
               >
                 <SheetHeader>
-                  <SheetTitle className="text-white">Navigation</SheetTitle>
-                  <SheetDescription className="text-gray-400">
-                    Access all platform features
-                  </SheetDescription>
+                  <SheetTitle>Menu</SheetTitle>
+                  <SheetDescription>Navigate all features</SheetDescription>
                 </SheetHeader>
-                <div className="grid gap-4 py-4">
-                  {navItems.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        <Icon className="h-4 w-4" />
-                        <span>{item.label}</span>
-                      </Link>
-                    );
-                  })}
+                <div className="mt-6 flex flex-col gap-4">
+                  {navItems.map(({ href, label, icon: Icon }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-2 text-zinc-400
+ hover:text-blue-400 transition-colors
+ "
+                    >
+                      <Icon className="h-4 w-4" />
+                      {label}
+                    </Link>
+                  ))}
                 </div>
               </SheetContent>
             </Sheet>
           </div>
         </div>
       </div>
-    </nav>
+    </motion.nav>
   );
 }

@@ -3,7 +3,6 @@ import type { Order } from "@/types/Order-types";
 import { Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { OrderMenu } from "./OrderMenu";
 
 export const PendingOrdersList = ({
   orders,
@@ -85,7 +84,6 @@ export const PendingOrdersList = ({
               <Button size="sm" variant="secondary" onClick={() => handleComplete(order)}>
                 Complete
               </Button>
-              <OrderMenu order={order} cancelOrder={cancelOrder} />
             </div>
           </div>
         ))

@@ -32,9 +32,9 @@ export function AlertsList({ onEdit, userId }: AlertsListProps) {
           No alerts found. Click "Create Alert" to add one.
         </p>
       ) : (
-        alerts.map((alert) => (
+        alerts.map((alert, index) => (
           <div
-            key={alert.id}
+            key={alert.id || `${alert.type}-${index}`}
             className="flex justify-between items-center bg-gray-700 px-4 py-3 rounded-md"
           >
             <div className="text-white space-y-1">

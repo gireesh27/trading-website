@@ -93,7 +93,7 @@ export function WatchlistDisplay() {
           <DialogTrigger asChild>
             <Button
               variant="outline"
-              className="text-white border-gray-600 hover:bg-gray-700"
+              className="text-black hover:text-white border-gray-600 hover:bg-gray-700"
             >
               <Plus className="h-4 w-4 mr-2" /> Create Watchlist
             </Button>
@@ -118,7 +118,7 @@ export function WatchlistDisplay() {
                 <Button
                   variant="outline"
                   onClick={() => setOpen(false)}
-                  className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+                  className="flex-1 border-gray-600 text-black hover:text-white"
                 >
                   Cancel
                 </Button>

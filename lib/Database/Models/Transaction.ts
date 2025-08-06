@@ -11,7 +11,7 @@ export interface ITransaction extends Document {
   executedAt?: Date;
   source?: 'wallet' | 'bank' | 'external';
   orderId?: string;
-  transferId?: string;  // For Razorpay, Decentro, etc.
+  transferId?: string; 
   remarks?: string;
   feeBreakdown?: {
     brokerage?: number;

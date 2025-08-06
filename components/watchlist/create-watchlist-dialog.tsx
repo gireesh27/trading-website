@@ -91,7 +91,7 @@ export function CreateWatchlistDialog({ trigger }: { trigger: React.ReactNode })
             <Button
               onClick={() => setOpen(false)}
               variant="outline"
-              className="flex-1 border-gray-600 text-gray-300"
+              className="flex-1 border-gray-600 text-black hover:text-white"
               disabled={loading}
             >
               Cancel

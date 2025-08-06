@@ -19,7 +19,12 @@ export async function connectToDatabase() {
   cached.conn = await cached.promise
   return cached.conn
 }
-
+const PAYU_CONFIG = {
+  key: 'gtKFFx',
+  salt: 'eCwWELxi',
+  testUrl: 'https://test.payu.in/_payment',
+  mode: 'test'
+}
 declare global {
   var mongoose: any
 }

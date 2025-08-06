@@ -6,9 +6,11 @@ import WalletTransactionTable from "@/components/wallet/WalletTransactionTable";
 import CreateWalletPasswordForm from "@/components/wallet/CreateWalletPasswordForm";
 import GetSubscriptionCard from "@/components/subscription/GetSubscription";
 import AddMoneyButton from "@/components/razorpay/handleAddMoney";
-import WithdrawCard from "@/components/razorpay/withDrawWallet";
+import PaymentForm from "@/components/razorpay/payuAdd";
 import WalletBalancePage from "@/components/wallet/WalletBalance";
 import { motion } from "framer-motion";
+import PayuPayoutForm from "@/components/razorpay/PayuPayoutForm";
+import WithdrawForm from "@/components/razorpay/withdrawForm";
 
 function WalletPageContent() {
   const { isLoading } = useWallet();
@@ -58,7 +60,7 @@ function WalletPageContent() {
 
               {/* Withdraw Card */}
               <div className="w-full md:flex-1">
-                <WithdrawCard />
+                < PaymentForm/>
               </div>
             </motion.div>
 
@@ -71,6 +73,8 @@ function WalletPageContent() {
             >
               <div className="w-full">
                 <GetSubscriptionCard amount={10000000} planName="Pro-Plan" />
+                {/* <PayuPayoutForm/> */}
+                <WithdrawForm/>
               </div>
               <div className="w-full md:col-span-3">
                 <WalletTransactionTable />

@@ -5,6 +5,15 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import StylishBeneficiaryForm from "./AddBankAccountForm";
 import { ConfirmPasswordModal } from "./confirm-password-modal";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { motion } from "framer-motion";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 
 export const initialBeneForm = {
   beneficiary_name: "",
@@ -154,42 +163,71 @@ export default function WithdrawForm() {
 
   return (
     <div className="space-y-8 max-w-2xl mx-auto p-8 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl">
-      <h2 className="text-3xl font-bold text-white">Withdraw Funds</h2>
+      <motion.h2
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="text-4xl font-extrabold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(255,255,255,0.25)] tracking-wide"
+      >
+        Withdraw Funds
+      </motion.h2>
 
       {beneficiaries.length === 0 ? (
-        <div className="bg-yellow-200/20 text-yellow-300 border border-yellow-300/40 p-4 rounded-md text-sm">
-          No bank accounts found. Please add one below.
-        </div>
+        <Alert
+          variant="default"
+          className="bg-yellow-200/10 border-yellow-300/30 text-yellow-300"
+        >
+          <AlertDescription>
+            No bank accounts found. Please add one below.
+          </AlertDescription>
+        </Alert>
       ) : (
         <>
           <div className="space-y-2">
             <Label className="text-white text-sm font-medium">
               Primary Bank Account
             </Label>
-            <select
-              className="w-full bg-white/5 text-white placeholder:text-white/50 border border-white/20 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-white/30"
-              value={primaryIndex ?? ""}
-              onChange={(e) => handleChangePrimary(Number(e.target.value))}
+
+            <Select
+              value={primaryIndex?.toString() ?? ""}
+              onValueChange={(val) => handleChangePrimary(Number(val))}
             >
-              {beneficiaries.map((b, idx) => (
-                <option key={b._id} value={idx}>
-                  {b.beneficiary_name} — {b.bank_account_number}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full bg-white/5 border border-white/20 text-white">
+                <SelectValue placeholder="Select a bank account" />
+              </SelectTrigger>
+              <SelectContent className="bg-black border-white/10 text-white">
+                {beneficiaries.map((b, idx) => (
+                  <SelectItem
+                    key={b._id}
+                    value={idx.toString()}
+                    className="text-white"
+                  >
+                    {b.beneficiary_name} — {b.bank_account_number}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="amount" className="text-white text-sm font-medium">
+            <Label
+              htmlFor="amount"
+              className="text-sm font-medium text-white/80 tracking-wide"
+            >
               Enter Amount (INR)
             </Label>
+
             <Input
               id="amount"
               type="number"
               placeholder="e.g., 500"
-              className="bg-white/5 text-white placeholder:text-white/50 border border-white/20 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-white/30"
               value={amount}
               onChange={(e) => setAmount(Number(e.target.value))}
+              className="bg-gradient-to-br from-slate-900/60 via-slate-800/60 to-slate-900/60 
+               text-white placeholder:text-white/40 
+               border border-white/20 shadow-inner 
+               rounded-xl px-4 py-2 backdrop-blur-md 
+               focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition duration-200"
             />
           </div>
 
@@ -221,11 +259,11 @@ export default function WithdrawForm() {
 
         {!beneFormVisible ? (
           <Button
-            onClick={() => setBeneFormVisible(true)}
-            className="bg-white text-black"
-          >
-            + Create New Bank Account
-          </Button>
+  onClick={() => setBeneFormVisible(true)}
+  className="relative inline-flex items-center justify-center px-6 py-2 rounded-xl text-white font-semibold transition-all bg-gradient-to-br from-blue-500/70 via-cyan-500/60 to-purple-600/70 border border-white/10 shadow-md backdrop-blur hover:scale-105 hover:shadow-lg hover:from-blue-600 hover:to-purple-700"
+>
+  <span className="text-lg">+ Create New Bank Account</span>
+</Button>
         ) : (
           <>
             <StylishBeneficiaryForm

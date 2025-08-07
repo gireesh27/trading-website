@@ -25,19 +25,19 @@ export default function StylishBeneficiaryForm({
   return (
     <form
       onSubmit={handleAddBeneficiary}
-      className="space-y-6 max-w-xl mx-auto p-6 rounded-2xl border border-gray-800 bg-black/30 backdrop-blur-md shadow-xl"
+      className="space-y-6 max-w-xl mx-auto p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-lg shadow-2xl transition-all"
     >
       {Object.entries(beneForm).map(([key, val]) => (
         <div key={key} className="space-y-2">
           <Label
             htmlFor={key}
-            className="capitalize text-sm text-gray-300 tracking-wide"
+            className="capitalize text-sm font-medium text-white tracking-wide"
           >
             {key.replaceAll("_", " ")}
           </Label>
           <Input
             id={key}
-            className="bg-white/10 backdrop-blur-md text-white placeholder:text-gray-400 border border-gray-700 focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
+            className="w-full bg-white/10 text-white placeholder:text-white/40 border border-white/20 rounded-lg px-4 py-2 transition focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400"
             placeholder={key.replaceAll("_", " ")}
             value={val}
             onChange={(e) =>
@@ -51,21 +51,21 @@ export default function StylishBeneficiaryForm({
       ))}
 
       {errorMessage && (
-        <p className="text-red-500 text-sm bg-red-500/10 px-2 py-1 rounded">
+        <p className="text-red-400 text-sm bg-red-400/10 px-3 py-2 rounded-lg border border-red-400/30">
           {errorMessage}
         </p>
       )}
       {successMessage && (
-        <p className="text-green-400 text-sm bg-green-500/10 px-2 py-1 rounded">
+        <p className="text-green-400 text-sm bg-green-400/10 px-3 py-2 rounded-lg border border-green-400/30">
           {successMessage}
         </p>
       )}
 
-      <div className="flex gap-4 pt-2">
+      <div className="flex gap-4 pt-4">
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="bg-gray-900 text-white hover:bg-gray-800 transition rounded-xl"
+          className="bg-cyan-600 text-white hover:bg-cyan-700 transition-all rounded-xl px-6"
         >
           {isSubmitting ? "Submitting..." : "Add Beneficiary"}
         </Button>
@@ -73,7 +73,7 @@ export default function StylishBeneficiaryForm({
           type="button"
           variant="outline"
           onClick={resetForm}
-          className="border-gray-600 text-gray-300 hover:bg-gray-800 rounded-xl"
+          className="border-white/20 text-black dark:text-white hover:bg-white/10 transition-all rounded-xl px-6"
         >
           Reset
         </Button>

@@ -1,4 +1,5 @@
 export interface Transaction {
+  createdAt: string;
   id: string;
   userId: string;
   type: "buy" | "sell" | "deposit" | "withdraw";

@@ -360,3 +360,35 @@
 .glass-dark {
   @apply bg-black/20 backdrop-blur-lg border border-white/10 shadow-md text-white;
 }
+/* globals.css or tailwind.config.js if needed */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 1rem;
+}
+
+.close-btn,
+.print-btn {
+  background-color: #1f2937; /* dark background */
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.close-btn:hover,
+.print-btn:hover {
+  background-color: #374151;
+}

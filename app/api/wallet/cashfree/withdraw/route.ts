@@ -169,13 +169,12 @@ export async function POST(req: NextRequest) {
     await Transaction.create({
       userId: user._id,
       type: "debit",
-      method: instrument_type,
       symbol: "INR",
-      transfer_amount,
+      amount: transfer_amount, // 🔄 was `transfer_amount` but field name is `amount` in schema
       status: "completed",
-      transferId,
-      timestamp: new Date(),
-      notes: "Wallet withdrawal",
+      source: "bank", // ✅ optional, but good to be explicit
+      transferId,       // must be unique if present
+      remarks: "Wallet withdrawal", // 🔄 was `notes` in your code, but schema expects `remarks`
     });
 
     return NextResponse.json({

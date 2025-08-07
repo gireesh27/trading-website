@@ -4,6 +4,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectToDatabase as dbConnect } from "@/lib/Database/mongodb";
 import { User } from "@/lib/Database/Models/User";
 import Transaction from "@/lib/Database/Models/Transaction";
+import { generateBeneficiaryId } from "@/lib/utils/bene_id";
 
 const BASE_URL = "https://sandbox.cashfree.com/payout";
 const CF_CLIENT_ID = process.env.CASHFREE_CLIENT_ID!;
@@ -27,11 +28,12 @@ export async function POST(req: NextRequest) {
     }
 
     const {
+      beneficiary_id,
       beneficiary_name,
       beneficiary_email,
       beneficiary_phone,
-      account,
-      ifsc,
+      bank_account_number,
+      bank_ifsc,
       vpa,
       beneficiary_address,
       beneficiary_city,
@@ -42,19 +44,21 @@ export async function POST(req: NextRequest) {
       transfer_amount,
       instrument_type = "bankaccount",
     } = await req.json();
-
     if (!transfer_amount || transfer_amount <= 0) {
+      console.log("Invalid transfer amount:", transfer_amount)
       return NextResponse.json({ error: "Invalid transfer amount" }, { status: 400 });
     }
 
     if (
       instrument_type === "bankaccount" &&
-      (!account || !ifsc || !beneficiary_email || !beneficiary_phone)
+      (!bank_account_number || !bank_account_number || !beneficiary_email || !beneficiary_phone)
     ) {
+      console.log("Missing bank details:", { bank_account_number, bank_ifsc, beneficiary_email, beneficiary_phone })
       return NextResponse.json({ error: "Missing bank details" }, { status: 400 });
     }
 
     if (instrument_type === "upi" && !vpa) {
+      console.log("Missing UPI VPA for transfer:", vpa)
       return NextResponse.json({ error: "Missing UPI VPA for transfer" }, { status: 400 });
     }
 
@@ -66,74 +70,68 @@ export async function POST(req: NextRequest) {
     };
 
     const transferId = `WD-${Date.now()}`;
-    let beneficiaryId: string | null = null;
-
-    // ✅ Step 1: Check or Create Beneficiary
-    if (instrument_type === "bankaccount") {
+    let beneficiaryId: string | null = beneficiary_id || null;
+    console.log("beneficiaryId:", beneficiaryId);
+    console.log("Trnsfer_id:", transferId);
+    if (!beneficiaryId && instrument_type === "bankaccount") {
       const lookupUrl = new URL(`${BASE_URL}/beneficiary`);
-      lookupUrl.searchParams.set("bank_account_number", account);
-      lookupUrl.searchParams.set("bank_ifsc", ifsc);
+      lookupUrl.searchParams.set("bank_account_number", bank_account_number);
+      lookupUrl.searchParams.set("bank_ifsc", bank_ifsc);
 
       const lookupRes = await fetch(lookupUrl.toString(), { method: "GET", headers });
       const lookupData = await lookupRes.json();
+      console.log("lookupData:", lookupData);
 
       if (lookupRes.ok && lookupData?.data?.beneficiary_id) {
         beneficiaryId = lookupData.data.beneficiary_id;
+        console.log("Found beneficiaryId:", beneficiaryId);
       } else {
+        const validBeneId = generateBeneficiaryId();
+
         const createBeneRes = await fetch(`${process.env.NEXTAUTH_URL}/api/wallet/cashfree/add-bene`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            beneficiary_name,
-            beneficiary_email,
-            beneficiary_phone,
-            account,
-            ifsc,
-            instrument_type,
+            beneId: validBeneId,
+            name: beneficiary_name,
+            email: beneficiary_email,
+            phone: beneficiary_phone,
+            bankAccount: bank_account_number,
+            ifsc: bank_ifsc,
+            address: beneficiary_address,
+            city: beneficiary_city,
+            state: beneficiary_state,
+            postalCode: beneficiary_postal_code,
+            cardToken: card_token,
+            cardNetworkType: card_network_type,
+            instrumentType: instrument_type,
           }),
         });
 
         const createBeneData = await createBeneRes.json();
 
         if (!createBeneRes.ok) {
-          return NextResponse.json({ error: "Failed to create beneficiary", details: createBeneData }, { status: 500 });
+          return NextResponse.json(
+            { error: "Failed to create beneficiary", details: createBeneData },
+            { status: 500 }
+          );
         }
 
-        beneficiaryId = createBeneData.beneficiary_id;
+        beneficiaryId = createBeneData.beneficiary_id || validBeneId;
+        console.log("Created beneficiaryId:", beneficiaryId);
       }
     }
-
     // ✅ Step 2: Construct Transfer Payload
     const transferPayload = {
       transfer_id: transferId,
       transfer_amount,
-      transfer_currency: "INR",
-      transfer_remarks: "withdrawal",
-      transfer_mode: instrument_type,
       beneficiary_details: {
-        beneficiary_id: beneficiaryId,
+        beneficiary_id,
         beneficiary_name,
-        beneficiary_contact_details: {
-          beneficiary_phone,
-          beneficiary_email,
-          beneficiary_country_code: "+91",
-          beneficiary_address,
-          beneficiary_city,
-          beneficiary_state,
-          beneficiary_postal_code,
-        },
-        beneficiary_instrument_details:
-          instrument_type === "upi"
-            ? { vpa }
-            : {
-                bank_account_number: account,
-                bank_ifsc: ifsc,
-                card_details: {
-                  card_token,
-                  card_network_type,
-                },
-              },
-      },
+        beneficiary_email,
+        beneficiary_phone,
+      }
+
     };
 
     // ✅ Step 3: Perform Transfer
@@ -144,11 +142,12 @@ export async function POST(req: NextRequest) {
     });
 
     const transferData = await transferRes.json();
-
     if (!transferRes.ok) {
-      return NextResponse.json({ error: "Transfer failed", details: transferData }, { status: 500 });
+      return NextResponse.json(
+        { error: "Transfer failed", details: transferData },
+        { status: 500 }
+      );
     }
-
     // ✅ Step 4: Update Wallet and Log Transaction
     user.walletBalance -= transfer_amount;
     await user.save();
@@ -159,7 +158,7 @@ export async function POST(req: NextRequest) {
       method: instrument_type,
       symbol: "INR",
       transfer_amount,
-      status: "processing",
+      status: "completed",
       transferId,
       timestamp: new Date(),
       notes: "Wallet withdrawal",
@@ -167,7 +166,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Withdrawal initiated successfully",
+      status: "SUCCESS",
+      message: "Transfer marked as success (pending on Cashfree side)",
       data: transferData,
     });
   } catch (error) {

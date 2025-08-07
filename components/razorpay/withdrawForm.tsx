@@ -35,6 +35,8 @@ export default function WithdrawForm() {
     try {
       const res = await fetch("/api/wallet/cashfree/list-bene");
       const data = await res.json();
+      console.log(data);
+      console.log(data.beneficiaries)
       setBeneficiaries(data.beneficiaries || []);
       if (data.beneficiaries?.length > 0) setPrimaryIndex(0); // set first as default
     } catch (err) {
@@ -71,7 +73,7 @@ export default function WithdrawForm() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/wallet/withdraw", {
+      const res = await fetch("/api/wallet/cashfree/withdraw", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

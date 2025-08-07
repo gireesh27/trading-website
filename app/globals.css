@@ -357,3 +357,6 @@
 .custom-scroll::-webkit-scrollbar-track {
   background-color: transparent;
 }
+.glass-dark {
+  @apply bg-black/20 backdrop-blur-lg border border-white/10 shadow-md text-white;
+}

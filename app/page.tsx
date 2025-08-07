@@ -4,38 +4,21 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
-import { MainNav } from "@/components/main-nav"; // ✅ Import MainNav
 import Link from "next/link";
 import {
   TrendingUp,
-  Shield,
-  Zap,
-  BarChart3,
-  Smartphone,
-  Globe,
 } from "lucide-react";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import HeroSection from "@/components/MainPage/Hero";
 import { EnhancedSections } from "@/components/MainPage/EnhancedSections";
-// ... other imports remain unchanged
-
 export default function HomePage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
-
-  // ✅ Redirect when authenticated
   useEffect(() => {
     if (!isLoading && user) {
       router.push("/dashboard");
     }
   }, [user, isLoading, router]);
 
-  // ✅ Loading screen
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center">
@@ -47,7 +30,6 @@ export default function HomePage() {
     );
   }
 
-  // ✅ Fallback marketing landing for unauthenticated users
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
       {/* Header (only for guests) */}
@@ -81,8 +63,6 @@ export default function HomePage() {
       {/* Hero Section */}
       <HeroSection />
       <EnhancedSections />
-
-
     </div>
   );
 }

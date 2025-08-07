@@ -3,25 +3,9 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
-
 export default function HeroSection() {
   return (
     <section className="relative py-24 overflow-hidden bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e]">
-      {/* 3D Background Canvas */}
-      <div className="absolute inset-0 z-0">
-        <Canvas camera={{ position: [0, 0, 5], fov: 75 }}>
-          <ambientLight intensity={0.4} />
-          <pointLight position={[5, 5, 5]} />
-          <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={1} />
-          {/* Replace this with a more complex 3D model if needed */}
-          <mesh>
-            <icosahedronGeometry args={[1.5, 0]} />
-            <meshStandardMaterial color="#3b82f6" wireframe />
-          </mesh>
-        </Canvas>
-      </div>
 
       {/* Hero Content */}
       <div className="container mx-auto px-4 relative z-10 text-center">

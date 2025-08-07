@@ -1,12 +1,12 @@
 import { connectToDatabase } from "@/lib/Database/mongodb";
 import { Order } from "@/lib/Database/Models/Order";
-import { Wallet } from "@/lib/Database/Models/Wallet";
 import  Transaction  from "@/lib/Database/Models/Transaction";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../auth/[...nextauth]/route";
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import { NextResponse } from "next/server";
+import { User } from "@/lib/Database/Models/User";
 
 export async function POST(req: Request) {
   await connectToDatabase();
@@ -35,12 +35,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Order not found or already processed" }, { status: 404 });
     }
 
-    const wallet = await Wallet.findOne({ userId });
-    if (!wallet || !wallet.walletPasswordHash) {
+    const user = await User.findOne({ userId });
+    if (!user || !user.walletPasswordHash) {
       return NextResponse.json({ message: "Wallet setup incomplete" }, { status: 400 });
     }
 
-    const isMatch = await bcrypt.compare(walletPassword, wallet.walletPasswordHash);
+    const isMatch = await bcrypt.compare(walletPassword, user.walletPasswordHash);
     if (!isMatch) {
       return NextResponse.json({ message: "Incorrect wallet password" }, { status: 403 });
     }
@@ -49,18 +49,18 @@ export async function POST(req: Request) {
     const fees = (order.feeBreakdown?.brokerage || 0) + (order.feeBreakdown?.convenience || 0);
     const totalAmount = baseAmount + fees;
 
-    if (order.type === "buy" && wallet.balance < totalAmount) {
+    if (order.type === "buy" && user.walletBalance < totalAmount) {
       return NextResponse.json({ message: "Insufficient wallet balance" }, { status: 400 });
     }
 
     // Adjust wallet balance
     if (order.type === "buy") {
-      wallet.balance -= totalAmount;
+      user.walletBalance -= totalAmount;
     } else {
-      wallet.balance += baseAmount; // Refund logic for sell
+     user.walletBalance += baseAmount; // Refund logic for sell
     }
 
-    await wallet.save();
+    await user.save();
 
     // Finalize order
     order.status = "completed";

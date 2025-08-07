@@ -1,59 +1,83 @@
-import { motion } from "framer-motion";
-import { Card, CardContent } from "@/components/ui/card";
+import React from "react";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 
-const AnimatedCard = motion(Card);
-
-export default function StylishBeneficiaryForm({ beneForm, setBeneForm, handleAddBeneficiary }: {
+type StylishBeneficiaryFormProps = {
   beneForm: Record<string, string>;
   setBeneForm: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  handleAddBeneficiary: () => void;
-}) {
+  handleAddBeneficiary: (e: React.FormEvent) => Promise<void>;
+  isSubmitting: boolean;
+  errorMessage?: string;
+  successMessage?: string;
+  resetForm: () => void;
+};
+
+export default function StylishBeneficiaryForm({
+  beneForm,
+  setBeneForm,
+  handleAddBeneficiary,
+  isSubmitting,
+  errorMessage,
+  successMessage,
+  resetForm,
+}: StylishBeneficiaryFormProps) {
   return (
-    <AnimatedCard
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className="p-6 rounded-2xl shadow-xl bg-white dark:bg-zinc-900 w-full max-w-xl mx-auto"
+    <form
+      onSubmit={handleAddBeneficiary}
+      className="space-y-6 max-w-xl mx-auto p-6 rounded-2xl border border-gray-800 bg-black/30 backdrop-blur-md shadow-xl"
     >
-      <CardContent className="space-y-6">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-            Add New Bank Account
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Please enter the required beneficiary details
-          </p>
+      {Object.entries(beneForm).map(([key, val]) => (
+        <div key={key} className="space-y-2">
+          <Label
+            htmlFor={key}
+            className="capitalize text-sm text-gray-300 tracking-wide"
+          >
+            {key.replaceAll("_", " ")}
+          </Label>
+          <Input
+            id={key}
+            className="bg-white/10 backdrop-blur-md text-white placeholder:text-gray-400 border border-gray-700 focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
+            placeholder={key.replaceAll("_", " ")}
+            value={val}
+            onChange={(e) =>
+              setBeneForm((prev) => ({
+                ...prev,
+                [key]: e.target.value,
+              }))
+            }
+          />
         </div>
+      ))}
 
-        <div className="space-y-4">
-          {Object.entries(beneForm).map(([key, val]) => (
-            <div key={key} className="space-y-1">
-              <Label htmlFor={key} className="capitalize text-sm">
-                {key.replaceAll("_", " ")}
-              </Label>
-              <Input
-                id={key}
-                className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 focus-visible:ring-2 focus-visible:ring-primary"
-                placeholder={key.replaceAll("_", " ")}
-                value={val}
-                onChange={(e) =>
-                  setBeneForm((prev) => ({ ...prev, [key]: e.target.value }))
-                }
-              />
-            </div>
-          ))}
-        </div>
+      {errorMessage && (
+        <p className="text-red-500 text-sm bg-red-500/10 px-2 py-1 rounded">
+          {errorMessage}
+        </p>
+      )}
+      {successMessage && (
+        <p className="text-green-400 text-sm bg-green-500/10 px-2 py-1 rounded">
+          {successMessage}
+        </p>
+      )}
 
+      <div className="flex gap-4 pt-2">
         <Button
-          className="w-full mt-6 rounded-xl py-6 text-base font-medium"
-          onClick={handleAddBeneficiary}
+          type="submit"
+          disabled={isSubmitting}
+          className="bg-gray-900 text-white hover:bg-gray-800 transition rounded-xl"
         >
-          Save Beneficiary
+          {isSubmitting ? "Submitting..." : "Add Beneficiary"}
         </Button>
-      </CardContent>
-    </AnimatedCard>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={resetForm}
+          className="border-gray-600 text-gray-300 hover:bg-gray-800 rounded-xl"
+        >
+          Reset
+        </Button>
+      </div>
+    </form>
   );
 }

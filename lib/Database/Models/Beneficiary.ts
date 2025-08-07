@@ -6,13 +6,15 @@ const BeneficiarySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true, // Improve query speed on userId
+      index: true,
     },
     beneficiary_id: {
       type: String,
       required: true,
-      unique: true, // Cashfree ensures uniqueness
+      unique: true,
     },
+
+    // Required bank details
     bank_account_number: {
       type: String,
       required: true,
@@ -25,6 +27,8 @@ const BeneficiarySchema = new mongoose.Schema(
       minlength: 5,
       maxlength: 15,
     },
+
+    // Required personal details
     beneficiary_name: {
       type: String,
       required: true,
@@ -32,20 +36,22 @@ const BeneficiarySchema = new mongoose.Schema(
     },
     beneficiary_email: {
       type: String,
+      required: true,
       match: /^\S+@\S+\.\S+$/,
     },
     beneficiary_phone: {
       type: String,
+      required: true,
       minlength: 10,
       maxlength: 15,
     },
 
-    // Optional UPI / card data for future use
+    // Optional UPI / card / virtual payment fields
     vpa: { type: String },
     card_token: { type: String },
     card_network_type: { type: String },
 
-    // Optional address data
+    // Optional address fields
     beneficiary_address: { type: String },
     beneficiary_city: { type: String },
     beneficiary_state: { type: String },

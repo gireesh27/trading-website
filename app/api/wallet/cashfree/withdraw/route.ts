@@ -5,6 +5,7 @@ import { connectToDatabase as dbConnect } from "@/lib/Database/mongodb";
 import { User } from "@/lib/Database/Models/User";
 import Transaction from "@/lib/Database/Models/Transaction";
 import { generateBeneficiaryId } from "@/lib/utils/bene_id";
+import bcrypt from "bcryptjs";
 
 const BASE_URL = "https://sandbox.cashfree.com/payout";
 const CF_CLIENT_ID = process.env.CASHFREE_CLIENT_ID!;
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
       card_network_type,
       transfer_amount,
       instrument_type = "bankaccount",
+      walletPassword
     } = await req.json();
     if (!transfer_amount || transfer_amount <= 0) {
       console.log("Invalid transfer amount:", transfer_amount)
@@ -61,7 +63,19 @@ export async function POST(req: NextRequest) {
       console.log("Missing UPI VPA for transfer:", vpa)
       return NextResponse.json({ error: "Missing UPI VPA for transfer" }, { status: 400 });
     }
+    if (!walletPassword) {
+      return NextResponse.json({ error: "Wallet password is required" }, { status: 400 });
+    }
 
+    if (!user.walletPasswordHash) {
+      return NextResponse.json({ error: "Wallet password not set" }, { status: 403 });
+    }
+
+    const isValidPassword = await bcrypt.compare(walletPassword, user.walletPasswordHash);
+
+    if (!isValidPassword) {
+      return NextResponse.json({ error: "Invalid wallet password" }, { status: 403 });
+    }
     const headers = {
       "Content-Type": "application/json",
       "x-client-id": CF_CLIENT_ID,

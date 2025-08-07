@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import StylishBeneficiaryForm from "./AddBankAccountForm";
+import { ConfirmPasswordModal } from "./confirm-password-modal";
 
 export const initialBeneForm = {
   beneficiary_name: "",
@@ -29,14 +30,16 @@ export default function WithdrawForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [beneForm, setBeneForm] = useState<Record<string, string>>(initialBeneForm)
-  
+  const [beneForm, setBeneForm] =
+    useState<Record<string, string>>(initialBeneForm);
+  const [walletPassword, setWalletPassword] = useState("");
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const fetchBeneficiaries = async () => {
     try {
       const res = await fetch("/api/wallet/cashfree/list-bene");
       const data = await res.json();
       console.log(data);
-      console.log(data.beneficiaries)
+      console.log(data.beneficiaries);
       setBeneficiaries(data.beneficiaries || []);
       if (data.beneficiaries?.length > 0) setPrimaryIndex(0); // set first as default
     } catch (err) {
@@ -52,7 +55,7 @@ export default function WithdrawForm() {
     fetchBeneficiaries();
   }, []);
 
-  const handleWithdraw = async () => {
+  const doWithdraw = async (password: string) => {
     if (primaryIndex === null || !beneficiaries[primaryIndex]) {
       return toast({
         title: "No Bank Selected",
@@ -79,6 +82,7 @@ export default function WithdrawForm() {
         body: JSON.stringify({
           ...selectedBene,
           transfer_amount: Number(amount),
+          walletPassword: password,
         }),
       });
 
@@ -101,7 +105,9 @@ export default function WithdrawForm() {
       setLoading(false);
     }
   };
-
+  const handleWithdraw = () => {
+    setIsPasswordModalOpen(true);
+  };
   const handleAddBeneficiary = async () => {
     setIsSubmitting(true);
     setErrorMessage("");
@@ -194,6 +200,15 @@ export default function WithdrawForm() {
           >
             {loading ? "Processing..." : "Withdraw to Primary Bank"}
           </Button>
+          <ConfirmPasswordModal
+            open={isPasswordModalOpen}
+            onClose={() => setIsPasswordModalOpen(false)}
+            onConfirm={(password: string) => {
+              setIsPasswordModalOpen(false);
+              doWithdraw(password);
+            }}
+            loading={loading}
+          />
         </>
       )}
 
@@ -222,7 +237,6 @@ export default function WithdrawForm() {
               successMessage={successMessage}
               resetForm={() => setBeneForm(initialBeneForm)}
             />
-            
           </>
         )}
       </div>

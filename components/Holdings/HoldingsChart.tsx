@@ -1,41 +1,54 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ResponsiveContainer, LineChart, XAxis, YAxis, Tooltip, Line } from "recharts";
-import WalletBalance from "../wallet/WalletBalance";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
-type Holding = {
+interface PricePoint {
+  date: string;
+  price: number;
+}
+
+interface Props {
   symbol: string;
-  buyDate: string;
-  sellDate: string;
-  holdingPeriod: number;
-  profitLoss: number;
-};
+  priceHistory: PricePoint[];
+}
 
-export default function HoldingsChart() {
-  const [data, setData] = useState<Holding[]>([]);
-
-  useEffect(() => {
-    fetch("/api/wallet/analytics")
-      .then(res => res.json())
-      .then(res => {
-        if (res.success) setData(res.data);
-      });
-  }, []);
+export default function HoldingPriceChart({ symbol, priceHistory }: Props) {
+  // Format dates for X-axis
+  const data = priceHistory.map((p) => ({
+    date: new Date(p.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" }),
+    price: p.price
+  }));
 
   return (
-    <div className="p-6 bg-white rounded-xl shadow-lg">
-      <h2 className="text-xl font-bold mb-4">Holdings P&L & Duration</h2>
-      <WalletBalance />
-      
-      {/* <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={data}>
-          <XAxis dataKey="symbol" />
-          <YAxis />
-          <Tooltip />
-          <Line type="monotone" dataKey="profitLoss" stroke="#4ade80" name="P&L" />
-        </LineChart>
-      </ResponsiveContainer> */}
-    </div>
+    <Card className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border border-gray-700">
+      <CardHeader>
+        <CardTitle className="text-white text-lg">{symbol} Price History</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+              <XAxis dataKey="date" stroke="#ccc" />
+              <YAxis stroke="#ccc" domain={["auto", "auto"]} />
+              <Tooltip
+                contentStyle={{ backgroundColor: "#111", border: "1px solid #444" }}
+                labelStyle={{ color: "#fff" }}
+                itemStyle={{ color: "#0ff" }}
+              />
+              <Line
+                type="monotone"
+                dataKey="price"
+                stroke="#00f0ff"
+                strokeWidth={2}
+                dot={{ r: 3, fill: "#00f0ff" }}
+                activeDot={{ r: 6, fill: "#0ff" }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

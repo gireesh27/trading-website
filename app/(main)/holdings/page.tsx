@@ -1,33 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
+import { useState, useEffect } from "react";
+import HoldingsTable from "@/components/Holdings/HoldingTable";
+import HoldingsChart from "@/components/Holdings/HoldingsChart";
 
-interface Holding {
-  symbol: string;
-  quantity: number;
-  avgPrice: number;
-  totalInvested: number;
-  currentPrice: number;
-  currentValue: number;
-  profitLoss: number;
-  profitLossPercent: number;
-}
-
-export default function HoldingsPage() {
-  const [holdings, setHoldings] = useState<Holding[]>([]);
+export default function Holdings() {
+  const [holdings, setHoldings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
+  const [priceHistory, setPriceHistory] = useState([]);
 
-  // Fetch holdings from backend
+  // Fetch holdings on mount
   useEffect(() => {
     async function fetchHoldings() {
+      setLoading(true);
       try {
-        const res = await fetch("/api/holdings"); // Your backend API
+        const res = await fetch("/api/holdings");
         const data = await res.json();
-        setHoldings(data);
+        setHoldings(data?.holdings || []);
       } catch (err) {
         console.error("Failed to load holdings", err);
       } finally {
@@ -37,67 +27,43 @@ export default function HoldingsPage() {
     fetchHoldings();
   }, []);
 
+  // Fetch price history when symbol is selected
+  useEffect(() => {
+    if (!selectedSymbol) return;
+    async function fetchHistory() {
+      try {
+        const res = await fetch(
+          `/api/holdings/price-history?symbol=${selectedSymbol}`
+        );
+        const data = await res.json();
+        setPriceHistory(data.history || []);
+      } catch (err) {
+        console.error("Failed to load price history", err);
+      }
+    }
+    fetchHistory();
+  }, [selectedSymbol]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white px-6 py-10">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-6xl mx-auto"
-      >
-        <Card className="bg-white/5 border border-white/10 backdrop-blur-xl shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center">📊 My Holdings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-10 animate-pulse text-gray-400">Loading holdings...</div>
-            ) : holdings.length === 0 ? (
-              <div className="text-center py-10 text-gray-400">No holdings found</div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-white">Symbol</TableHead>
-                    <TableHead className="text-white">Qty</TableHead>
-                    <TableHead className="text-white">Avg Price</TableHead>
-                    <TableHead className="text-white">Current Price</TableHead>
-                    <TableHead className="text-white">Invested</TableHead>
-                    <TableHead className="text-white">Current Value</TableHead>
-                    <TableHead className="text-white">P/L</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {holdings.map((h, i) => (
-                    <motion.tr
-                      key={h.symbol}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="hover:bg-white/10 transition-colors"
-                    >
-                      <TableCell className="font-bold">{h.symbol}</TableCell>
-                      <TableCell>{h.quantity}</TableCell>
-                      <TableCell>₹{h.avgPrice.toFixed(2)}</TableCell>
-                      <TableCell>₹{h.currentPrice.toFixed(2)}</TableCell>
-                      <TableCell>₹{h.totalInvested.toFixed(2)}</TableCell>
-                      <TableCell>₹{h.currentValue.toFixed(2)}</TableCell>
-                      <TableCell
-                        className={cn(
-                          h.profitLoss >= 0 ? "text-green-400" : "text-red-400",
-                          "font-semibold"
-                        )}
-                      >
-                        ₹{h.profitLoss.toFixed(2)} ({h.profitLossPercent.toFixed(2)}%)
-                      </TableCell>
-                    </motion.tr>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
+    <div className="flex h-screen gap-4 p-4 bg-gray-950">
+      {/* Table Section */}
+      <div className="flex-1 overflow-auto rounded-xl border border-gray-800 bg-gray-900/60 backdrop-blur">
+        <HoldingsTable
+          holdings={holdings}
+          loading={loading}
+          onRowClick={setSelectedSymbol}
+        />
+      </div>
+
+      {/* Chart Section */}
+      {selectedSymbol && (
+        <div className="flex-1 overflow-auto rounded-xl border border-gray-800 bg-gray-900/60 backdrop-blur">
+          <HoldingsChart
+            symbol={selectedSymbol}
+            priceHistory={priceHistory}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -78,10 +78,10 @@ export default function HoldingsTable({
                     >
                       <TableCell className="font-bold text-white">{h.symbol}</TableCell>
                       <TableCell className="text-gray-300">{h.quantity}</TableCell>
-                      <TableCell className="text-gray-300">₹{h.avgPrice.toFixed(2)}</TableCell>
-                      <TableCell className="text-gray-300">₹{h.currentPrice.toFixed(2)}</TableCell>
-                      <TableCell className="text-gray-300">₹{h.totalInvested.toFixed(2)}</TableCell>
-                      <TableCell className="text-gray-300">₹{h.currentValue.toFixed(2)}</TableCell>
+                      <TableCell className="text-gray-300">₹{h.avgPrice}</TableCell>
+                      <TableCell className="text-gray-300">₹{h.currentPrice}</TableCell>
+                      <TableCell className="text-gray-300">₹{h.totalInvested}</TableCell>
+                      <TableCell className="text-gray-300">₹{h.currentValue}</TableCell>
                       <TableCell
                         className={cn(
                           h.profitLoss >= 0
@@ -90,7 +90,7 @@ export default function HoldingsTable({
                           "font-semibold"
                         )}
                       >
-                        ₹{h.profitLoss.toFixed(2)} ({h.profitLossPercent.toFixed(2)}%)
+                        ₹{h.profitLoss} ({h.profitLossPercent}%)
                       </TableCell>
                     </motion.tr>
                   ))}

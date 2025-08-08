@@ -16,8 +16,7 @@ export async function updateHoldings(
   const holding = await Holding.findOne({ userId: userObjectId, symbol });
   const quote = await stockApi.getQuote(symbol);
   const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
-
+  console.log("today:", today);
   if (holding) {
     const newQuantity = holding.quantity + quantity;
 

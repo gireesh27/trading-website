@@ -9,6 +9,7 @@ export default function Holdings() {
   const [loading, setLoading] = useState(true);
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [priceHistory, setPriceHistory] = useState([]);
+  const [priceLoading, setPriceLoading] = useState(false);
 
   // Fetch holdings on mount
   useEffect(() => {
@@ -30,17 +31,27 @@ export default function Holdings() {
   // Fetch price history when symbol is selected
   useEffect(() => {
     if (!selectedSymbol) return;
+
+    setPriceLoading(true);
+
     async function fetchHistory() {
       try {
         const res = await fetch(
           `/api/holdings/price-history?symbol=${selectedSymbol}`
         );
         const data = await res.json();
-        setPriceHistory(data.history || []);
+
+        console.log("API price history response:", data);
+
+        setPriceHistory(data.priceHistory || []);
       } catch (err) {
         console.error("Failed to load price history", err);
+        setPriceHistory([]);
+      } finally {
+        setPriceLoading(false);
       }
     }
+
     fetchHistory();
   }, [selectedSymbol]);
 
@@ -58,10 +69,20 @@ export default function Holdings() {
       {/* Chart Section */}
       {selectedSymbol && (
         <div className="flex-1 overflow-auto rounded-xl border border-gray-800 bg-gray-900/60 backdrop-blur">
-          <HoldingsChart
-            symbol={selectedSymbol}
-            priceHistory={priceHistory}
-          />
+          {priceLoading ? (
+            <p className="text-gray-400 p-4">Loading price history...</p>
+          ) : priceHistory.length ? (
+            <HoldingsChart
+              symbol={selectedSymbol}
+              priceHistory={priceHistory}
+              buyPrice={1000}
+              sellPrice={2000}
+            />
+          ) : (
+            <p className="text-gray-400 p-4">
+              No price history data available.
+            </p>
+          )}
         </div>
       )}
     </div>

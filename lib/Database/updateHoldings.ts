@@ -1,59 +1,78 @@
+import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/Database/mongodb";
 import { Holding } from "@/lib/Database/Models/Holding";
+import { DailyPrice } from "@/lib/Database/Models/DailyPrice";
 import { stockApi } from "@/lib/api/stock-api";
 
 export async function updateHoldings(
   userId: string,
   symbol: string,
   quantity: number,
-  price: number
+  close: number
 ) {
   await connectToDatabase();
-  console.log("updateHoldings called:", { userId, symbol, quantity, price });
 
-  // Find existing holding
-  const holding = await Holding.findOne({ userId, symbol });
-
-  // Get latest market price (for history)
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+  const holding = await Holding.findOne({ userId: userObjectId, symbol });
   const quote = await stockApi.getQuote(symbol);
   const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
 
   if (holding) {
-    // Update quantity and average price
     const newQuantity = holding.quantity + quantity;
 
     if (newQuantity <= 0) {
-      // If all shares are sold, delete holding
       await Holding.deleteOne({ _id: holding._id });
       return;
     }
 
-    const totalInvested = holding.totalInvested + quantity * price;
-
+    const totalInvested = holding.totalInvested + quantity * close;
     holding.quantity = newQuantity;
     holding.totalInvested = totalInvested;
     holding.avgPrice = totalInvested / newQuantity;
 
-    // Add today's price to history if not already there
     const alreadyExists = holding.priceHistory?.some(
-      (p: { date: string | number | Date; }) => new Date(p.date).toDateString() === today.toDateString()
+      (p: { date: string | number | Date }) =>
+        new Date(p.date).toDateString() === today.toDateString()
     );
+
     if (!alreadyExists) {
-      holding.priceHistory.push({ date: today, price: quote.price });
+      holding.priceHistory.push({
+        symbol: holding.symbol,
+        date: today,
+        close: quote.price,
+      });
     }
 
     await holding.save();
   } else {
-    // Create new holding if buying
     if (quantity > 0) {
       await Holding.create({
-        userId,
+        userId: userObjectId,
         symbol,
         quantity,
-        avgPrice: price,
-        totalInvested: quantity * price,
-        priceHistory: [{ date: today, price: quote.price }],
+        avgPrice: close,
+        totalInvested: quantity * close,
+        buyDate: today,
+        priceHistory: [
+          {
+            symbol,
+            date: today,
+            close: quote.price,
+          },
+        ],
       });
+
+      try {
+        const dailyPriceDoc = await DailyPrice.create({
+          symbol,
+          date: today,
+          close: quote.price,
+        });
+        console.log("DailyPrice created:", dailyPriceDoc);
+      } catch (error) {
+        console.error("Error creating DailyPrice:", error);
+      }
     }
   }
 }

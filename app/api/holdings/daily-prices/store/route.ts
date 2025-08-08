@@ -1,4 +1,3 @@
-// app/api/daily-prices/store/route.ts
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/Database/mongodb";
 import { Holding } from "@/lib/Database/Models/Holding";
@@ -9,22 +8,25 @@ export async function POST() {
   await connectToDatabase();
 
   try {
+    // Get all distinct open symbols from holdings
     const symbols = await Holding.distinct("symbol", { status: "open" });
 
     if (!symbols.length) {
       return NextResponse.json({ success: false, message: "No symbols found in holdings" });
     }
 
+    // Normalize today date to UTC start of day
     const today = new Date();
-    today.setUTCHours(0, 0, 0, 0); // normalize to day start UTC
+    today.setUTCHours(0, 0, 0, 0);
 
+    // Update or insert daily prices for each symbol WITHOUT userId
     const results = await Promise.all(
       symbols.map(async (symbol) => {
         const quote = await stockApi.getQuote(symbol);
 
         return DailyPrice.updateOne(
           { symbol, date: today },
-          { $set: { closePrice: quote.price } },
+          { $set: { close: quote.price } }, // field is 'close'
           { upsert: true }
         );
       })

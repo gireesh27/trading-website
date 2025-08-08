@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/Database/mongodb";
-import { DailyPrice } from "@/lib/Database/Models/DailyPrice";
-import {Holding} from "@/lib/Database/Models/Holding"
+import { Holding } from "@/lib/Database/Models/Holding";
+
 export async function GET(req: Request) {
   try {
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
     const symbol = searchParams.get("symbol");
+    let userId = searchParams.get("userId"); // optional
 
     if (!symbol) {
       return NextResponse.json(
@@ -16,7 +18,20 @@ export async function GET(req: Request) {
       );
     }
 
-    const holding = await Holding.findOne({ symbol });
+    const query: any = { symbol };
+
+    if (userId) {
+      // Validate userId is a valid ObjectId string
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return NextResponse.json(
+          { success: false, message: "Invalid userId" },
+          { status: 400 }
+        );
+      }
+      query.userId = new mongoose.Types.ObjectId(userId);
+    }
+
+    const holding = await Holding.findOne(query);
 
     if (!holding) {
       return NextResponse.json(

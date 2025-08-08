@@ -1,6 +1,7 @@
 import { connectToDatabase } from "@/lib/Database/mongodb";
 import { Holding } from "@/lib/Database/Models/Holding";
-import { stockApi } from "@/lib/api/stock-api"; // Your API wrapper (Finnhub/Yahoo)
+import { stockApi } from "@/lib/api/stock-api";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
@@ -8,6 +9,7 @@ export async function GET() {
 
     const holdings = await Holding.find({});
     const today = new Date();
+    today.setUTCHours(0, 0, 0, 0); // Normalize to UTC midnight
 
     let updatedCount = 0;
 
@@ -15,27 +17,29 @@ export async function GET() {
       const quote = await stockApi.getQuote(holding.symbol);
 
       const alreadyExists = holding.priceHistory?.some(
-        (p: { date: string | number | Date; }) => new Date(p.date).toDateString() === today.toDateString()
+        (p: { date: Date }) =>
+          p.date.toISOString().slice(0, 10) === today.toISOString().slice(0, 10)
       );
 
       if (!alreadyExists) {
         holding.priceHistory.push({
+          symbol: holding.symbol,
           date: today,
-          price: quote.price,
+          close: quote.price,
         });
         await holding.save();
         updatedCount++;
       }
     }
 
-    return Response.json({
+    return NextResponse.json({
       success: true,
       updated: updatedCount,
-      totalHoldings: holdings.length
+      totalHoldings: holdings.length,
     });
   } catch (error: any) {
     console.error("Error updating holdings:", error);
-    return Response.json(
+    return NextResponse.json(
       { success: false, error: error.message },
       { status: 500 }
     );

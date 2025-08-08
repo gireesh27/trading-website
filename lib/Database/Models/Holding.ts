@@ -1,12 +1,5 @@
 import mongoose from "mongoose";
-
-const DailyPriceSchema = new mongoose.Schema(
-  {
-    date: { type: Date, required: true },
-    close: { type: Number, required: true }, // closing price for the day
-  },
-  { _id: false }
-);
+import { DailyPriceSchema } from "./DailyPrice";
 
 const HoldingSchema = new mongoose.Schema(
   {
@@ -24,7 +17,7 @@ const HoldingSchema = new mongoose.Schema(
       default: "open",
     },
 
-    // Store historical daily prices for the holding period
+    // priceHistory subdocuments no longer require userId
     priceHistory: [DailyPriceSchema],
   },
   { timestamps: true }

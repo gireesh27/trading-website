@@ -8,10 +8,7 @@ import { User } from "@/lib/Database/Models/User";
 import bcrypt from "bcryptjs";
 
 // GET: Fetch single order details
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   await connectDB();
 
   const session = await getServerSession(authOptions);
@@ -19,6 +16,8 @@ export async function GET(
 
   const { id } = params;
   if (!id) return NextResponse.json({ error: "Order ID missing" }, { status: 400 });
+  if (!mongoose.Types.ObjectId.isValid(id))
+    return NextResponse.json({ error: "Invalid Order ID" }, { status: 400 });
 
   try {
     const order = await Order.findById(id);
@@ -29,7 +28,21 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    return NextResponse.json({ success: true, order });
+    // Optionally sanitize order here before sending
+    const sanitizedOrder = {
+      id: order._id.toString(),
+      userId: order.userId.toString(),
+      symbol: order.symbol,
+      quantity: order.quantity,
+      price: order.price,
+      type: order.type,
+      status: order.status,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+      // ...any other fields you want to expose
+    };
+
+    return NextResponse.json({ success: true, order: sanitizedOrder });
   } catch (err: any) {
     console.error("GET /orders/[id] error:", err);
     return NextResponse.json({ error: "Failed to fetch order" }, { status: 500 });

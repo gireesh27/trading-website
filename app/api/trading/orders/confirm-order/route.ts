@@ -1,19 +1,17 @@
 import { connectToDatabase } from "@/lib/Database/mongodb";
 import { Order } from "@/lib/Database/Models/Order";
-import  Transaction  from "@/lib/Database/Models/Transaction";
+import Transaction from "@/lib/Database/Models/Transaction";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../auth/[...nextauth]/route";
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import { NextResponse } from "next/server";
 import { User } from "@/lib/Database/Models/User";
-
 export async function POST(req: Request) {
   await connectToDatabase();
 
   try {
     const session = await getServerSession(authOptions);
-
     if (!session || !session.user?.id) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -35,7 +33,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Order not found or already processed" }, { status: 404 });
     }
 
-    const user = await User.findOne({ userId });
+    const user = await User.findById(userId);
     if (!user || !user.walletPasswordHash) {
       return NextResponse.json({ message: "Wallet setup incomplete" }, { status: 400 });
     }
@@ -53,27 +51,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Insufficient wallet balance" }, { status: 400 });
     }
 
-    // Adjust wallet balance
-    if (order.type === "buy") {
-      user.walletBalance -= totalAmount;
-    } else {
-     user.walletBalance += baseAmount; // Refund logic for sell
-    }
-
-    await user.save();
 
     // Finalize order
     order.status = "completed";
     order.completedAt = new Date();
     await order.save();
 
-    // Log transaction with fee details
+    // Log transaction
     await Transaction.create({
       userId,
       symbol: order.symbol,
       quantity: order.quantity,
       price: order.price,
-      type: order.type, // buy or sell
+      type: order.type,
       status: "success",
       executedAt: new Date(),
       source: "wallet",
@@ -82,7 +72,17 @@ export async function POST(req: Request) {
       totalAmount,
     });
 
+    // Adjust wallet & update holdings
+    if (order.type === "buy") {
+      user.walletBalance -= totalAmount;
+    } else {
+      user.walletBalance += baseAmount;
+    }
+    await user.save();
+
+
     return NextResponse.json({ message: "Order executed successfully" }, { status: 200 });
+
   } catch (err: any) {
     console.error("Confirm Order Error:", err);
     return NextResponse.json({ message: "Internal server error", error: err.message }, { status: 500 });

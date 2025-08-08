@@ -55,7 +55,7 @@ const navItems = [
   { href: "/orders", label: "Orders", icon: AlarmClock },
   { href: "/alerts", label: "Alerts", icon: AlertTriangle },
   { href: "/wallet", label: "Wallet", icon: Wallet },
-  { href: "/portfolio", label: "Portfolio", icon: PieChart },
+  { href: "/holdings", label: "Holdings", icon: PieChart },
 ];
 
 export function MainNav() {

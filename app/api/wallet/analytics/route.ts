@@ -2,7 +2,7 @@ import { connectToDatabase } from "@/lib/Database/mongodb";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import Transaction from "@/lib/Database/Models/Transaction";
-
+import mongoose from "mongoose";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
@@ -14,7 +14,8 @@ export async function GET() {
   }
 
   const userId = session.user.id;
-  const transactions = await Transaction.find({ userId });
+  const transactions = await Transaction.find({ userId: new mongoose.Types.ObjectId(userId) });
+
 
   // Sort by date ascending
   transactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -27,10 +28,10 @@ export async function GET() {
   const plMap: Record<string, number> = {};
 
   for (const tx of transactions) {
-   const date =
-  tx.date && !isNaN(new Date(tx.date).getTime())
-    ? new Date(tx.date).toISOString().split("T")[0]
-    : "Invalid Date";
+    const date =
+      tx.date && !isNaN(new Date(tx.date).getTime())
+        ? new Date(tx.date).toISOString().split("T")[0]
+        : "Invalid Date";
 
     if (tx.type === "deposit") {
       runningBalance += tx.amount;

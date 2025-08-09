@@ -29,31 +29,36 @@ export default function Holdings() {
   }, []);
 
   // Fetch price history when symbol is selected
-  useEffect(() => {
-    if (!selectedSymbol) return;
+useEffect(() => {
+  if (!selectedSymbol) return;
 
-    setPriceLoading(true);
+  setPriceLoading(true);
 
-    async function fetchHistory() {
-      try {
-        const res = await fetch(
-          `/api/holdings/price-history?symbol=${selectedSymbol}`
-        );
-        const data = await res.json();
+  async function fetchHistory() {
+    try {
+      const res = await fetch(`/api/holdings/daily-prices/${selectedSymbol}`);
+      const data = await res.json();
 
-        console.log("API price history response:", data);
+      console.log("API 5-min price history response:", data);
 
-        setPriceHistory(data.priceHistory || []);
-      } catch (err) {
-        console.error("Failed to load price history", err);
-        setPriceHistory([]);
-      } finally {
-        setPriceLoading(false);
-      }
+      // Transform API data to match chart's expected shape
+      const history = data.map((p: any) => ({
+        symbol: p.symbol,
+        date: p.date,
+        close: p.close, // directly from DB
+      }));
+
+      setPriceHistory(history);
+    } catch (err) {
+      console.error("Failed to load 5-min price history", err);
+      setPriceHistory([]);
+    } finally {
+      setPriceLoading(false);
     }
+  }
 
-    fetchHistory();
-  }, [selectedSymbol]);
+  fetchHistory();
+}, [selectedSymbol]);
 
   return (
     <div className="flex h-screen gap-4 p-4 bg-gray-950">

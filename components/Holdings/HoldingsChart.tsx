@@ -37,7 +37,7 @@ import { motion } from "framer-motion";
 interface PricePoint {
   symbol: string;
   date: string;
-  last: number;
+  close: number;
 }
 
 interface ChartData extends PricePoint {
@@ -215,7 +215,7 @@ export default function HoldingsChart({
   const chartData = useMemo(() => {
     console.log('priceHistory', priceHistory)
     if (!priceHistory || priceHistory.length === 0) return [];
-    const prices = priceHistory.map(p => p.last);
+    const prices = priceHistory.map(p => p.close);
 
     const sma = indicatorSettings.find(i => i.id === 'sma');
     const ema = indicatorSettings.find(i => i.id === 'ema');
@@ -237,8 +237,8 @@ export default function HoldingsChart({
   }, [priceHistory, indicatorSettings]);
 
   const { latestPrice, firstPrice, priceChange, priceChangePercent, isPositive } = useMemo(() => {
-    const latestPrice = chartData.length ? chartData[chartData.length - 1].last : 0;
-    const firstPrice = chartData.length ? chartData[0].last : 0;
+    const latestPrice = chartData.length ? chartData[chartData.length - 1].close : 0;
+    const firstPrice = chartData.length ? chartData[0].close : 0;
     const priceChange = latestPrice - firstPrice;
     const priceChangePercent = firstPrice ? (priceChange / firstPrice) * 100 : 0;
     return {
@@ -252,17 +252,24 @@ export default function HoldingsChart({
 
   // --- FORMATTERS & HANDLERS ---
 
-  const formatXAxis = (timestamp: number): string => {
-    const date = dayjs(timestamp);
-    if (!chartData || chartData.length === 0) return date.format("MMM YY");
-    
-    const start = zoomDomain ? zoomDomain[0] : chartData[0]?.timestamp;
-    const end = zoomDomain ? zoomDomain[1] : chartData[chartData.length - 1]?.timestamp;
-    const daysDiff = dayjs(end).diff(dayjs(start), 'days');
-    
-    if (daysDiff <= 90) return date.format("MMM D");
-    return date.format("MMM 'YY");
-  };
+const formatXAxis = (timestamp: number): string => {
+  const date = dayjs(timestamp);
+  if (!chartData || chartData.length === 0) return date.format("DD MMM HH:mm");
+
+  const start = zoomDomain ? zoomDomain[0] : chartData[0]?.timestamp;
+  const end = zoomDomain ? zoomDomain[1] : chartData[chartData.length - 1]?.timestamp;
+  const daysDiff = dayjs(end).diff(dayjs(start), "days");
+
+  // If showing less than 2 days of data, show hours:minutes
+  if (daysDiff < 2) return date.format("HH:mm");
+
+  // If showing multiple days but less than ~3 months
+  if (daysDiff <= 90) return date.format("DD MMM HH:mm");
+
+  // Long ranges fallback to month-year
+  return date.format("MMM 'YY");
+};
+
 
   const handleZoom = useCallback((direction: "in" | "out") => {
     if (!chartData || chartData.length === 0) return;
@@ -359,7 +366,17 @@ export default function HoldingsChart({
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
                 
                 <XAxis dataKey="timestamp" type="number" domain={zoomDomain || ["dataMin", "dataMax"]} tickFormatter={formatXAxis} stroke="#ccc" angle={-45} textAnchor="end" height={80} tick={{ fontSize: 12 }} interval="preserveStartEnd" allowDataOverflow />
-                <YAxis stroke="#ccc" domain={["auto", "auto"]} tickFormatter={(value) => `₹${Number(value).toFixed(0)}`} fontSize={12} width={80} />
+               <YAxis
+                                   stroke="#9ca3af"
+                                   fontSize={12}
+                                   orientation="left"
+                                   domain={["auto", "auto"]}
+                                   tickFormatter={(v) =>
+                                     `$${typeof v === "number" ? v.toFixed(2) : v}`
+                                   }
+                                   allowDataOverflow
+                                   tickLine={{ stroke: "rgba(255, 255, 255, 0.2)" }}
+                                 />
                 <ChartTooltip content={<CustomTooltip />} />
 
                 {buyPrice && <ReferenceLine y={buyPrice} stroke={THEME.positive} strokeDasharray="3 3" label={{ value: `Buy ₹${buyPrice}`, position: "insideTopRight", fill: THEME.positive, fontWeight: "bold", fontSize: 12 }} />}
@@ -369,9 +386,9 @@ export default function HoldingsChart({
                 {indicatorSettings.map((ind) => ind.enabled && (<Line key={ind.id} type="monotone" dataKey={ind.id} stroke={ind.color} dot={false} strokeWidth={1.5} isAnimationActive={false} name={ind.name} />))}
 
                 {chartType === "area" ? (
-                  <Area type="monotone" dataKey="price" name="Price" stroke={THEME.primary} strokeWidth={2.5} fill="url(#areaGradient)" isAnimationActive={true} animationDuration={800} />
+                  <Area type="monotone" dataKey="close" name="Price" stroke={THEME.primary} strokeWidth={2.5} fill="url(#areaGradient)" isAnimationActive={true} animationDuration={800} />
                 ) : (
-                  <Line type="monotone" dataKey="price" name="Price" stroke={THEME.primary} strokeWidth={2.5} dot={false} activeDot={{ r: 6, fill: THEME.primary }} isAnimationActive={true} animationDuration={800} />
+                  <Line type="monotone" dataKey="close" name="Price" stroke={THEME.primary} strokeWidth={2.5} dot={false} activeDot={{ r: 6, fill: THEME.primary }} isAnimationActive={true} animationDuration={800} />
                 )}
               </ComposedChart>
             </ResponsiveContainer>
@@ -402,11 +419,11 @@ export default function HoldingsChart({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                 <div className="text-center p-2 rounded-lg bg-gray-800/50">
                     <div className="text-gray-400 text-xs uppercase tracking-wide mb-1">Highest</div>
-                    <div className="text-white font-semibold">₹{Math.max(...priceHistory.map(p => p.last))}</div>
+                    <div className="text-white font-semibold">₹{Math.max(...priceHistory.map(p => p.close))}</div>
                 </div>
                 <div className="text-center p-2 rounded-lg bg-gray-800/50">
                     <div className="text-gray-400 text-xs uppercase tracking-wide mb-1">Lowest</div>
-                    <div className="text-white font-semibold">₹{Math.min(...priceHistory.map(p => p.last))}</div>
+                    <div className="text-white font-semibold">₹{Math.min(...priceHistory.map(p => p.close))}</div>
                 </div>
                 <div className="text-center p-2 rounded-lg bg-gray-800/50">
                     <div className="text-gray-400 text-xs uppercase tracking-wide mb-1">Total Change</div>

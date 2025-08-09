@@ -27,6 +27,14 @@ export async function GET() {
           symbol: holding.symbol,
           date: now,
           close: quote.price,
+          change: quote.change,
+          changePercent: quote.changePercent,
+          high: quote.high,
+          low: quote.low,
+          open: quote.open,
+          previousClose: quote.previousClose,
+          volume: quote.volume,
+          marketCap: quote.marketCap,
         });
         await holding.save();
         updatedCount++;

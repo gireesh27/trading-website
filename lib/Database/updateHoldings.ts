@@ -40,6 +40,14 @@ export async function updateHoldings(
         symbol: holding.symbol,
         date: today,
         close: quote.price,
+        change: quote.change,
+        changePercent: quote.changePercent,
+        high: quote.high,
+        low: quote.low,
+        open: quote.open,
+        previousClose: quote.previousClose,
+        volume: quote.volume,
+        marketCap: quote.marketCap,
       });
     }
 
@@ -58,6 +66,14 @@ export async function updateHoldings(
             symbol,
             date: today,
             close: quote.price,
+            change: quote.change,
+            changePercent: quote.changePercent,
+            high: quote.high,
+            low: quote.low,
+            open: quote.open,
+            previousClose: quote.previousClose,
+            volume: quote.volume,
+            marketCap: quote.marketCap,
           },
         ],
       });
@@ -67,6 +83,14 @@ export async function updateHoldings(
           symbol,
           date: today,
           close: quote.price,
+          change: quote.change,
+          changePercent: quote.changePercent,
+          high: quote.high,
+          low: quote.low,
+          open: quote.open,
+          previousClose: quote.previousClose,
+          volume: quote.volume,
+          marketCap: quote.marketCap,
         });
         console.log("DailyPrice created:", dailyPriceDoc);
       } catch (error) {

@@ -62,6 +62,7 @@ export default function TradingPageContent() {
 
       setSelectedStock({
         symbol: quote.symbol,
+        sector: "Markets",
         name: quote.name,
         price: quote.price,
         change: quote.change,
@@ -159,6 +160,7 @@ export default function TradingPageContent() {
       <div className="lg:col-span-1 xl:col-span-1 space-y-4 ">
         <EnhancedTradingInterface
           symbol={symbol}
+          sector="Markets"
           name={selectedStock.name}
           currentPrice={selectedStock.price || 0}
         />

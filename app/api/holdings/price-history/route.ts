@@ -45,8 +45,10 @@ export async function GET(req: Request) {
     // Fetch price history from DailyPrice collection
     const history = await DailyPrice.find(
       { symbol },
+      
       {
         date: 1,
+        sector: 0,
         close: 1,
         open: 1,
         high: 1,

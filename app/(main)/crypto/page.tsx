@@ -26,6 +26,7 @@ import {
 import { useRouter } from "next/navigation";
 export interface CryptoQuote {
   symbol: string;
+  sector?: string;
   name: string;
   price: number;
   change: number;
@@ -82,6 +83,7 @@ export default function CryptoPage() {
 
         const normalized: CryptoData[] = quotes.map((q) => ({
           symbol: q.symbol,
+          sector: "crypto",
           name: q.name,
           price: q.price,
           change: q.change,
@@ -632,21 +634,6 @@ export default function CryptoPage() {
             </Button>
           </div>
         )}
-
-        {/* Selected Crypto Details
-        {selectedStock && selectedStock.symbol.includes("-USD") && (
-          <div className="mt-6">
-            <AdvancedTradingChart
-              symbol={selectedStock.symbol}
-              selectedStock={selectedStock}
-              chartCandlestickData={chartCandlestickData}
-              isChartLoading={loadingPage}
-              getCandlestickData={loadChartData}
-              range="1mo"
-            />
-          </div>
-        )} */}
-
         <FooterTime />
       </div>
     </div>

@@ -47,6 +47,7 @@ export default function Holdings() {
         // Transform API data to match chart's expected shape
         const history = data.map((p: any) => ({
           symbol: p.symbol,
+          sector: p.sector,
           date: p.date,
           close: p.close,
           open: p.open,

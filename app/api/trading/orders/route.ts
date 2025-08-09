@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = JSON.parse(text);
-    const { symbol, quantity, price, type, orderType } = body;
+    const { symbol, quantity, price, type, orderType,sector } = body;
 
     if (!symbol || !quantity || !price || !type) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
     const order = new Order({
       userId: user._id,
       symbol,
+      sector,
       quantity,
       price,
       type,

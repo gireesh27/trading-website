@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
             { userId: user._id, symbol: h.symbol },
             {
               date: 1,
+              sector: 0,
               close: 1,
               open: 1,
               high: 1,

@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const userId = session.user.id;
 
     // Parse and validate inputs
-    const { symbol, quantity, price }: { symbol: string; quantity: number; price: number } =
+    const { symbol, quantity, price,sector }: { symbol: string; quantity: number; price: number;sector:string } =
       await req.json();
 
     if (!symbol || quantity <= 0 || price <= 0) {
@@ -44,6 +44,7 @@ export async function POST(req: Request) {
     await Transaction.create({
       userId,
       symbol,
+      sector,
       type: "buy",
       amount: totalCost,
       price,

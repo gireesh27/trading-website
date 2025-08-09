@@ -22,6 +22,7 @@ interface EnhancedTradingInterfaceProps {
   symbol: string;
   name: string;
   currentPrice: number;
+  sector: string;
 }
 
 type OrderType = "market" | "limit" | "stop";
@@ -30,6 +31,7 @@ export function EnhancedTradingInterface({
   symbol,
   name,
   currentPrice,
+  sector,
 }: EnhancedTradingInterfaceProps) {
   const { user } = useAuth();
   const {
@@ -56,6 +58,7 @@ export function EnhancedTradingInterface({
 
     const success = await placeOrder({
       symbol,
+      sector,
       quantity: qty,
       price: orderPrice,
       type: side,

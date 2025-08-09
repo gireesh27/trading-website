@@ -9,9 +9,10 @@ import { WatchlistButton } from "./Button-animation";
 
 interface StockChartHeaderProps {
   stock: Stock | null;
+  sector: string ;
 }
 
-export function StockChartHeader({ stock }: StockChartHeaderProps) {
+export function StockChartHeader({ stock, sector }: StockChartHeaderProps) {
   const { activeWatchlist, addToWatchlist, removeFromWatchlist, isLoading } =
     useWatchlist();
   const { toast } = useToast();
@@ -39,7 +40,7 @@ export function StockChartHeader({ stock }: StockChartHeaderProps) {
           description: `${stock.symbol} removed from your watchlist.`,
         });
       } else {
-        await addToWatchlist(activeWatchlist._id, stock.symbol);
+        await addToWatchlist(activeWatchlist._id, stock.symbol, sector);
         toast({
           title: "Added",
           description: `${stock.symbol} added to your watchlist.`,

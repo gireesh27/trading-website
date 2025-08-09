@@ -13,11 +13,14 @@ import { cn } from "@/lib/utils"; // Optional utility for class merging
 
 interface SymbolSuggestion {
   symbol: string;
+  sector?: string;
   name: string;
 }
 
 export function WatchlistWidget() {
-  const { activeWatchlist, addToWatchlist, removeFromWatchlist } = useWatchlist();
+  const { activeWatchlist, addToWatchlist, removeFromWatchlist } =
+    useWatchlist();
+    const [sector, setSector] = useState("");
   const [newSymbol, setNewSymbol] = useState("");
   const [suggestions, setSuggestions] = useState<SymbolSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -63,7 +66,9 @@ export function WatchlistWidget() {
 
     try {
       const allSuggestions = await stockApi.searchSymbol(symbol);
-      const matched = allSuggestions.find((s) => s.symbol.toUpperCase() === symbol);
+      const matched = allSuggestions.find(
+        (s) => s.symbol.toUpperCase() === symbol
+      );
 
       if (!matched) {
         toast({
@@ -74,8 +79,8 @@ export function WatchlistWidget() {
         setLoadingId(null);
         return;
       }
-
-      await addToWatchlist(activeWatchlist._id, symbol);
+      // Pass the sector from the matched suggestion
+      await addToWatchlist(activeWatchlist._id, symbol, sector);
 
       toast({
         title: "Success",
@@ -123,7 +128,11 @@ export function WatchlistWidget() {
         <CardTitle className="text-white">Watchlist</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleAddSymbol} className="flex items-center gap-2 mb-4 relative">
+        <form
+          onSubmit={handleAddSymbol}
+          className="flex items-center gap-2 mb-4 relative flex-wrap sm:flex-nowrap"
+        >
+          {/* Symbol Search */}
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
@@ -156,11 +165,25 @@ export function WatchlistWidget() {
               </div>
             )}
           </div>
+
+          {/* Sector Selector */}
+          <select
+            value={sector}
+            onChange={(e) => setSector(e.target.value)}
+            className="bg-gray-700 border border-gray-600 text-white rounded-md px-3 py-2 text-sm"
+          >
+            <option value="">Select Sector</option>
+            <option value="Markets">Markets</option>
+            <option value="Crypto">Crypto</option>
+          </select>
+
+          {/* Add Button */}
           <Button type="submit" size="icon" disabled={loadingId === "add"}>
             <Plus className="h-4 w-4" />
           </Button>
         </form>
 
+        {/* Watchlist Items */}
         <div className="space-y-2 max-h-96 overflow-y-auto">
           {activeWatchlist?.items?.length ? (
             activeWatchlist.items.map((item) => (
@@ -168,11 +191,19 @@ export function WatchlistWidget() {
                 key={item.symbol}
                 className="flex items-center justify-between p-3 bg-gray-700 rounded-lg hover:bg-gray-600"
               >
-                <Link href={`/trade/${item.symbol.toLowerCase()}`} className="flex-grow">
+                <Link
+                  href={`/trade/${item.symbol.toLowerCase()}`}
+                  className="flex-grow"
+                >
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-semibold text-white">{item.symbol}</p>
-                      <p className="text-xs text-gray-400 truncate max-w-[120px]">{item.name}</p>
+                      <p className="text-xs text-gray-400 truncate max-w-[120px]">
+                        {item.name}
+                      </p>
+                      {item.sector && (
+                        <p className="text-xs text-cyan-400">{item.sector}</p>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-white">
@@ -180,7 +211,9 @@ export function WatchlistWidget() {
                       </p>
                       <p
                         className={`text-xs ${
-                          (item.change ?? 0) >= 0 ? "text-green-400" : "text-red-400"
+                          (item.change ?? 0) >= 0
+                            ? "text-green-400"
+                            : "text-red-400"
                         }`}
                       >
                         {(item.change ?? 0) >= 0 ? "+" : ""}
@@ -202,7 +235,9 @@ export function WatchlistWidget() {
               </div>
             ))
           ) : (
-            <p className="text-center text-gray-500 py-4">Your watchlist is empty.</p>
+            <p className="text-center text-gray-500 py-4">
+              Your watchlist is empty.
+            </p>
           )}
         </div>
       </CardContent>

@@ -16,7 +16,7 @@ const normalizeToYahooSymbol = (clean: string): string => `${clean}-USD`;
 
 export default function CryptoSymbolPage() {
   const { symbol } = useParams() as { symbol: string };
-
+  const {sector} = useParams() as {sector: string};
   const [selectedStock, setSelectedStock] = useState<CryptoData | null>(null);
   const [chartCandlestickData, setChartCandlestickData] = useState<
     CandlestickPoint[]
@@ -83,6 +83,7 @@ export default function CryptoSymbolPage() {
 
         setSelectedStock({
           symbol: yahooSymbol,
+          sector:"crypto",
           name: priceData.symbol || yahooSymbol,
           price: priceData.regularMarketPrice ?? 0,
           change: priceData.regularMarketChange ?? 0,
@@ -168,6 +169,7 @@ export default function CryptoSymbolPage() {
       <div className="lg:w-1/4 w-full ">
         <EnhancedTradingInterface
           symbol={symbol}
+          sector="crypto"
           name={selectedStock.name}
           currentPrice={selectedStock.price || 0}
         />

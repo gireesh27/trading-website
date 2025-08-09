@@ -11,6 +11,7 @@ export interface Alert {
 
 export interface StockItem {
   symbol: string;
+  sector: string;
   name: string;
   price: number;
   change: number;
@@ -37,6 +38,7 @@ const WatchlistSchema = new Schema<IWatchlist>({
   stocks: [
     {
       symbol: { type: String, required: true },
+      sector: { type: String },
       name: { type: String },
       price: { type: Number },
       change: { type: Number },

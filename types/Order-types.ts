@@ -2,6 +2,7 @@
 export interface Order {
   _id: string;
   symbol: string;
+  sector?: string;
   type: "buy" | "sell";
   orderType: "market" | "limit" | "stop";
   quantity: number;

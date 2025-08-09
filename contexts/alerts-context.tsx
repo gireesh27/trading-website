@@ -71,7 +71,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
   // ✅ Update alert
   const updateAlert: AlertContextType["updateAlert"] = async (alert) => {
     try {
-      const res = await fetch(`/api/alerts/${alert._id}`, {
+      const res = await fetch(`/api/alerts/${alert.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(alert),
@@ -81,7 +81,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
       if (!res.ok) throw new Error(json.message || "Failed to update alert");
 
       setAlerts((prev) =>
-        prev.map((a) => (a._id === alert._id ? json.data : a))
+        prev.map((a) => (a.id === alert.id ? json.data : a))
       );
       toast({ title: "✅ Alert Updated", description: `${alert.symbol}` });
     } catch (err: any) {
@@ -99,7 +99,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "Failed to delete alert");
 
-      setAlerts((prev) => prev.filter((a) => a._id !== alertId));
+      setAlerts((prev) => prev.filter((a) => a.id !== alertId));
       toast({ title: "🗑️ Alert Deleted" });
     } catch (err: any) {
       showError(err.message || "Delete failed");

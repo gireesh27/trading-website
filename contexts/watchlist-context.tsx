@@ -203,7 +203,7 @@ const fetchWatchlists = async () => {
   };
 
 
-const addToWatchlist = async (watchlistId: string, symbol: string) => {
+const addToWatchlist = async (watchlistId: string, symbol: string,sector:string) => {
   const upper = symbol.toUpperCase();
   const watchlist = watchlists.find((w) => w._id === watchlistId);
 
@@ -224,6 +224,7 @@ const addToWatchlist = async (watchlistId: string, symbol: string) => {
 
     const newItem: WatchlistItem = {
       symbol: upper,
+      sector,
       name: data.name,
       price: data.price,
       change: data.change,
@@ -309,6 +310,7 @@ const updateWatchlistName = async (watchlistId: string, newName: string) => {
     fetchWatchlists,
     exportWatchlist,
     importWatchlist,
+
   };
 
   return (

@@ -2,6 +2,7 @@ export interface Transaction {
   id: string; // derived from _id
   userId: string;
   symbol?: string;
+  sector?: string;
   type: 'buy' | 'sell' | 'credit' | 'debit';
   amount: number;
   price?: number;

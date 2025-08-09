@@ -73,6 +73,7 @@ dayjs.extend(isToday);
  */
 export interface Stock {
   symbol: string;
+  sector?:string;
   name: string;
   price: number;
   change: number;

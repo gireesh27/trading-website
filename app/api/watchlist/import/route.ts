@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
       updatedAt: new Date(),
       stocks: watchlist.items.map((item: any) => ({
         symbol: item.symbol,
+        sector: item.sector,
         name: item.name || "",
         price: item.price ?? 0,
         change: item.change ?? 0,

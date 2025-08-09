@@ -1,11 +1,45 @@
+// export interface Transaction {
+//   source: string;
+//   status: string;
+//   _id: string;
+//   createdAt: string;
+//   id: string;
+//   userId: string;
+//   type: "buy" | "sell" | "deposit" | "withdraw";
+//   symbol?: string;
+//   sector?: string;
+//   amount: number;
+//   date: string;
+// }
+import mongoose from "mongoose";
+
 export interface Transaction {
-  createdAt: string;
-  id: string;
-  userId: string;
-  type: "buy" | "sell" | "deposit" | "withdraw";
+  _id: string;
+  userId: mongoose.Types.ObjectId | string;
+  
   symbol?: string;
+  sector?: string;
+  
+  type: "buy" | "sell" | "credit" | "debit"; // from DB schema
   amount: number;
-  date: string;
+  price?: number;
+  quantity?: number;
+  
+  status?: "pending" | "completed" | "failed";
+  executedAt?: Date;
+  source?: "wallet" | "bank" | "external";
+  
+  orderId?: string;
+  transferId?: string;
+  remarks?: string;
+  
+  feeBreakdown?: {
+    brokerage?: number;
+    convenience?: number;
+  };
+  
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 
@@ -35,6 +69,7 @@ export interface Order {
   _id: string;
   userId: string;
   symbol: string;
+  sector?: string;
   type: "buy" | "sell"; // market direction
   orderType: "market" | "limit" | "stop"; // order strategy
   quantity: number;

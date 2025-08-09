@@ -8,23 +8,29 @@ export async function POST() {
   await connectToDatabase();
 
   try {
-    // Get all distinct open symbols from holdings
-    const symbols = await Holding.distinct("symbol", { status: "open" });
+    // Get all open holdings with symbol & sector
+    const holdings = await Holding.find(
+      { status: "open" },
+      { symbol: 1, sector: 1, _id: 0 }
+    ).lean();
 
-    if (!symbols.length) {
-      return NextResponse.json({ success: false, message: "No open symbols found in holdings" });
+    if (!holdings.length) {
+      return NextResponse.json({
+        success: false,
+        message: "No open symbols found in holdings"
+      });
     }
 
     const now = new Date();
 
-    // Insert a new price record per symbol with full timestamp
+    // Insert a new price record per holding
     const results = await Promise.all(
-      symbols.map(async (symbol) => {
+      holdings.map(async ({ symbol, sector }) => {
         const quote = await stockApi.getQuote(symbol);
 
-        // Insert new DailyPrice doc
         return DailyPrice.create({
           symbol,
+          sector: sector || "Unknown", // fallback
           date: now,
           close: quote.price,
           change: quote.change,
@@ -34,14 +40,19 @@ export async function POST() {
           open: quote.open,
           previousClose: quote.previousClose,
           volume: quote.volume,
-          marketCap: quote.marketCap,
+          marketCap: quote.marketCap
         });
       })
     );
 
-    return NextResponse.json({ success: true, inserted: results.length, symbols });
+    return NextResponse.json({
+      success: true,
+      inserted: results.length,
+      symbols: holdings.map(h => h.symbol)
+    });
   } catch (err: any) {
     console.error("Error storing prices every 5 minutes", err);
     return NextResponse.json({ success: false, error: err.message });
   }
 }
+

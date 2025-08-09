@@ -1,6 +1,7 @@
 export interface PriceAlert {
   id: string;
   symbol: string;
+  sector?: string;
   type: 'price' | 'percent_change' | 'volume';
   condition: 'above' | 'below';
   value: number;
@@ -13,6 +14,7 @@ export interface PriceAlert {
 
 export interface WatchlistItem {
   symbol: string;
+  sector?: string;
   name?: string;
   price?: number;
   change?: number;
@@ -40,7 +42,7 @@ export interface WatchlistContextType {
   createWatchlist: (name: string) => void;
   deleteWatchlist: (id: string) => void;
   setActiveWatchlist: (id: string | null) => void;
-  addToWatchlist: (watchlistId: string, symbol: string) => Promise<void>;
+  addToWatchlist: (watchlistId: string, symbol: string,sector:string) => Promise<void>;
   removeFromWatchlist: (watchlistId: string, symbol: string) => void;
   moveItem: (watchlistId: string, fromIndex: number, toIndex: number) => void;
   createAlert: (symbol: string, type: "above" | "below", price: number) => void;

@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, models, model } from 'mongoose';
 export interface ITransaction extends Document {
   userId: mongoose.Types.ObjectId | string;
   symbol?: string;
+  sector?: string;
   type: 'buy' | 'sell' | 'credit' | 'debit';
   amount: number;
   price?: number;
@@ -29,6 +30,9 @@ const TransactionSchema = new Schema<ITransaction>(
       required: true,
     },
     symbol: {
+      type: String,
+    },
+    sector: {
       type: String,
     },
     type: {

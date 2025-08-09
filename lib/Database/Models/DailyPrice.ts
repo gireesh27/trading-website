@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IDailyPrice extends Document {
   symbol: string;
+  sector?: string;
   date: Date;
   close: number;
   change?: number;
@@ -16,6 +17,7 @@ export interface IDailyPrice extends Document {
 
 export const DailyPriceSchema = new Schema<IDailyPrice>({
   symbol: { type: String, required: true },
+  sector: { type: String, required: false },
   date: { type: Date, required: true },
   close: { type: Number, required: true },
   change: { type: Number },

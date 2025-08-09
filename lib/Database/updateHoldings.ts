@@ -3,84 +3,62 @@ import { connectToDatabase } from "@/lib/Database/mongodb";
 import { Holding } from "@/lib/Database/Models/Holding";
 import { DailyPrice } from "@/lib/Database/Models/DailyPrice";
 import { stockApi } from "@/lib/api/stock-api";
+import { cryptoApi } from "@/lib/api/crypto-api";
 
 export async function updateHoldings(
   userId: string,
   symbol: string,
   quantity: number,
-  close: number
+  close: number,
+  sector: string
 ) {
-  await connectToDatabase();
+  try {
+    await connectToDatabase();
+    const userObjectId = new mongoose.Types.ObjectId(userId);
 
-  const userObjectId = new mongoose.Types.ObjectId(userId);
-  const holding = await Holding.findOne({ userId: userObjectId, symbol });
-  const quote = await stockApi.getQuote(symbol);
-  const today = new Date();
-  console.log("today:", today);
-  if (holding) {
-    const newQuantity = holding.quantity + quantity;
+    // Fetch holding
+    const holding = await Holding.findOne({ userId: userObjectId, symbol });
 
-    if (newQuantity <= 0) {
-      await Holding.deleteOne({ _id: holding._id });
+    // Get latest quote depending on sector
+    let quote: any;
+    if (sector.toLowerCase() === "markets") {
+      quote = await stockApi.getQuote(symbol);
+    } else {
+      quote = await cryptoApi.getCryptoQuote(symbol);
+    }
+
+    if (!quote) {
+      console.error(`No quote data for ${symbol}`);
       return;
     }
 
-    const totalInvested = holding.totalInvested + quantity * close;
-    holding.quantity = newQuantity;
-    holding.totalInvested = totalInvested;
-    holding.avgPrice = totalInvested / newQuantity;
+    const today = new Date();
 
-    const alreadyExists = holding.priceHistory?.some(
-      (p: { date: string | number | Date }) =>
-        new Date(p.date).toDateString() === today.toDateString()
-    );
+    if (holding) {
+      const newQuantity = holding.quantity + quantity;
 
-    if (!alreadyExists) {
-      holding.priceHistory.push({
-        symbol: holding.symbol,
-        date: today,
-        close: quote.price,
-        change: quote.change,
-        changePercent: quote.changePercent,
-        high: quote.high,
-        low: quote.low,
-        open: quote.open,
-        previousClose: quote.previousClose,
-        volume: quote.volume,
-        marketCap: quote.marketCap,
-      });
-    }
+      if (newQuantity <= 0) {
+        await Holding.deleteOne({ _id: holding._id });
+        return;
+      }
 
-    await holding.save();
-  } else {
-    if (quantity > 0) {
-      await Holding.create({
-        userId: userObjectId,
-        symbol,
-        quantity,
-        avgPrice: close,
-        totalInvested: quantity * close,
-        buyDate: today,
-        priceHistory: [
-          {
-            symbol,
-            date: today,
-            close: quote.price,
-            change: quote.change,
-            changePercent: quote.changePercent,
-            high: quote.high,
-            low: quote.low,
-            open: quote.open,
-            previousClose: quote.previousClose,
-            volume: quote.volume,
-            marketCap: quote.marketCap,
-          },
-        ],
-      });
+      const totalInvested = holding.totalInvested + quantity * close;
+      holding.quantity = newQuantity;
+      holding.totalInvested = totalInvested;
+      holding.avgPrice = totalInvested / newQuantity;
 
-      try {
-        const dailyPriceDoc = await DailyPrice.create({
-          symbol,
+      // Ensure priceHistory exists
+      if (!holding.priceHistory) holding.priceHistory = [];
+
+      const alreadyExists = holding.priceHistory.some(
+        (p: { date: Date }) =>
+          new Date(p.date).toDateString() === today.toDateString()
+      );
+
+      if (!alreadyExists) {
+        holding.priceHistory.push({
+          symbol: holding.symbol,
+          sector,
           date: today,
           close: quote.price,
           change: quote.change,
@@ -92,10 +70,59 @@ export async function updateHoldings(
           volume: quote.volume,
           marketCap: quote.marketCap,
         });
-        console.log("DailyPrice created:", dailyPriceDoc);
-      } catch (error) {
-        console.error("Error creating DailyPrice:", error);
+      }
+
+      await holding.save();
+    } else {
+      if (quantity > 0) {
+        await Holding.create({
+          userId: userObjectId,
+          symbol,
+          sector,
+          quantity,
+          avgPrice: close,
+          totalInvested: quantity * close,
+          buyDate: today,
+          priceHistory: [
+            {
+              symbol,
+              sector,
+              date: today,
+              close: quote.price,
+              change: quote.change,
+              changePercent: quote.changePercent,
+              high: quote.high,
+              low: quote.low,
+              open: quote.open,
+              previousClose: quote.previousClose,
+              volume: quote.volume,
+              marketCap: quote.marketCap,
+            },
+          ],
+        });
+
+        try {
+          const dailyPriceDoc = await DailyPrice.create({
+            symbol,
+            sector,
+            date: today,
+            close: quote.price,
+            change: quote.change,
+            changePercent: quote.changePercent,
+            high: quote.high,
+            low: quote.low,
+            open: quote.open,
+            previousClose: quote.previousClose,
+            volume: quote.volume,
+            marketCap: quote.marketCap,
+          });
+          console.log("DailyPrice created:", dailyPriceDoc);
+        } catch (error) {
+          console.error("Error creating DailyPrice:", error);
+        }
       }
     }
+  } catch (err) {
+    console.error("Error updating holdings:", err);
   }
 }

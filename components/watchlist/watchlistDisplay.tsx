@@ -34,7 +34,15 @@ export function WatchlistDisplay() {
   const [newSymbols, setNewSymbols] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [suggestions, setSuggestions] = useState<Record<string, any[]>>({});
+  const [sectors, setSectors] = useState<{ [key: string]: string }>({});
+  // key: watchlistId, value: sector
 
+  const handleSectorChange = (watchlistId: string, value: string) => {
+    setSectors((prev) => ({
+      ...prev,
+      [watchlistId]: value,
+    }));
+  };
   const handleCreateWatchlist = () => {
     if (newWatchlistName.trim()) {
       createWatchlist(newWatchlistName.trim());
@@ -50,7 +58,7 @@ export function WatchlistDisplay() {
     setEditId(null);
   };
 
-  const handleAddStock = async (watchlistId: string) => {
+  const handleAddStock = async (watchlistId: string, sector: string) => {
     const symbol = newSymbols[watchlistId]?.trim().toUpperCase();
     if (!symbol) return;
 
@@ -59,7 +67,7 @@ export function WatchlistDisplay() {
       if (!data || !data.symbol) throw new Error("Invalid symbol");
 
       setErrors((prev) => ({ ...prev, [watchlistId]: "" }));
-      addToWatchlist(watchlistId, symbol);
+      addToWatchlist(watchlistId, symbol, sector);
       setNewSymbols((prev) => ({ ...prev, [watchlistId]: "" }));
     } catch {
       setErrors((prev) => ({
@@ -196,14 +204,31 @@ export function WatchlistDisplay() {
                 onChange={(e) =>
                   handleSymbolChange(watchlist._id, e.target.value)
                 }
-                onKeyDown={(e) =>
-                  e.key === "Enter" && handleAddStock(watchlist._id)
-                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleAddStock(watchlist._id, sectors[watchlist._id] || "");
+                  }
+                }}
                 className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400"
               />
+
+              {/* Sector Selection */}
+              <select
+                value={sectors[watchlist._id] || ""}
+                onChange={(e) =>
+                  handleSectorChange(watchlist._id, e.target.value)
+                }
+                className="bg-gray-700 border-gray-600 text-white rounded-md w-full p-2"
+              >
+                <option value="">Select Sector</option>
+                <option value="markets">Markets</option>
+                <option value="crypto">Crypto</option>
+              </select>
+
               {errors[watchlist._id] && (
                 <p className="text-red-500 text-xs">{errors[watchlist._id]}</p>
               )}
+
               {suggestions[watchlist._id]?.length > 0 && (
                 <ul className="bg-gray-700 border border-gray-600 rounded-md mt-1 max-h-32 overflow-y-auto text-white text-sm shadow">
                   {suggestions[watchlist._id].map((s) => (
@@ -227,8 +252,11 @@ export function WatchlistDisplay() {
                   ))}
                 </ul>
               )}
+
               <Button
-                onClick={() => handleAddStock(watchlist._id)}
+                onClick={() =>
+                  handleAddStock(watchlist._id, sectors[watchlist._id] || "")
+                }
                 className="bg-blue-600 hover:bg-blue-700 w-full"
               >
                 Add

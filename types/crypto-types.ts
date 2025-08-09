@@ -1,6 +1,7 @@
 
 export interface CryptoData {
   symbol: string;
+  sector?: string;
   name: string;
   price: number;
   change: number;

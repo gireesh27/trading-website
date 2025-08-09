@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { watchlistId, symbol, name, price, change, changePercent } = await req.json();
+    const { watchlistId, symbol, name, price, change, changePercent,sector } = await req.json();
 
     if (
       !watchlistId ||
@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
 
     const stock = {
       symbol: symbol.toUpperCase(),
+      sector,
       name: name ?? symbol,
       price,
       change,

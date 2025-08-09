@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { orderId, walletPassword } = await req.json();
+    const { orderId, walletPassword,sector } = await req.json();
     const userId = session.user.id;
 
     if (!mongoose.Types.ObjectId.isValid(orderId)) {
@@ -60,6 +60,7 @@ export async function POST(req: Request) {
     // Log transaction
     await Transaction.create({
       userId,
+      sector,
       symbol: order.symbol,
       quantity: order.quantity,
       price: order.price,

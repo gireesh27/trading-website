@@ -25,6 +25,7 @@ export async function GET() {
       if (!lastEntry || new Date(lastEntry.date) < fiveMinutesAgo) {
         holding.priceHistory.push({
           symbol: holding.symbol,
+          sector: holding.sector,
           date: now,
           close: quote.price,
           change: quote.change,

@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, model, models } from "mongoose";
 export interface IOrder extends Document {
   userId: mongoose.Schema.Types.ObjectId;
   symbol: string;
+  sector: string;
   quantity: number;
   price?: number;
   type: "buy" | "sell";
@@ -26,6 +27,7 @@ const OrderSchema = new Schema<IOrder>(
       required: true,
     },
     symbol: { type: String, required: true },
+    sector: { type: String, required: true },
     quantity: { type: Number, required: true },
     price: { type: Number }, // Optional for market orders
     type: {

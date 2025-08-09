@@ -47,13 +47,13 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 });
       }
       user.walletBalance -= totalCost;
-      await updateHoldings(user._id, order.symbol, order.quantity, order.price);
+      await updateHoldings(user._id, order.symbol, order.quantity, order.price, order.sector);
     }
 
     // SELL: Add wallet balance, update holdings with negative quantity
     else if (order.type === 'sell') {
       user.walletBalance += totalCost;
-      await updateHoldings(user._id, order.symbol, -order.quantity, order.price);
+      await updateHoldings(user._id, order.symbol, -order.quantity, order.price,order.sector);
     }
 
     await user.save();

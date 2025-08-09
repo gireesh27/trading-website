@@ -6,6 +6,7 @@ import { useMarketData } from "./enhanced-market-data-context"
 interface Holding {
   id: string
   symbol: string
+  sector?: string
   name: string
   quantity: number
   averagePrice: number
@@ -16,7 +17,6 @@ interface Holding {
   pnlPercent: number
   dayChange: number
   dayChangePercent: number
-  sector?: string
 }
 
 interface PortfolioSummary {

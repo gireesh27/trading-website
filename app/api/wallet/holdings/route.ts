@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
     string,
     {
       symbol: string;
+      sector:string;
       quantity: number;
       avgBuyPrice: number;
       totalCost: number;
@@ -30,11 +31,12 @@ export async function GET(req: NextRequest) {
   > = {};
 
   for (const order of orders) {
-    const { symbol, type, quantity, price, createdAt } = order;
+    const { symbol, type, quantity, price, createdAt,sector } = order;
 
     if (!holdings[symbol]) {
       holdings[symbol] = {
         symbol,
+        sector,
         quantity: 0,
         avgBuyPrice: 0,
         totalCost: 0,

@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { symbol, name, price, change, changePercent, watchlistId } = body;
+    const { symbol, name, price, change, changePercent, watchlistId,sector } = body;
 
     // Validate required fields
     if (!symbol || !watchlistId) {
@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
     // Add stock
     watchlist.stocks.push({
       symbol,
+      sector,
       name: name || symbol,
       price: price ?? 0,
       change: change ?? 0,

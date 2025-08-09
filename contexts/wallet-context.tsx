@@ -19,12 +19,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
- const [analytics, setAnalytics] = useState<AnalyticsData>({
-  investmentDistribution: [],
-  balanceTrend: [],
-  dailyPLHistory: [],
-});
-
+  const [analytics, setAnalytics] = useState<AnalyticsData>({
+    investmentDistribution: [],
+    balanceTrend: [],
+    dailyPLHistory: [],
+  });
 
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -32,50 +31,57 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     type: "all",
     symbol: "",
   });
-const fetchHoldingsAnalytics = useCallback(async () => {
-  setIsLoading(true);
-  try {
-    const res = await fetch("/api/wallet/analytics");
-    const json = await res.json();
-    if (json.success) {
-      setAnalytics(json.data);
+  const fetchHoldingsAnalytics = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/wallet/analytics");
+      const json = await res.json();
+      if (json.success) {
+        setAnalytics(json.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch analytics:", error);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error("Failed to fetch analytics:", error);
-  } finally {
-    setIsLoading(false);
-  }
-}, []);
-
-
+  }, []);
 
   // 📜 Fetch Wallet Transactions
   const fetchTransactions = useCallback(
-  async (filters?: { type?: string; symbol?: string; from?: Date; to?: Date }) => {
-    try {
-      const params = new URLSearchParams();
+    async (filters?: {
+      type?: string;
+      symbol?: string;
+      from?: Date;
+      to?: Date;
+    }) => {
+      try {
+        const params = new URLSearchParams();
 
-      if (filters?.type && filters.type !== 'all') params.set("type", filters.type);
-      if (filters?.symbol) params.set("symbol", filters.symbol);
-      if (filters?.from) params.set("from", filters.from.toISOString());
-      if (filters?.to) params.set("to", filters.to.toISOString());
+        if (filters?.type && filters.type !== "all")
+          params.set("type", filters.type);
+        if (filters?.symbol) params.set("symbol", filters.symbol);
+        if (filters?.from) params.set("from", filters.from.toISOString());
+        if (filters?.to) params.set("to", filters.to.toISOString());
 
-      const res = await fetch(`/api/wallet/transactions?${params.toString()}`);
-      const data = await res.json();
+        const res = await fetch(
+          `/api/wallet/transactions?${params.toString()}`
+        );
+        const data = await res.json();
 
-      if (!res.ok) throw new Error(data.message || "Transaction fetch failed");
+        if (!res.ok)
+          throw new Error(data.message || "Transaction fetch failed");
 
-      setTransactions(data.transactions);
-    } catch (error: any) {
-      toast({
-        title: "Transaction Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  },
-  []
-);
+        setTransactions(data.transactions);
+      } catch (error: any) {
+        toast({
+          title: "Transaction Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    },
+    []
+  );
 
   // 🔐 Verify Wallet PIN
   const verifyPin = async (pin: string): Promise<boolean> => {
@@ -169,18 +175,17 @@ const fetchHoldingsAnalytics = useCallback(async () => {
     }
   };
 
-useEffect(() => {
-  if (user) {
-    fetchHoldingsAnalytics();
-    fetchTransactions({
-      type: filters.type,
-      symbol: filters.symbol,
-      from: filters.dateRange.from,
-      to: filters.dateRange.to,
-    });
-  }
-}, [user, filters]);
-
+  useEffect(() => {
+    if (user) {
+      fetchHoldingsAnalytics();
+      fetchTransactions({
+        type: filters.type,
+        symbol: filters.symbol,
+        from: filters.dateRange.from,
+        to: filters.dateRange.to,
+      });
+    }
+  }, [user, filters]);
 
   return (
     <WalletContext.Provider

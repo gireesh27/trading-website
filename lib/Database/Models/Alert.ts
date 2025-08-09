@@ -10,6 +10,9 @@ const AlertSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    sector: {
+      type: String,
+    },
     type: {
       type: String,
       enum: ["price", "volume", "percent_change", "news"],
@@ -22,6 +25,7 @@ const AlertSchema = new mongoose.Schema(
       type: String,
       enum: ["above", "below"],
     },
+
   },
   { timestamps: true }
 );

@@ -7,6 +7,7 @@ export type OrderType = "market" | "limit" | "stop";
 export interface Order {
   _id: string;
   symbol: string;
+  sector?: string;
   type: OrderSide;            // buy or sell
   orderType: OrderType;       // market, limit, or stop
   quantity: number;
@@ -29,6 +30,7 @@ export type TradingContextType = {
 export interface Transaction {
   id: string;
   symbol: string;
+  sector?: string;
   type: "buy" | "sell";
   quantity: number;
   price: number;
@@ -60,6 +62,7 @@ export interface ChartData {
 export interface Position {
   id: string;
   symbol: string;
+  sector?: string;
   name: string;
   quantity: number;
   avgPrice: number;
@@ -73,19 +76,20 @@ export interface Position {
 export interface Stock {
   [x: string]: any;
   symbol: string
+  sector?: string
   name: string
   price: number
   change: number
   changePercent: number
   volume?: number
   exchange?: string
-  sector?: string
   marketCap?: number
   
   isWatchlisted?: boolean
 }
 export interface StockQuote {
-  symbol: string;         // e.g., "AAPL"
+  symbol: string;     
+  sector?: string;
   name: string;           // e.g., "Apple Inc."
   price: number;          // current price
   change: number;         // absolute change
@@ -113,6 +117,7 @@ export interface CandlestickPoint {
 
 export interface AdvancedTradingChartProps {
     symbol: string;
+    sector?: string;
     selectedStock: Stock | null;
     chartCandlestickData: CandlestickPoint[];
     isChartLoading: boolean;

@@ -29,12 +29,12 @@ useEffect(() => {
           if (!alert.isActive || alert.triggeredAt) return;
 
           const shouldTrigger =
-            (alert.type === "above" &&
-              previousPrice < alert.price &&
-              item.price! >= alert.price) ||
-            (alert.type === "below" &&
-              previousPrice > alert.price &&
-              item.price! <= alert.price);
+            (alert.condition === "above" &&
+              previousPrice < alert.value &&
+              item.price! >= alert.value) ||
+            (alert.condition === "below" &&
+              previousPrice > alert.value &&
+              item.price! <= alert.value);
 
           if (shouldTrigger) {
             triggerAlert(alert, item.symbol, watchlist._id, item.price!);
@@ -58,7 +58,7 @@ useEffect(() => {
     // Show browser notification
     if (notificationPermission.current === "granted") {
       new Notification(`Price Alert: ${alert.symbol}`, {
-        body: `${alert.symbol} is now ${alert.type} $${alert.price.toFixed(
+        body: `${alert.symbol} is now ${alert.type} $${alert.value.toFixed(
           2
         )} (Current: $${currentPrice.toFixed(2)})`,
         icon: "/favicon.ico",

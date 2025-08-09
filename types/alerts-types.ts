@@ -4,6 +4,7 @@ export interface PriceAlert {
   id: string;
   userId: string;
   symbol: string;
+  sector?: string;
   type: 'price' | 'percent_change' | 'volume';
   direction: 'above' | 'below';
   targetPrice: number;
@@ -16,6 +17,7 @@ export interface NewsAlert {
   id: string;
   userId: string;
   symbol: string;
+  sector?: string;
   type: 'news';
   keywords?: string[];
   status: 'active' | 'inactive';

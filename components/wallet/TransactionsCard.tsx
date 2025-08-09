@@ -130,7 +130,7 @@ const TransactionsCard: React.FC<TransactionsCardProps> = ({
               <tbody>
                 ${transactions
                   .map((txn) => {
-                    const date = txn.createdAt || txn.date;
+                    const date = txn.createdAt || txn.createdAt;
                     const formattedDate = date
                       ? new Date(date).toLocaleString("en-IN", {
                           year: "numeric",
@@ -146,8 +146,8 @@ const TransactionsCard: React.FC<TransactionsCardProps> = ({
                         <td>${formattedDate}</td>
                         <td>${txn.type || "-"}</td>
                         <td>${txn.symbol || "-"}</td>
-                        <td>${txn.source || "-"}</td>
-                        <td>${txn.status || "-"}</td>
+                        <td>${txn?.source || "-"}</td>
+                        <td>${txn?.status || "-"}</td>
                         <td>₹${Number(txn.amount || 0).toFixed(2)}</td>
                         <td>${txn._id || "-"}</td>
                       </tr>

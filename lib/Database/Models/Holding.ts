@@ -5,6 +5,7 @@ const HoldingSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     symbol: { type: String, required: true },
+    sector: { type: String, required: false },
     quantity: { type: Number, required: true },
     avgPrice: { type: Number, required: true },
     totalInvested: { type: Number, required: true },

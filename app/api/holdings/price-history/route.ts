@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/Database/mongodb";
 import { Holding } from "@/lib/Database/Models/Holding";
+import { DailyPrice } from "@/lib/Database/Models/DailyPrice";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import { User } from "@/lib/Database/Models/User";
@@ -9,42 +10,30 @@ import { User } from "@/lib/Database/Models/User";
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
   await connectToDatabase();
+
   if (!session)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-
   const user = await User.findOne({ email: session.user.email });
-  console.log("user:", user._id);
   if (!user) {
-    console.log("User not found");
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
+
   try {
     const { searchParams } = new URL(req.url);
     const symbol = searchParams.get("symbol");
-    console.log("symbol:", symbol);
     if (!symbol) {
-      console.log("Symbol is required");
       return NextResponse.json(
         { success: false, message: "Symbol is required" },
         { status: 400 }
       );
     }
 
-    const query: any = { symbol };
-
-    if (user._id) {
-      // Validate userId is a valid ObjectId string
-      if (!mongoose.Types.ObjectId.isValid(user._id)) {
-        return NextResponse.json(
-          { success: false, message: "Invalid userId" },
-          { status: 400 }
-        );
-      }
-      query.userId = new mongoose.Types.ObjectId(user._id);
-    }
-
-    const holding = await Holding.findOne(query);
+    // Ensure the holding exists for this user
+    const holding = await Holding.findOne({
+      userId: user._id,
+      symbol,
+    });
 
     if (!holding) {
       return NextResponse.json(
@@ -53,10 +42,28 @@ export async function GET(req: Request) {
       );
     }
 
+    // Fetch price history from DailyPrice collection
+    const history = await DailyPrice.find(
+      { symbol },
+      {
+        date: 1,
+        close: 1,
+        open: 1,
+        high: 1,
+        low: 1,
+        volume: 1,
+        marketCap: 1,
+        change: 1,
+        changePercent: 1,
+        previousClose: 1,
+        _id: 0,
+      }
+    ).sort({ date: 1 });
+
     return NextResponse.json({
       success: true,
       symbol,
-      priceHistory: holding.priceHistory || [],
+      priceHistory: history || [],
     });
   } catch (error) {
     console.error("Error fetching price history:", error);

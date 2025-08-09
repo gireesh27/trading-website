@@ -30,8 +30,21 @@ export async function GET(req: NextRequest) {
 
           const history = await DailyPrice.find(
             { userId: user._id, symbol: h.symbol },
-            { date: 1, close: 1, _id: 0 }
+            {
+              date: 1,
+              close: 1,
+              open: 1,
+              high: 1,
+              low: 1,
+              volume: 1,
+              marketCap: 1,
+              change: 1,
+              changePercent: 1,
+              previousClose: 1,
+              _id: 0,
+            }
           ).sort({ date: 1 });
+
 
           return {
             ...h,

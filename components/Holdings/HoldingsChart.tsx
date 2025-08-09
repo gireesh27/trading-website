@@ -26,13 +26,21 @@ import {
 } from "lucide-react";
 import dayjs from "dayjs";
 import { motion } from "framer-motion";
-
+import CustomTooltip from "./ToolTip";
 // --- TYPES AND INTERFACES ---
 
 interface PricePoint {
   symbol: string;
   date: string;
   close: number;
+  open: number;
+  high: number;
+  low: number;
+  volume: number;
+  marketCap: number;
+  change: number;
+  changePercent: number;
+  previousClose: number;
 }
 
 interface ChartData extends PricePoint {
@@ -175,39 +183,6 @@ function chartReducer(state: ChartState, action: ChartAction): ChartState {
   }
 }
 
-// --- CUSTOM TOOLTIP COMPONENT ---
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    const date = new Date(data.date).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-
-    return (
-      <div className="bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-lg p-3 shadow-xl">
-        <div className="text-gray-300 text-sm mb-2">{date}</div>
-        {payload.map((p: any) => (
-          <div key={p.name} className="flex justify-between items-center gap-4">
-            <span
-              style={{ color: p.color }}
-              className="font-semibold text-sm capitalize"
-            >
-              {p.name}:
-            </span>
-            <span style={{ color: p.color }} className="font-bold text-base">
-              ₹{p.value}
-            </span>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  return null;
-};
-
 // --- MAIN CHART COMPONENT ---
 
 export default function HoldingsChart({
@@ -290,79 +265,6 @@ export default function HoldingsChart({
 
     // Long ranges fallback to month-year
     return date.format("MMM 'YY");
-  };
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-
-      return (
-        <div className="bg-gray-800/90 backdrop-blur-md border border-gray-700 rounded-xl p-4 shadow-xl text-xs text-white duration-200 hover:scale-[1.02] hover:shadow-2xl transition-transform w-64">
-          <p className="font-semibold text-sm text-indigo-400 mb-3 tracking-wide">
-            {dayjs(data.date).format("DD MMM YYYY HH:mm")}
-          </p>
-
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-            <span className="text-gray-400">Open</span>
-            <span className="text-right font-medium text-white">
-              ₹{data.open?.toFixed(2)}
-            </span>
-
-            <span className="text-gray-400">High</span>
-            <span className="text-right font-semibold text-green-400">
-              ₹{data.high?.toFixed(2)}
-            </span>
-
-            <span className="text-gray-400">Low</span>
-            <span className="text-right font-semibold text-red-400">
-              ₹{data.low?.toFixed(2)}
-            </span>
-
-            <span className="text-gray-400">Close</span>
-            <span className="text-right font-medium text-white">
-              ₹{data.close?.toFixed(2)}
-            </span>
-
-            <span className="text-gray-400">Change</span>
-            <span
-              className={`text-right font-medium ${
-                data.change >= 0 ? "text-green-400" : "text-red-400"
-              }`}
-            >
-              {data.change?.toFixed(2)}
-            </span>
-
-            <span className="text-gray-400">Change %</span>
-            <span
-              className={`text-right font-medium ${
-                data.changePercent >= 0 ? "text-green-400" : "text-red-400"
-              }`}
-            >
-              {data.changePercent?.toFixed(2)}%
-            </span>
-
-            <span className="text-gray-400">Prev Close</span>
-            <span className="text-right font-medium text-white">
-              ₹{data.previousClose?.toFixed(2)}
-            </span>
-
-            <span className="text-gray-400">Volume</span>
-            <span className="text-right font-medium text-blue-400">
-              {data.volume?.toLocaleString()}
-            </span>
-
-            {data.marketCap && (
-              <>
-                <span className="text-gray-400">Market Cap</span>
-                <span className="text-right font-medium text-yellow-400">
-                  ₹{data.marketCap?.toLocaleString()}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-      );
-    }
-    return null;
   };
 
   const handleZoom = useCallback(
@@ -550,7 +452,22 @@ export default function HoldingsChart({
                   allowDataOverflow
                   tickLine={{ stroke: "rgba(255, 255, 255, 0.2)" }}
                 />
-                <ChartTooltip content={<CustomTooltip />} />
+                <ChartTooltip
+                  content={
+                    <CustomTooltip
+                      active={false}
+                      payload={[]}
+                      coordinate={{ x: 0, y: 0 }}
+                      accessibilityLayer={false}
+                      drawingTool={null}
+                    />
+                  }
+                  cursor={{ stroke: "#9ca3af", strokeDasharray: "3 3" }}
+                  wrapperStyle={{
+                    outline: "none",
+                    display: "block",
+                  }}
+                />
 
                 {buyPrice && (
                   <ReferenceLine
@@ -610,16 +527,27 @@ export default function HoldingsChart({
                 )}
 
                 {chartType === "area" ? (
-                  <Area
-                    type="monotone"
-                    dataKey="close"
-                    name="Price"
-                    stroke={THEME.primary}
-                    strokeWidth={2.5}
-                    fill="url(#areaGradient)"
-                    isAnimationActive={true}
-                    animationDuration={800}
-                  />
+                  <>
+                    <Area
+                      type="monotone"
+                      dataKey="close"
+                      name="Price"
+                      stroke={THEME.primary}
+                      strokeWidth={2.5}
+                      fill="url(#areaGradient)"
+                      isAnimationActive={true}
+                      animationDuration={800}
+                    />
+                    {/* Transparent line just for hover dots */}
+                    <Line
+                      type="monotone"
+                      dataKey="close"
+                      stroke="transparent"
+                      dot={false}
+                      activeDot={{ r: 5, fill: THEME.primary }}
+                      isAnimationActive={false}
+                    />
+                  </>
                 ) : (
                   <Line
                     type="monotone"
@@ -627,8 +555,8 @@ export default function HoldingsChart({
                     name="Price"
                     stroke={THEME.primary}
                     strokeWidth={2.5}
-                    dot={false}
-                    activeDot={{ r: 6, fill: THEME.primary }}
+                    dot={false} // no static dots
+                    activeDot={{ r: 5, fill: THEME.primary }} // show on hover
                     isAnimationActive={true}
                     animationDuration={800}
                   />

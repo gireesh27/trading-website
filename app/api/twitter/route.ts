@@ -1,15 +1,19 @@
 import { NextResponse } from "next/server";
+import Redis from "ioredis";
 
-let cachedTweets: null = null;
-let cacheTimestamp = 0;
-const CACHE_DURATION_MS = 60 * 1000; // 1 minute cache
+const redis = new Redis(); // configure your redis connection here
 
-export async function GET() {
-  const now = Date.now();
+const CACHE_DURATION_SECONDS = 60; // cache duration per query
 
-  if (cachedTweets && now - cacheTimestamp < CACHE_DURATION_MS) {
-    // Return cached data if still valid
-    return NextResponse.json({ tweets: cachedTweets });
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const query = searchParams.get("query") || "trading";
+  const CACHE_KEY = `tweets:${query}`;
+
+  // Try cache first
+  const cached = await redis.get(CACHE_KEY);
+  if (cached) {
+    return NextResponse.json({ tweets: JSON.parse(cached) });
   }
 
   const BEARER_TOKEN = process.env.X_BEARER_TOKEN;
@@ -22,7 +26,9 @@ export async function GET() {
 
   try {
     const res = await fetch(
-      "https://api.twitter.com/2/tweets/search/recent?query=trading&max_results=10&tweet.fields=created_at,author_id",
+      `https://api.twitter.com/2/tweets/search/recent?query=${encodeURIComponent(
+        query
+      )}&max_results=100&tweet.fields=created_at,author_id`,
       {
         headers: {
           Authorization: `Bearer ${BEARER_TOKEN}`,
@@ -36,10 +42,12 @@ export async function GET() {
     }
 
     const data = await res.json();
-    cachedTweets = data.data;
-    cacheTimestamp = now;
+    const tweets = data.data || [];
 
-    return NextResponse.json({ tweets: cachedTweets });
+    // Cache the response
+    await redis.setex(CACHE_KEY, CACHE_DURATION_SECONDS, JSON.stringify(tweets));
+
+    return NextResponse.json({ tweets });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

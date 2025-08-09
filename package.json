@@ -55,6 +55,7 @@
     "framer-motion": "^12.23.12",
     "gsap": "^3.13.0",
     "input-otp": "1.4.1",
+    "ioredis": "^5.7.0",
     "konva": "^9.3.22",
     "lightweight-charts": "^4.2.3",
     "lucide-react": "^0.454.0",

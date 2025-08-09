@@ -12,29 +12,28 @@ export async function POST() {
     const symbols = await Holding.distinct("symbol", { status: "open" });
 
     if (!symbols.length) {
-      return NextResponse.json({ success: false, message: "No symbols found in holdings" });
+      return NextResponse.json({ success: false, message: "No open symbols found in holdings" });
     }
 
-    // Normalize today date to UTC start of day
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
+    const now = new Date();
 
-    // Update or insert daily prices for each symbol WITHOUT userId
+    // Insert a new price record per symbol with full timestamp
     const results = await Promise.all(
       symbols.map(async (symbol) => {
         const quote = await stockApi.getQuote(symbol);
 
-        return DailyPrice.updateOne(
-          { symbol, date: today },
-          { $set: { close: quote.price } }, // field is 'close'
-          { upsert: true }
-        );
+        // Insert new DailyPrice doc
+        return DailyPrice.create({
+          symbol,
+          date: now,
+          close: quote.price,
+        });
       })
     );
 
-    return NextResponse.json({ success: true, updated: results.length, symbols });
+    return NextResponse.json({ success: true, inserted: results.length, symbols });
   } catch (err: any) {
-    console.error("Error storing daily prices", err);
+    console.error("Error storing prices every 5 minutes", err);
     return NextResponse.json({ success: false, error: err.message });
   }
 }

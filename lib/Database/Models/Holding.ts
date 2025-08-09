@@ -10,7 +10,7 @@ const HoldingSchema = new mongoose.Schema(
     totalInvested: { type: Number, required: true },
 
     buyDate: { type: Date, required: true },
-    sellDate: { type: Date }, // null until sold
+    sellDate: { type: Date }, 
     status: {
       type: String,
       enum: ["open", "closed"],

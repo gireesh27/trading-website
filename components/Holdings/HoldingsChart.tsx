@@ -318,7 +318,7 @@ export default function HoldingsChart({
       <CardHeader className="border-b border-gray-700/50">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <CardTitle className="text-white text-xl font-bold mb-2">
+            <CardTitle className="text-white text-xl font-bold mb-2 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
               {symbol} Holdings Performance
             </CardTitle>
             <div className="flex items-center gap-4 text-sm flex-wrap">
@@ -402,7 +402,7 @@ export default function HoldingsChart({
             </Button>
           </div>
 
-          <div className="h-[400px]">
+          <div className=" h-[500px] flex items-center justify-center text-gray-500">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
                 data={chartData}
@@ -567,13 +567,13 @@ export default function HoldingsChart({
         </div>
 
         {/* Technical Indicators & Stats */}
-        <div className="mt-6 pt-4 border-t border-gray-700/50">
+        <div className=" border-t border-gray-700/50">
           {/* Controls */}
-          <div className="flex items-center gap-4 flex-wrap bg-gradient-to-r from-gray-800/50 to-gray-900/50 p-4 rounded-xl">
+          <div className="flex items-center gap-4 flex-wrap  p-4 rounded-xl">
             {indicatorSettings.map((ind) => (
               <div
                 key={ind.id}
-                className="relative flex items-center space-x-3 px-3 py-2 rounded-lg bg-gray-800/50 hover:bg-gray-700/60 transition-all duration-200 border border-gray-700"
+                className="relative flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 border border-gray-700"
               >
                 <input
                   type="checkbox"

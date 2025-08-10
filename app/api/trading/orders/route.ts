@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     const body = JSON.parse(text);
     const { symbol, quantity, price, type, orderType,sector } = body;
 
-    if (!symbol || !quantity || !price || !type) {
+    if (!symbol || !quantity || !price || !type || !sector) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 

@@ -9,7 +9,7 @@ export interface NewsItem {
   publishedAt: Date
   url: string
   category: 'market' | 'crypto' | 'earnings' | 'general'
-  sentiment?: 'positive' | 'negative' | 'neutral'
+  sentiment?: 'positive' | 'negative' | 'neutral' 
   relatedSymbols?: string[]
 }
 
@@ -21,7 +21,7 @@ class NewsAPI {
       )
       const data = await response.json()
 
-      return data.slice(0, 20).map((item: any, index: number) => ({
+      return data.map((item: any, index: number) => ({
         id: item.id?.toString() || index.toString(),
         title: item.headline,
         summary: item.summary,
@@ -65,15 +65,18 @@ class NewsAPI {
     }
   }
 
-  private mapCategory(category: string): 'market' | 'crypto' | 'earnings' | 'general' {
-    const mapping: { [key: string]: 'market' | 'crypto' | 'earnings' | 'general' } = {
-      'general': 'market',
-      'forex': 'market',
-      'crypto': 'crypto',
-      'merger': 'earnings'
-    }
-    return mapping[category] || 'general'
-  }
+private mapCategory(
+  category: string
+): 'market' | 'crypto' | 'earnings' | 'general' {
+  const mapping: Record<string, 'market' | 'crypto' | 'earnings' | 'general'> = {
+    general: 'market',
+    forex: 'market',
+    crypto: 'crypto',
+    merger: 'earnings',
+  };
+
+  return mapping[category] ?? 'general';
+}
 
 async getCryptoNews(symbol: string): Promise<NewsItem[]> {
   try {

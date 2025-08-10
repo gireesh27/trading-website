@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/components/ui/use-toast";
 import ConfirmOrderModal from "@/components/wallet/ConfirmOrderModal";
 import CancelModel from "./CancelModel";
-import type { Order } from "@/types/wallet-types";
+import type { Order } from "@/types/Order-types";
 import { Loader2 } from "lucide-react";
 import { useOrders } from "@/contexts/order-context";
 import { OrderDetailsModal } from "./OrderDetailsModal";
@@ -27,11 +27,6 @@ export default function OrdersWidget() {
 
   const { toast } = useToast();
   const {
-    isLoading,
-    placeOrder,
-    cancelOrder,
-    getOrderHistory,
-    getOpenOrders,
     getOrder,
   } = useOrders();
 

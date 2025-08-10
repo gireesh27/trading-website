@@ -269,7 +269,7 @@ export class StockAPI {
         open: quoteData.o,
         previousClose: quoteData.pc,
         volume: quoteData.v,
-        marketCap: undefined, // No fetch for market cap
+        marketCap: undefined, 
       };
     } catch (err) {
       console.warn(

@@ -9,7 +9,7 @@ import React, {
   Dispatch,
 } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import {  TooltipContent,Tooltip } from "@/components/ui/tooltip";
+import { TooltipContent, Tooltip } from "@/components/ui/tooltip";
 
 import { StockChartHeader } from "./stock-chart-header";
 import {
@@ -73,7 +73,7 @@ dayjs.extend(isToday);
  */
 export interface Stock {
   symbol: string;
-  sector?:string;
+  sector?: string;
   name: string;
   price: number;
   change: number;
@@ -106,9 +106,26 @@ export interface CandlestickPoint {
 /**
  * Props for the main AdvancedTradingChart component.
  */
+
+export interface CryptoData {
+  symbol: string;
+  sector?: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  change24h?: number;
+  volume: number;
+  marketCap: number;
+  high: number;
+  low: number;
+  rank?: number;
+  dominance?: number;
+}
 export interface AdvancedTradingChartProps {
   symbol: string;
-  selectedStock: Stock | null;
+  sector: string ;
+  selectedStock: Stock | CryptoData |null;
   chartCandlestickData: CandlestickPoint[];
   isChartLoading: boolean;
   getCandlestickData: (
@@ -701,7 +718,10 @@ const SubChartCard = ({
                 )}
               </button>
             </TooltipTrigger>
-            <TooltipContent side="left" className="text-xs text-white bg-gray-900 border border-gray-700">
+            <TooltipContent
+              side="left"
+              className="text-xs text-white bg-gray-900 border border-gray-700"
+            >
               {isVisible ? "Hide chart" : "Show chart"}
             </TooltipContent>
           </Tooltip>
@@ -728,7 +748,8 @@ const SubChartCard = ({
               exit={{ opacity: 0 }}
               className="text-gray-400 italic"
             >
-              Click the icon to view the <span className="text-white font-medium">{title}</span> chart.
+              Click the icon to view the{" "}
+              <span className="text-white font-medium">{title}</span> chart.
             </motion.p>
           )}
         </AnimatePresence>
@@ -747,6 +768,7 @@ export function AdvancedTradingChart({
   chartCandlestickData,
   isChartLoading,
   getCandlestickData,
+  sector,
 }: AdvancedTradingChartProps) {
   const mainChartRef = useRef<any>(null);
   const [state, dispatch] = useReducer(chartReducer, initialState);
@@ -1180,8 +1202,7 @@ export function AdvancedTradingChart({
 
   return (
     <div className="space-y-4 bg-gray-900 text-white p-2 md:p-4 rounded-lg">
-      <StockChartHeader stock={selectedStock} />
-
+      <StockChartHeader stock={selectedStock} sector={sector} />
       <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-2 sm:p-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-700/50 pb-4 mb-4 transition-all duration-300">
           {/* Time Ranges */}

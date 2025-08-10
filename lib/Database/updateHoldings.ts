@@ -22,10 +22,34 @@ export async function updateHoldings(
     // Get latest quote depending on sector
     let quote: any;
     if (sector.toLowerCase() === "markets") {
+      console.log(sector.toLowerCase());
       quote = await stockApi.getQuote(symbol);
-    } else {
-      quote = await cryptoApi.getCryptoQuote(symbol);
     }
+    else if (sector.toLowerCase() === "crypto") {
+      console.log(sector.toLowerCase());
+      quote = await cryptoApi.getCryptoQuote(symbol);
+
+      // Assign all properties consistently
+      quote = {
+        symbol,
+        price: quote.price || 0,
+        change: quote.change || 0,
+        changePercent: quote.changePercent || 0,
+        volume: quote.volume || 0,
+        marketCap: quote.marketCap || 0,
+        high: quote.high || 0,
+        low: quote.low || 0,
+        open:
+          quote.price && quote.change !== undefined
+            ? quote.price - quote.change
+            : 0,
+        previousClose:
+          quote.price && quote.changePercent !== undefined
+            ? quote.price / (1 + quote.changePercent / 100)
+            : 0,
+      };
+    }
+
 
     if (!quote) {
       console.error(`No quote data for ${symbol}`);

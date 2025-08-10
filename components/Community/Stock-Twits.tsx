@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,8 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
+import Image from "next/image";
+import Link from "next/link";
 
 function decodeHtml(html: string) {
   const txt = document.createElement("textarea");
@@ -36,13 +38,19 @@ interface StockTwitsMessage {
   };
 }
 
-export default function StockTwitsTrendingFeed() {
+interface Props {
+  searchTerm: string;
+  sortOrder: "asc" | "desc";
+}
+
+export default function StockTwitsTrendingFeed({ searchTerm, sortOrder }: Props) {
   const [messages, setMessages] = useState<StockTwitsMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     setLoading(true);
+    setError("");
     fetch("/api/stock-twits")
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch trending messages");
@@ -53,12 +61,38 @@ export default function StockTwitsTrendingFeed() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Filter and sort messages client side
+  const filteredAndSortedMessages = useMemo(() => {
+    let filtered = messages;
+
+    if (searchTerm.trim()) {
+      const lower = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (msg) =>
+          msg.body.toLowerCase().includes(lower) ||
+          msg.user.username.toLowerCase().includes(lower) ||
+          msg.symbols.some((s) =>
+            s.symbol.toLowerCase().includes(lower)
+          )
+      );
+    }
+
+    filtered = filtered.sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+    });
+
+    return filtered;
+  }, [messages, searchTerm, sortOrder]);
+
   if (loading)
     return (
       <p className="text-center text-gray-400">Loading trending messages...</p>
     );
-  if (error) return <p className="text-center text-red-500">Error: {error}</p>;
-  if (!messages.length)
+  if (error)
+    return <p className="text-center text-red-500">Error: {error}</p>;
+  if (filteredAndSortedMessages.length === 0)
     return (
       <p className="text-center text-gray-400">No trending messages found.</p>
     );
@@ -66,14 +100,14 @@ export default function StockTwitsTrendingFeed() {
   return (
     <ScrollArea className="h-[600px] p-4 rounded-lg border border-gray-700 bg-gray-900">
       <div className="space-y-6">
-        {messages.map((msg) => (
-          <Card className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 shadow-xl rounded-xl border border-gray-700">
+        {filteredAndSortedMessages.map((msg) => (
+          <Card
+            key={msg.id}
+            className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 shadow-xl rounded-xl border border-gray-700"
+          >
             <CardHeader className="flex items-center gap-4 px-6 py-4">
               <Avatar className="w-14 h-14 border-2 border-blue-500">
-                <AvatarImage
-                  src={msg.user.avatar_url}
-                  alt={msg.user.username}
-                />
+                <AvatarImage src={msg.user.avatar_url} alt={msg.user.username} />
                 <AvatarFallback>
                   {msg.user.username[0].toUpperCase()}
                 </AvatarFallback>
@@ -98,8 +132,7 @@ export default function StockTwitsTrendingFeed() {
                   )}
                 </CardTitle>
                 <p className="text-sm text-gray-400 mt-1 font-medium">
-                  Followers:{" "}
-                  <span className="text-blue-400">{msg.user.followers}</span>
+                  Followers: <span className="text-blue-400">{msg.user.followers}</span>
                 </p>
               </div>
             </CardHeader>
@@ -118,14 +151,14 @@ export default function StockTwitsTrendingFeed() {
                     asChild
                     className="text-blue-400 hover:bg-blue-900"
                   >
-                    <a
+                    <Link
                       href={`https://stocktwits.com/symbol/${sym.symbol}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="font-semibold"
                     >
                       #{sym.symbol} ({sym.title})
-                    </a>
+                    </Link>
                   </Button>
                 ))}
               </div>
@@ -134,7 +167,7 @@ export default function StockTwitsTrendingFeed() {
             {msg.links && msg.links.length > 0 && (
               <div className="px-6 pb-4 space-y-2">
                 {msg.links.map((link, i) => (
-                  <a
+                  <Link
                     key={i}
                     href={link.url}
                     target="_blank"
@@ -142,7 +175,7 @@ export default function StockTwitsTrendingFeed() {
                     className="text-blue-500 hover:underline text-sm block"
                   >
                     {link.title || link.url}
-                  </a>
+                  </Link>
                 ))}
               </div>
             )}
@@ -150,7 +183,7 @@ export default function StockTwitsTrendingFeed() {
             {msg.entities.media.length > 0 && (
               <div className="px-6 pb-6 flex flex-col gap-4">
                 {msg.entities.media.map((media, i) => (
-                  <img
+                  <Image
                     key={i}
                     src={media.url}
                     alt="media"

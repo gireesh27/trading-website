@@ -27,7 +27,7 @@ export const DailyPriceSchema = new Schema<IDailyPrice>({
   open: { type: Number },
   previousClose: { type: Number },
   volume: { type: Number },
-  marketCap: { type: Number },
+  marketCap: { type: Number  },
 });
 
 export const DailyPrice =

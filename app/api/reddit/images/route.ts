@@ -1,10 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
+import Redis from "ioredis";
+
+const redis = new Redis();
+
+const CACHE_DURATION_SECONDS = 600; // 10 minutes cache
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const subreddit = searchParams.get("subreddit") || "algotrading";
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "50");
+  const cacheKey = `reddit:${subreddit}:page:${page}:limit:${limit}`;
+
+  try {
+    // Try cache first
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return NextResponse.json(JSON.parse(cached), { headers: { "X-Cache": "HIT" } });
+    }
+  } catch (redisError) {
+    console.error("Redis error (get):", redisError);
+    // Continue without cache
+  }
 
   const credentials = Buffer.from(
     `${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`
@@ -67,12 +84,21 @@ export async function GET(req: NextRequest) {
     const start = (page - 1) * limit;
     const paginated = imagePosts.slice(start, start + limit);
 
-    return NextResponse.json({
+    const responsePayload = {
       posts: paginated,
       total: imagePosts.length,
       page,
       totalPages: Math.ceil(imagePosts.length / limit),
-    });
+    };
+
+    // Cache the response
+    try {
+      await redis.setex(cacheKey, CACHE_DURATION_SECONDS, JSON.stringify(responsePayload));
+    } catch (redisError) {
+      console.error("Redis error (set):", redisError);
+    }
+
+    return NextResponse.json(responsePayload, { headers: { "X-Cache": "MISS" } });
   } catch (err) {
     console.error("Reddit API error:", err);
     return NextResponse.json(

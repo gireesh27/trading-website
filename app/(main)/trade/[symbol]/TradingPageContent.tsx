@@ -53,13 +53,21 @@ export default function TradingPageContent() {
     setError(null);
 
     try {
-      const quote = await stockApi.getQuote(symbol);
-      const { chartData } = await stockApi.getFullChartData(
-        symbol,
-        "1mo",
-        "1d"
-      );
+      // Fetch stock quote from your new API route
+      const quoteRes = await fetch(`/api/stocks/quote?symbol=${symbol}`);
+      if (!quoteRes.ok)
+        throw new Error(`Failed to fetch quote (${quoteRes.status})`);
+      const quote = await quoteRes.json();
 
+      // Fetch chart data from your chart API route with range and interval
+      const chartRes = await fetch(
+        `/api/stocks/chart?symbol=${symbol}&range=1mo&interval=1d`
+      );
+      if (!chartRes.ok)
+        throw new Error(`Failed to fetch chart data (${chartRes.status})`);
+      const { chartData } = await chartRes.json();
+
+      // Set stock info
       setSelectedStock({
         symbol: quote.symbol,
         sector: "Markets",
@@ -69,6 +77,7 @@ export default function TradingPageContent() {
         changePercent: quote.changePercent,
       });
 
+      // Set chart data after conversion
       if (Array.isArray(chartData)) {
         const converted = convertToCandlestickPoints(chartData);
         setChartData(converted);
@@ -94,11 +103,19 @@ export default function TradingPageContent() {
     async (fetchSymbol: string, range: string, interval: string) => {
       setIsChartLoading(true);
       try {
-        const { chartData } = await stockApi.getFullChartData(
-          fetchSymbol,
-          range,
-          interval
+        const res = await fetch(
+          `/api/stocks/chart?symbol=${encodeURIComponent(
+            fetchSymbol
+          )}&range=${encodeURIComponent(range)}&interval=${encodeURIComponent(
+            interval
+          )}`
         );
+
+        if (!res.ok)
+          throw new Error(`Failed to fetch chart data (${res.status})`);
+
+        const { chartData } = await res.json();
+
         if (Array.isArray(chartData)) {
           const converted = convertToCandlestickPoints(chartData);
           setChartData(converted);
@@ -153,9 +170,10 @@ export default function TradingPageContent() {
           isChartLoading={isChartLoading}
           getCandlestickData={handleChartDataFetch}
           range={selectedRange}
+          sector="Markets"
         />
         <StockFinancialsReportDisplay symbol={symbol} />
-        <CompanyNewsFeed symbol={symbol}/>
+        <CompanyNewsFeed symbol={symbol} />
       </div>
       <div className="lg:col-span-1 xl:col-span-1 space-y-4 ">
         <EnhancedTradingInterface

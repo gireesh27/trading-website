@@ -16,7 +16,7 @@ const normalizeToYahooSymbol = (clean: string): string => `${clean}-USD`;
 
 export default function CryptoSymbolPage() {
   const { symbol } = useParams() as { symbol: string };
-  const {sector} = useParams() as {sector: string};
+  const { sector } = useParams() as { sector: string };
   const [selectedStock, setSelectedStock] = useState<CryptoData | null>(null);
   const [chartCandlestickData, setChartCandlestickData] = useState<
     CandlestickPoint[]
@@ -59,45 +59,58 @@ export default function CryptoSymbolPage() {
     []
   );
 
-  const fetchSelectedCrypto = useCallback(
-    async (symbol: string) => {
-      setLoadingPage(true);
-      setError(null);
+  const fetchSelectedCrypto = useCallback(async (symbol: string) => {
+    setLoadingPage(true);
+    setError(null);
 
-      try {
-        const yahooSymbol = normalizeToYahooSymbol(symbol); // e.g., ETH → ETH-USD
+    try {
+      const yahooSymbol = normalizeToYahooSymbol(symbol); // e.g., ETH → ETH-USD
 
-        // ✅ Use full chart data, which includes quote + chart
-        const { chartData, apiResponse } = await stockApi.getFullChartData(
-          yahooSymbol,
-          range,
-          interval
-        );
+      // Fetch full chart data from your API route with Redis caching
+      const res = await fetch(
+        `/api/stocks/chart?symbol=${encodeURIComponent(
+          yahooSymbol
+        )}&range=${range}&interval=${interval}`
+      );
 
-        // ✅ Extract quote data from apiResponse
-        const priceData = apiResponse?.chart?.result?.[0]?.meta;
+      if (!res.ok) {
+        throw new Error(`Failed to fetch crypto chart data (${res.status})`);
+      }
 
-        if (!priceData || !chartData || chartData.length === 0) {
-          throw new Error("Missing or invalid data from chart API");
-        }
+      const { chartData, apiResponse } = await res.json();
 
-        setSelectedStock({
-          symbol: yahooSymbol,
-          sector:"crypto",
-          name: priceData.symbol || yahooSymbol,
-          price: priceData.regularMarketPrice ?? 0,
-          change: priceData.regularMarketChange ?? 0,
-          changePercent: priceData.regularMarketChangePercent ?? 0,
-          volume: priceData.totalVolume ?? 0,
-          marketCap: priceData.marketCap ?? 0,
-          high: priceData.regularMarketDayHigh ?? 0,
-          low: priceData.regularMarketDayLow ?? 0,
-          rank: undefined,
-          dominance: undefined,
-        });
+      // Extract quote data from apiResponse.meta (similar to your original code)
+      const priceData = apiResponse?.chart?.result?.[0]?.meta;
 
-        // ✅ Transform and set chart data
-        const transformed: CandlestickPoint[] = chartData.map((item) => ({
+      if (!priceData || !chartData || chartData.length === 0) {
+        throw new Error("Missing or invalid data from chart API");
+      }
+
+      setSelectedStock({
+        symbol: yahooSymbol,
+        sector: "crypto",
+        name: priceData.symbol || yahooSymbol,
+        price: priceData.regularMarketPrice ?? 0,
+        change: priceData.regularMarketChange ?? 0,
+        changePercent: priceData.regularMarketChangePercent ?? 0,
+        volume: priceData.totalVolume ?? 0,
+        marketCap: priceData.marketCap ?? 0,
+        high: priceData.regularMarketDayHigh ?? 0,
+        low: priceData.regularMarketDayLow ?? 0,
+        rank: undefined,
+        dominance: undefined,
+      });
+
+      // Transform chart data for charting
+      const transformed: CandlestickPoint[] = chartData.map(
+        (item: {
+          time: string | number | Date;
+          open: any;
+          high: any;
+          low: any;
+          close: any;
+          volume: any;
+        }) => ({
           time: item.time,
           open: item.open,
           high: item.high,
@@ -105,18 +118,17 @@ export default function CryptoSymbolPage() {
           close: item.close,
           volume: item.volume,
           timestamp: new Date(item.time).getTime() / 1000,
-        }));
+        })
+      );
 
-        setChartCandlestickData(transformed);
-      } catch (err: any) {
-        console.error("❌ Error loading crypto full chart data:", err);
-        setError(err?.message || "Failed to load crypto chart data");
-      } finally {
-        setLoadingPage(false);
-      }
-    },
-    [loadChartData]
-  );
+      setChartCandlestickData(transformed);
+    } catch (err: any) {
+      console.error("❌ Error loading crypto full chart data:", err);
+      setError(err?.message || "Failed to load crypto chart data");
+    } finally {
+      setLoadingPage(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (symbol) {
@@ -142,41 +154,41 @@ export default function CryptoSymbolPage() {
   }
 
   return (
-   <div className="min-h-screen bg-[#131722] p-6 text-white rounded-2xl">
-  {selectedStock && (
-    <div className="flex flex-col lg:flex-row mt-6 gap-6">
-      {/* Left side: Chart + News */}
-      <div className="w-full flex flex-col gap-6 lg:w-3/4">
-        {/* AdvancedTradingChart */}
-        <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md shadow-md ">
-          <AdvancedTradingChart
-            symbol={selectedStock.symbol}
-            selectedStock={selectedStock}
-            chartCandlestickData={chartCandlestickData}
-            isChartLoading={loadingPage}
-            getCandlestickData={loadChartData}
-            range={range}
-          />
-        </div>
+    <div className="min-h-screen bg-[#131722] p-6 text-white rounded-2xl">
+      {selectedStock && (
+        <div className="flex flex-col lg:flex-row mt-6 gap-6">
+          {/* Left side: Chart + News */}
+          <div className="w-full flex flex-col gap-6 lg:w-3/4">
+            {/* AdvancedTradingChart */}
+            <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md shadow-md ">
+              <AdvancedTradingChart
+                symbol={selectedStock.symbol}
+                selectedStock={selectedStock}
+                chartCandlestickData={chartCandlestickData}
+                isChartLoading={loadingPage}
+                getCandlestickData={loadChartData}
+                range={range}
+                sector="crypto"
+              />
+            </div>
 
-        {/* CryptoNewsFeed */}
-        <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md shadow-md">
-          <CryptoNewsFeed symbol={symbol} />
-        </div>
-      </div>
+            {/* CryptoNewsFeed */}
+            <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md shadow-md">
+              <CryptoNewsFeed symbol={symbol} />
+            </div>
+          </div>
 
-      {/* Right side: Trading Interface */}
-      <div className="lg:w-1/4 w-full ">
-        <EnhancedTradingInterface
-          symbol={symbol}
-          sector="crypto"
-          name={selectedStock.name}
-          currentPrice={selectedStock.price || 0}
-        />
-      </div>
+          {/* Right side: Trading Interface */}
+          <div className="lg:w-1/4 w-full ">
+            <EnhancedTradingInterface
+              symbol={symbol}
+              sector="crypto"
+              name={selectedStock.name}
+              currentPrice={selectedStock.price || 0}
+            />
+          </div>
+        </div>
+      )}
     </div>
-  )}
-</div>
-
   );
 }

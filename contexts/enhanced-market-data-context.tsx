@@ -24,6 +24,7 @@ import { CryptoData } from "@/types/crypto-types";
 interface RefreshDataArgs {
   stockPage?: number;
   ITEMS_PER_PAGE?: number;
+  category?: string; 
 }
 
 type RefreshDataFn = (args?: RefreshDataArgs) => void;
@@ -169,7 +170,7 @@ export const MarketDataProvider = ({ children }: { children: ReactNode }) => {
   ];
   const [loadingNews, setLoadingNews] = useState(false);
   const refreshData = useCallback(
-    ({ stockPage = 1, ITEMS_PER_PAGE = 6 }: RefreshDataArgs = {}) => {
+    ({ stockPage = 1, ITEMS_PER_PAGE = 6,category="general" }: RefreshDataArgs = {}) => {
       if (refreshTimeout.current) clearTimeout(refreshTimeout.current);
 
       refreshTimeout.current = setTimeout(async () => {
@@ -183,7 +184,7 @@ export const MarketDataProvider = ({ children }: { children: ReactNode }) => {
 
           const [stockData, newsData] = await Promise.all([
             stockApi.getMultipleQuotes(paginatedSymbols),
-            newsAPI.getMarketNews("general"),
+            newsAPI.getMarketNews(category),
           ]);
 
           setStocks(stockData);

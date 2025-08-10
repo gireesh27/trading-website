@@ -4,19 +4,7 @@ import React from "react";
 import OrdersWidget from "@/components/Orders/ordersWidget";
 import { OrderBook } from "@/components/Orders/order-book";
 
-import { useOrders } from "@/contexts/order-context";
-
 const Orders = () => {
-  const {
-    orders,
-    isLoading,
-    placeOrder,
-    cancelOrder,
-    getOrderHistory,
-    getOpenOrders,
-    fetchOrders,
-    getOrder,
-  } = useOrders();
 
   return (
     <div className="min-h-screen bg-gray-900 p-6">

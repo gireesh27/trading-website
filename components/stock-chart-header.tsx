@@ -7,9 +7,24 @@ import { useToast } from "@/components/ui/use-toast";
 import { Stock } from "@/types/trading-types";
 import { WatchlistButton } from "./Button-animation";
 
+export interface CryptoData {
+  symbol: string;
+  sector?: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  change24h?: number;
+  volume: number;
+  marketCap: number;
+  high: number;
+  low: number;
+  rank?: number;
+  dominance?: number;
+}
 interface StockChartHeaderProps {
-  stock: Stock | null;
-  sector: string ;
+  stock: Stock | null | CryptoData;
+  sector: string;
 }
 
 export function StockChartHeader({ stock, sector }: StockChartHeaderProps) {

@@ -6,6 +6,7 @@ import { Holding } from "@/lib/Database/Models/Holding";
 import { DailyPrice } from "@/lib/Database/Models/DailyPrice";
 import { User } from "@/lib/Database/Models/User";
 import { stockApi } from "@/lib/api/stock-api";
+import { cryptoApi } from "@/lib/api/crypto-api";  // import cryptoApi
 
 export async function GET(req: NextRequest) {
   await connectToDatabase();
@@ -24,15 +25,42 @@ export async function GET(req: NextRequest) {
     const enriched = await Promise.all(
       holdings.map(async (h: any) => {
         try {
-          const quote = await stockApi.getQuote(h.symbol);
-          const currentValue = h.quantity * quote.price;
-          const profitLoss = currentValue - h.totalInvested;
+          let quote;
+          if (h.sector?.toLowerCase() === "markets") {
+            quote = await stockApi.getQuote(h.symbol);
+          } else if (h.sector?.toLowerCase() === "crypto") {
+            const cryptoQuote = await cryptoApi.getCryptoQuote(h.symbol);
+            // merge and patch open and previousClose for crypto
+            quote = {
+              price: cryptoQuote.price ?? 0,
+              change: cryptoQuote.change ?? 0,
+              changePercent: cryptoQuote.changePercent ?? 0,
+              volume: cryptoQuote.volume ?? 0,
+              marketCap: cryptoQuote.marketCap ?? undefined,
+              high: cryptoQuote.high ?? 0,
+              low: cryptoQuote.low ?? 0,
+              open:
+                cryptoQuote.price !== undefined && cryptoQuote.change !== undefined
+                  ? cryptoQuote.price - cryptoQuote.change
+                  : 0,
+              previousClose:
+                cryptoQuote.price !== undefined && cryptoQuote.changePercent !== undefined
+                  ? cryptoQuote.price / (1 + cryptoQuote.changePercent / 100)
+                  : 0,
+            };
+          } else {
+            // fallback to stockApi if sector unknown
+            quote = await stockApi.getQuote(h.symbol);
+          }
+
+          const currentValue = (h.quantity ?? 0) * (quote.price ?? 0);
+          const profitLoss = currentValue - (h.totalInvested ?? 0);
 
           const history = await DailyPrice.find(
             { userId: user._id, symbol: h.symbol },
             {
               date: 1,
-              sector: 0,
+              sector: 1,
               close: 1,
               open: 1,
               high: 1,
@@ -46,12 +74,11 @@ export async function GET(req: NextRequest) {
             }
           ).sort({ date: 1 });
 
-
           return {
             ...h,
             _id: h._id.toString(),
             userId: h.userId.toString(),
-            currentPrice: quote.price,
+            currentPrice: quote.price ?? 0,
             currentValue,
             profitLoss,
             profitLossPercent: h.totalInvested

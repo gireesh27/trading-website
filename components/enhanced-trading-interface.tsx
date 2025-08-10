@@ -22,7 +22,7 @@ interface EnhancedTradingInterfaceProps {
   symbol: string;
   name: string;
   currentPrice: number;
-  sector: string;
+  sector: "Markets" | "crypto" | undefined;
 }
 
 type OrderType = "market" | "limit" | "stop";

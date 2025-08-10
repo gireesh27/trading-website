@@ -9,7 +9,6 @@ const HoldingSchema = new mongoose.Schema(
     quantity: { type: Number, required: true },
     avgPrice: { type: Number, required: true },
     totalInvested: { type: Number, required: true },
-
     buyDate: { type: Date, required: true },
     sellDate: { type: Date }, 
     status: {

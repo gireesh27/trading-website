@@ -3,51 +3,93 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 
 interface RedditPost {
   id: string;
   title: string;
   author: string;
   url: string;
-  image: string;
+  image: string | null;
   ups: number;
   selftext: string;
   created_utc: number;
   permalink: string;
 }
 
-export default function RedditImageFeed() {
+const SUBREDDITS = [
+  "CryptoCurrency",
+  "technology",
+  "Daytrading",
+  "ETFs",
+];
+
+const LIMIT = 24;
+
+interface Props {
+  searchTerm: string;
+  sortOrder: "asc" | "desc";
+}
+
+export default function RedditImageFeed({ searchTerm, sortOrder }: Props) {
   const [posts, setPosts] = useState<RedditPost[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<RedditPost[]>([]);
+  const [page, setPage] = useState(1);
+  const [subreddit, setSubreddit] = useState("CryptoCurrency");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [totalPages, setTotalPages] = useState(1);
   const [lightboxPost, setLightboxPost] = useState<RedditPost | null>(null);
-  const [subreddit, setSubreddit] = useState("algotrading");
 
+  // Fetch posts when subreddit or page changes
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/reddit/images/?subreddit=${subreddit}&limit=50`)
+    setError("");
+    fetch(`/api/reddit/images?subreddit=${subreddit}&page=${page}&limit=${LIMIT}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch posts");
         return res.json();
       })
       .then((data) => {
         setPosts(data.posts);
+        setTotalPages(data.totalPages || 1);
       })
-      .catch((e) => setError(e.message))
+      .catch((e: any) => setError(e.message || "Unknown error"))
       .finally(() => setLoading(false));
+  }, [subreddit, page]);
+
+  // Reset page when subreddit changes
+  useEffect(() => {
+    setPage(1);
   }, [subreddit]);
 
+  // Filter and sort posts client-side when posts, searchTerm or sortOrder changes
+  useEffect(() => {
+    let filtered = posts;
+
+    if (searchTerm.trim()) {
+      const lowerTerm = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (p) =>
+          p.title.toLowerCase().includes(lowerTerm) ||
+          p.selftext.toLowerCase().includes(lowerTerm)
+      );
+    }
+
+    filtered = filtered.sort((a, b) =>
+      sortOrder === "asc"
+        ? a.created_utc - b.created_utc
+        : b.created_utc - a.created_utc
+    );
+
+    setFilteredPosts(filtered);
+  }, [posts, searchTerm, sortOrder]);
+
   return (
-    <div className="p-6 bg-gray-900 min-h-screen text-white">
-      <div className="mb-6 flex gap-4">
-        {[
-          "StockMarket",
-          "CryptoCurrency",
-          "technology",
-          "Daytrading",
-          "ETFs",
-        ].map((sub) => (
+    <div className="p-6 bg-gray-900 min-h-screen text-white max-w-[1280px] mx-auto">
+      {/* Subreddit selector */}
+      <div className="mb-6 flex flex-wrap gap-4">
+        {SUBREDDITS.map((sub) => (
           <Button
             key={sub}
             size="sm"
@@ -60,36 +102,63 @@ export default function RedditImageFeed() {
         ))}
       </div>
 
-      {loading && <p>Loading posts...</p>}
-      {error && <p className="text-red-500">Error: {error}</p>}
+      {/* Pagination controls top */}
+      <div className="flex justify-between items-center mb-4">
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={page === 1 || loading}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+        >
+          ← Previous
+        </Button>
+        <p>
+          Page <span className="font-semibold">{page}</span> of{" "}
+          <span className="font-semibold">{totalPages}</span>
+        </p>
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={page === totalPages || loading}
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+        >
+          Next →
+        </Button>
+      </div>
 
+      {/* Loading & error */}
+      {loading && <p className="text-center text-gray-300">Loading posts...</p>}
+      {error && <p className="text-center text-red-500">Error: {error}</p>}
+
+      {/* Posts grid */}
       <div
-        className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4"
+        className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-6 space-y-6"
         style={{ columnFill: "balance" }}
       >
-        {posts.map((post) => (
+        {filteredPosts.length === 0 && !loading && (
+          <p className="text-center text-gray-400 col-span-full py-10">
+            No posts found.
+          </p>
+        )}
+        {filteredPosts.map((post) => (
           <div
             key={post.id}
-            className="relative mb-4 break-inside rounded-lg overflow-hidden cursor-pointer group shadow-lg hover:shadow-xl transition-shadow"
+            className="relative mb-4 break-inside rounded-lg overflow-hidden cursor-pointer group shadow-lg hover:shadow-xl transition-shadow bg-gray-800"
             onClick={() => setLightboxPost(post)}
+            title={post.title}
           >
             <div className="relative w-full aspect-[4/3]">
-              {post.image ? (
-                <Image
-                  src={post.image}
-                  alt={post.title}
-                  fill
-                  className="object-cover rounded-lg group-hover:brightness-90 transition"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                />
-              ) : // Optional: fallback UI or empty fragment
-              null}
+              <Image
+                src={post.image ?? "/placeholder.png"}
+                alt={post.title}
+                fill
+                className="object-cover rounded-lg group-hover:brightness-90 transition"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+              />
             </div>
 
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-transparent px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-white">
-              <h3 className="font-semibold text-sm line-clamp-2">
-                {post.title}
-              </h3>
+              <h3 className="font-semibold text-sm line-clamp-2">{post.title}</h3>
               <p className="text-xs opacity-80 mt-0.5">
                 u/{post.author} • {post.ups} ▲ •{" "}
                 {formatDistanceToNow(new Date(post.created_utc * 1000), {
@@ -99,6 +168,30 @@ export default function RedditImageFeed() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Pagination controls bottom */}
+      <div className="flex justify-between items-center mt-6">
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={page === 1 || loading}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+        >
+          ← Previous
+        </Button>
+        <p>
+          Page <span className="font-semibold">{page}</span> of{" "}
+          <span className="font-semibold">{totalPages}</span>
+        </p>
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={page === totalPages || loading}
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+        >
+          Next →
+        </Button>
       </div>
 
       {/* Lightbox modal */}
@@ -111,12 +204,10 @@ export default function RedditImageFeed() {
             className="max-w-4xl w-full max-h-full overflow-auto bg-gray-900 rounded-lg p-4 relative cursor-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-white text-xl mb-4 font-bold">
-              {lightboxPost.title}
-            </h2>
+            <h2 className="text-white text-xl mb-4 font-bold">{lightboxPost.title}</h2>
             <div className="relative w-full h-[60vh] mb-4">
               <Image
-                src={lightboxPost.image}
+                src={lightboxPost.image ?? "/placeholder.png"}
                 alt={lightboxPost.title}
                 fill
                 className="object-contain rounded"

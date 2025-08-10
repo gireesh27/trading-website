@@ -305,7 +305,7 @@ export default function HoldingsChart({
 
   if (!chartData || chartData.length === 0) {
     return (
-      <Card className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border border-gray-700 shadow-2xl h-[600px] flex items-center justify-center">
+      <Card className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border border-gray-700 shadow-2xl h-[600px] flex items-center justify-center mt-4">
         <CardTitle className="text-gray-500">
           No price history available for {symbol}.
         </CardTitle>
@@ -314,7 +314,7 @@ export default function HoldingsChart({
   }
 
   return (
-    <Card className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border border-gray-700 shadow-2xl">
+    <Card className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border border-gray-700 shadow-2xl mt-4">
       <CardHeader className="border-b border-gray-700/50">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
@@ -402,7 +402,7 @@ export default function HoldingsChart({
             </Button>
           </div>
 
-          <div className=" h-[500px] flex items-center justify-center text-gray-500">
+          <div className="h-[40vh] md:h-[45vh] lg:h-[55vh] 2xl:h-[60vh]  w-full flex items-center justify-center text-gray-500">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
                 data={chartData}

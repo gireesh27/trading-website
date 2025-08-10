@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { useRef } from "react";
 import { useEffect } from "react";
-
+import Image from "next/image";
 import {
   Search,
   Clock,
@@ -35,23 +35,20 @@ export default function EnhancedNewsPage() {
   }, []);
   const { news, refreshData, isLoading } = useMarketData();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState("general");
   const [selectedSentiment, setSelectedSentiment] = useState("all");
 
-  const categories = ["all", "general", "forex", "crypto", "merger"];
   const sentiments = ["all", "positive", "negative", "neutral"];
 
   const filteredNews = news.filter((item) => {
     const matchesSearch =
       item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.summary.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "all" ||
-      item.category.toLowerCase() === selectedCategory;
+
     const matchesSentiment =
       selectedSentiment === "all" || item.sentiment === selectedSentiment;
 
-    return matchesSearch && matchesCategory && matchesSentiment;
+    return matchesSearch  && matchesSentiment;
   });
 
   const formatDate = (dateInput: string | Date | undefined): string => {
@@ -113,7 +110,7 @@ export default function EnhancedNewsPage() {
 
           <div className="flex items-center space-x-4 mt-4 md:mt-0">
             <Button
-              onClick={() => refreshData()}
+              onClick={() => refreshData({ category: selectedCategory })}
               disabled={isLoading}
               className="bg-blue-600 hover:bg-blue-700"
             >
@@ -138,22 +135,6 @@ export default function EnhancedNewsPage() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 bg-gray-700 border-gray-600 text-white"
                 />
-              </div>
-
-              {/* Category Filter */}
-              <div className="flex items-center space-x-2">
-                <Filter className="h-4 w-4 text-gray-400" />
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="bg-gray-700 border-gray-600 text-white rounded px-3 py-2"
-                >
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category.charAt(0).toUpperCase() + category.slice(1)}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               {/* Sentiment Filter */}
@@ -229,7 +210,7 @@ export default function EnhancedNewsPage() {
 
                       {item.image && (
                         <div className="mb-4 overflow-hidden rounded-lg">
-                          <img
+                          <Image
                             src={item.image || "/placeholder.svg"}
                             alt={item.title}
                             className="w-full h-44 object-cover rounded-md transition-all hover:scale-105 duration-500"
@@ -240,7 +221,6 @@ export default function EnhancedNewsPage() {
                           />
                         </div>
                       )}
-
                       <h3 className="text-white text-lg font-semibold mb-2">
                         {item.title}
                       </h3>
@@ -313,39 +293,6 @@ export default function EnhancedNewsPage() {
                             style={{ width: `${percentage}%` }}
                           />
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Top Categories */}
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white text-sm">
-                  News Categories
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {categories.slice(1).map((category) => {
-                    const count = news.filter(
-                      (item) =>
-                        item.category.toLowerCase() === category.toLowerCase()
-                    ).length;
-
-                    return (
-                      <div
-                        key={category}
-                        className="flex items-center justify-between p-2 bg-gray-700 rounded"
-                      >
-                        <span className="text-gray-300 capitalize">
-                          {category}
-                        </span>
-                        <Badge className={getCategoryColor(category)}>
-                          {count}
-                        </Badge>
                       </div>
                     );
                   })}

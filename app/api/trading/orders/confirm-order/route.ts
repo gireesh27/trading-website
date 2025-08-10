@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import { NextResponse } from "next/server";
 import { User } from "@/lib/Database/Models/User";
+
 export async function POST(req: Request) {
   await connectToDatabase();
 
@@ -16,13 +17,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { orderId, walletPassword,sector } = await req.json();
+    const { orderId, walletPassword, sector } = await req.json();
     const userId = session.user.id;
 
     if (!mongoose.Types.ObjectId.isValid(orderId)) {
       return NextResponse.json({ message: "Invalid order ID" }, { status: 400 });
     }
 
+    // Fetch pending order for the user
     const order = await Order.findOne({
       _id: new mongoose.Types.ObjectId(orderId),
       userId,
@@ -38,21 +40,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Wallet setup incomplete" }, { status: 400 });
     }
 
+    // Verify wallet password
     const isMatch = await bcrypt.compare(walletPassword, user.walletPasswordHash);
     if (!isMatch) {
       return NextResponse.json({ message: "Incorrect wallet password" }, { status: 403 });
     }
 
-    const baseAmount = order.price * order.quantity;
+    const baseAmount = (order.price || 0) * order.quantity;
     const fees = (order.feeBreakdown?.brokerage || 0) + (order.feeBreakdown?.convenience || 0);
     const totalAmount = baseAmount + fees;
 
+    // Check wallet balance for buy orders
     if (order.type === "buy" && user.walletBalance < totalAmount) {
       return NextResponse.json({ message: "Insufficient wallet balance" }, { status: 400 });
     }
 
-
-    // Finalize order
+    // Update order status and timestamp
     order.status = "completed";
     order.completedAt = new Date();
     await order.save();
@@ -60,7 +63,7 @@ export async function POST(req: Request) {
     // Log transaction
     await Transaction.create({
       userId,
-      sector,
+      sector: sector || order.sector, // fallback to order.sector if sector param not provided
       symbol: order.symbol,
       quantity: order.quantity,
       price: order.price,
@@ -73,7 +76,7 @@ export async function POST(req: Request) {
       totalAmount,
     });
 
-    // Adjust wallet & update holdings
+    // Adjust wallet balance accordingly
     if (order.type === "buy") {
       user.walletBalance -= totalAmount;
     } else {
@@ -81,11 +84,12 @@ export async function POST(req: Request) {
     }
     await user.save();
 
-
     return NextResponse.json({ message: "Order executed successfully" }, { status: 200 });
-
   } catch (err: any) {
     console.error("Confirm Order Error:", err);
-    return NextResponse.json({ message: "Internal server error", error: err.message }, { status: 500 });
+    return NextResponse.json(
+      { message: "Internal server error", error: err.message },
+      { status: 500 }
+    );
   }
 }

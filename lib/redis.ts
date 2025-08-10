@@ -1,6 +1,3 @@
 import Redis from "ioredis";
-
-// Default: localhost:6379 which WSL exposes
-const redis = new Redis();
-
+const redis = new Redis(process.env.REDIS_URL as string);
 export default redis;

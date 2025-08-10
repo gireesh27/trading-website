@@ -73,51 +73,56 @@ export default function CryptoPage() {
     router.push(`/crypto/${normalized}`);
   };
 
-  const fetchCryptoData = useCallback(
-    async (page: number, replace: boolean = false) => {
-      setLoadingPage(true);
-      if (replace) setFetchError(null);
+const fetchCryptoData = useCallback(
+  async (page: number, replace: boolean = false) => {
+    setLoadingPage(true);
+    if (replace) setFetchError(null);
 
-      try {
-        const quotes = await cryptoApi.getMultipleCryptoQuotes();
+    try {
+      // Call your cached backend API route here
+      const response = await fetch(`/api/crypto/quotes`);
+      if (!response.ok) throw new Error("Failed to fetch crypto data");
 
-        const normalized: CryptoData[] = quotes.map((q) => ({
-          symbol: q.symbol,
-          sector: "crypto",
-          name: q.name,
-          price: q.price,
-          change: q.change,
-          changePercent: q.changePercent,
-          volume: q.volume,
-          marketCap: q.marketCap ?? 0,
-          high: q.high,
-          low: q.low,
-          rank: q.rank,
-          dominance: q.dominance,
-        }));
+      const quotes = await response.json();
 
-        if (normalized.length < ITEMS_PER_PAGE) {
-          setHasMoreData(false);
-        }
+      // Normalize data
+      const normalized: CryptoData[] = quotes.map((q: any) => ({
+        symbol: q.symbol,
+        sector: "crypto",
+        name: q.name,
+        price: q.price,
+        change: q.change,
+        changePercent: q.changePercent,
+        volume: q.volume,
+        marketCap: q.marketCap ?? 0,
+        high: q.high,
+        low: q.low,
+        rank: q.rank,
+        dominance: q.dominance,
+      }));
 
-        setAllCryptoData((prev) => {
-          if (replace) return normalized;
-
-          const existingSymbols = new Set(prev.map((crypto) => crypto.symbol));
-          const newData = normalized.filter(
-            (crypto) => !existingSymbols.has(crypto.symbol)
-          );
-          return [...prev, ...newData];
-        });
-      } catch (error) {
-        console.error("❌ Error in fetchCryptoData:", error);
-        setFetchError("Failed to fetch crypto data. Please try again later.");
-      } finally {
-        setLoadingPage(false);
+      if (normalized.length < ITEMS_PER_PAGE) {
+        setHasMoreData(false);
       }
-    },
-    []
-  );
+
+      setAllCryptoData((prev) => {
+        if (replace) return normalized;
+
+        const existingSymbols = new Set(prev.map((crypto) => crypto.symbol));
+        const newData = normalized.filter(
+          (crypto) => !existingSymbols.has(crypto.symbol)
+        );
+        return [...prev, ...newData];
+      });
+    } catch (error) {
+      console.error("❌ Error in fetchCryptoData:", error);
+      setFetchError("Failed to fetch crypto data. Please try again later.");
+    } finally {
+      setLoadingPage(false);
+    }
+  },
+  []
+);
 
   const handleOverviewPageChange = useCallback(
     (newPage: number) => {

@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { stockApi } from "@/lib/api/stock-api";
 import { AdvancedTradingChart } from "@/components/advanced-trading-chart";
 import type { CryptoData } from "@/types/crypto-types";
 import type { CandlestickPoint } from "@/types/trading-types";
@@ -30,14 +29,24 @@ export default function CryptoSymbolPage() {
   const loadChartData = useCallback(
     async (symbol: string, range: string = "1mo", interval: string = "1h") => {
       try {
-        const { chartData } = await stockApi.getFullChartData(
-          symbol,
-          range,
+        // Call your own API route with query parameters
+        const url = `/api/stocks/chart?symbol=${encodeURIComponent(
+          symbol
+        )}&range=${encodeURIComponent(range)}&interval=${encodeURIComponent(
           interval
-        );
+        )}`;
 
-        if (Array.isArray(chartData)) {
-          const transformed: CandlestickPoint[] = chartData.map((item) => ({
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(`Failed to load chart data: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        // Assuming your API returns the raw chartData array directly
+        if (Array.isArray(data)) {
+          const transformed: CandlestickPoint[] = data.map((item: any) => ({
             time: item.time,
             open: item.open,
             high: item.high,

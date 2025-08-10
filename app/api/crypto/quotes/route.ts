@@ -16,8 +16,8 @@ export async function GET(req: Request) {
     // Fetch fresh data
     const quotes = await cryptoApi.getMultipleCryptoQuotes();
 
-    // Cache it
-    await redis.set(CACHE_KEY, JSON.stringify(quotes), "EX", CACHE_EXPIRE_SECONDS);
+    // Cache it with expiration
+    await redis.set(CACHE_KEY, JSON.stringify(quotes), { EX: CACHE_EXPIRE_SECONDS });
 
     return NextResponse.json(quotes);
   } catch (err: any) {

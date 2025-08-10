@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import Redis from "ioredis";
-
-const redis = new Redis();
+import redis from "@/lib/redis"; // your redis client instance using official 'redis'
 
 const CACHE_DURATION_SECONDS = 600; // 10 minutes cache
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const subreddit = searchParams.get("subreddit") || "algotrading";
-  const page = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "50");
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const limit = parseInt(searchParams.get("limit") || "50", 10);
   const cacheKey = `reddit:${subreddit}:page:${page}:limit:${limit}`;
 
   try {
@@ -53,7 +51,7 @@ export async function GET(req: NextRequest) {
     );
     const json = await res.json();
 
-    // Filter only posts with images (Reddit preview or direct image URLs)
+    // Filter only posts with images
     const imagePosts = json.data.children
       .map((item: any) => {
         const data = item.data;
@@ -91,9 +89,9 @@ export async function GET(req: NextRequest) {
       totalPages: Math.ceil(imagePosts.length / limit),
     };
 
-    // Cache the response
+    // Cache the response with expiration using redis client 'set' with EX option
     try {
-      await redis.setex(cacheKey, CACHE_DURATION_SECONDS, JSON.stringify(responsePayload));
+      await redis.set(cacheKey, JSON.stringify(responsePayload), { EX: CACHE_DURATION_SECONDS });
     } catch (redisError) {
       console.error("Redis error (set):", redisError);
     }

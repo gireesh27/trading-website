@@ -1,18 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import Redis from "ioredis";
-
-const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+import redis from "@/lib/redis"; // your official redis client instance
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const subreddit = searchParams.get("subreddit") || "algotrading";
-  const page = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "10");
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const limit = parseInt(searchParams.get("limit") || "10", 10);
 
   const cacheKey = `reddit:${subreddit}`;
+
   try {
     // Check cache first
-    const cached = await redis.get(cacheKey);
+    let cached = null;
+    try {
+      cached = await redis.get(cacheKey);
+    } catch (redisGetError) {
+      console.error("Redis get error:", redisGetError);
+    }
+
     let allPosts;
 
     if (cached) {
@@ -41,7 +46,7 @@ export async function GET(req: NextRequest) {
       let fetchCount = 0;
 
       while (fetchCount < 5) {
-        const res :any = await fetch(
+        const res: any = await fetch(
           `https://oauth.reddit.com/r/${subreddit}/new?limit=100${after ? `&after=${after}` : ""}`,
           {
             headers: {
@@ -78,8 +83,12 @@ export async function GET(req: NextRequest) {
         };
       });
 
-      // Cache for 10minutes
-      await redis.set(cacheKey, JSON.stringify(allPosts), "EX", 600);
+      // Cache for 10 minutes
+      try {
+        await redis.set(cacheKey, JSON.stringify(allPosts), { EX: 600 });
+      } catch (redisSetError) {
+        console.error("Redis set error:", redisSetError);
+      }
     }
 
     // Paginate

@@ -11,6 +11,7 @@ export async function GET(req: Request) {
   }
 
   const cacheKey = `quote:${symbol.toUpperCase()}`;
+
   try {
     // Try Redis cache first
     const cached = await redis.get(cacheKey);
@@ -21,8 +22,10 @@ export async function GET(req: Request) {
     // Fetch fresh quote data
     const quote = await stockApi.getQuote(symbol);
 
-    // Cache for 5 minutes
-    await redis.set(cacheKey, JSON.stringify(quote), "EX", 300);
+    // Cache for 5 minutes (300 seconds)
+    await redis.set(cacheKey, JSON.stringify(quote), {
+      EX: 300,
+    });
 
     return NextResponse.json(quote);
   } catch (error: any) {

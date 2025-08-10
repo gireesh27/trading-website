@@ -39,12 +39,11 @@ export async function GET(request: NextRequest) {
       image: item.image,
     }));
 
-    // 3️⃣ Store in Redis cache
-    await redis.set(cacheKey, JSON.stringify(formattedNews), "EX", CACHE_TTL);
+    // 3️⃣ Store in Redis cache with expiration
+    await redis.set(cacheKey, JSON.stringify(formattedNews), { EX: CACHE_TTL });
 
     console.log(`Fetched fresh ${category} news & cached for ${CACHE_TTL}s`);
     return NextResponse.json(formattedNews);
-
   } catch (error) {
     console.error("News API Error:", error);
     return NextResponse.json(

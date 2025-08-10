@@ -1,4 +1,3 @@
-// app/api/stocks/chart/route.ts
 import { NextResponse } from "next/server";
 import redis from "@/lib/redis";
 import { stockApi } from "@/lib/api/stock-api"; // must be server-safe
@@ -23,8 +22,8 @@ export async function GET(req: Request) {
 
     const data = await stockApi.getFullChartData(symbol, range, interval);
 
-    // Cache for 5 minutes
-    await redis.set(cacheKey, JSON.stringify(data), "EX", 300);
+    // Cache for 5 minutes (300 seconds)
+    await redis.set(cacheKey, JSON.stringify(data), { EX: 300 });
 
     return NextResponse.json(data);
   } catch (err: any) {

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import  redis  from "@/lib/redis"; // Assuming this exports a connected Redis client
+import redis from "@/lib/redis"; // your official redis client
 
 const CACHE_KEY = "stocktwits_trending";
-const CACHE_TTL = 600; // 600 seconds = 10 minutes
+const CACHE_TTL = 600; // 10 minutes
 
 export async function GET() {
   try {
@@ -18,11 +18,12 @@ export async function GET() {
 
     const data = await res.json();
 
-    // 3. Store in Redis
-    await redis.set(CACHE_KEY, JSON.stringify(data.messages), "EX", CACHE_TTL);
+    // 3. Store in Redis cache
+    await redis.set(CACHE_KEY, JSON.stringify(data.messages), { EX: CACHE_TTL });
 
     return NextResponse.json({ messages: data.messages });
   } catch (error: any) {
+    console.error("Stocktwits API error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

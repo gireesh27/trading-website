@@ -2,7 +2,7 @@
 
 Welcome to **TradeView**, a professional trading platform with real-time market data, advanced charting, and comprehensive portfolio management.
 
-[https://trading-website-two.vercel.app/](url)
+https://trading-website-two.vercel.app/
 
 -----
 

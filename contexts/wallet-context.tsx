@@ -31,20 +31,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     type: "all",
     symbol: "",
   });
-  const fetchHoldingsAnalytics = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/wallet/analytics");
-      const json = await res.json();
-      if (json.success) {
-        setAnalytics(json.data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch analytics:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+
 
   // 📜 Fetch Wallet Transactions
   const fetchTransactions = useCallback(
@@ -177,7 +164,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (user) {
-      fetchHoldingsAnalytics();
       fetchTransactions({
         type: filters.type,
         symbol: filters.symbol,
@@ -199,7 +185,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         analytics,
         transactions,
         fetchTransactions,
-        fetchHoldingsAnalytics,
       }}
     >
       {children}

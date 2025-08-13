@@ -12,7 +12,7 @@ import type { Order } from "@/types/Order-types";
 import { Loader2 } from "lucide-react";
 import { useOrders } from "@/contexts/order-context";
 import { OrderDetailsModal } from "./OrderDetailsModal";
-
+import { useSession } from "next-auth/react";
 export default function OrdersWidget() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
@@ -29,20 +29,48 @@ export default function OrdersWidget() {
   const {
     getOrder,
   } = useOrders();
+const { data: session, status } = useSession();
 
-  const fetchOrders = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/trading/orders");
-      const data = await res.json();
-      setOrders(data.orders || []);
-    } catch (error) {
-      toast({ title: "Failed to fetch orders", variant: "destructive" });
-    } finally {
-      setLoading(false);
+const fetchOrders = async () => {
+  if (!session?.user) return; // extra guard
+
+  setLoading(true);
+  try {
+    const res = await fetch("/api/trading/orders", {
+      method: "GET",
+      cache: "no-store",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to fetch orders");
     }
-  };
 
+    setOrders(data.orders || []);
+  } catch (error: any) {
+    console.error("Error fetching orders:", error);
+    toast({
+      title: "Failed to fetch orders",
+      description: error.message,
+      variant: "destructive",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+
+useEffect(() => {
+  if (status === "authenticated") {
+    fetchOrders();
+  }
+}, [status]);
   const handleComplete = (order: Order) => {
     setSelectedOrder(order);
     setModalOpen(true);
@@ -69,9 +97,7 @@ export default function OrdersWidget() {
     }
   };
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+
 
   const renderOrderCard = (
     order: Order,

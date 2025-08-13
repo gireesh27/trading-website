@@ -5,10 +5,8 @@ import { useRouter } from "next/navigation";
 
 import { WatchlistWidget } from "@/components/watchlist/watchlist-widget";
 import { NewsWidget } from "@/components/newsWidget";
-import { QuickActions } from "@/components/quickActions";
 import { useMarketData } from "@/contexts/enhanced-market-data-context";
 import { useAuth } from "@/contexts/auth-context";
-import HoldingsChart from "@/components/Holdings/HoldingsChart";
 export interface CandlestickPoint {
   time: string;
   open: number;
@@ -30,7 +28,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push("/auth");
+      router.push("/");
     }
   }, [user, authLoading, router]);
 
@@ -66,7 +64,6 @@ export default function DashboardPage() {
           </div>
           {/* Sidebar Column */}
           <div className="space-y-6 ">
-            <QuickActions />
             <WatchlistWidget />
           </div>
         </div>

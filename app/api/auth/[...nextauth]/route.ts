@@ -1,22 +1,14 @@
 // app/api/auth/[...nextauth]/route.ts
 import NextAuth, { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
-import CredentialsProvider from "next-auth/providers/credentials";
-
 import { connectToDatabase } from "@/lib/Database/mongodb";
 import { User } from "@/lib/Database/Models/User";
+import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-    GitHubProvider({
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-    }),
     CredentialsProvider({
       name: "Email",
       credentials: {
@@ -29,64 +21,53 @@ export const authOptions: NextAuthOptions = {
         if (!email || !password) return null;
 
         const user = await User.findOne({ email });
-        if (!user) return null;
+        if (!user || !user.emailPasswordHash) return null;
 
-        // Only check password for email login
-        const isValid = await user.validateEmailPassword(password);
+        const isValid = await bcrypt.compare(password, user.emailPasswordHash);
         if (!isValid) return null;
+
+        // Initialize walletBalance if undefined
+        if (user.walletBalance === undefined) {
+          user.walletBalance = 1000;
+          await user.save();
+        }
 
         return {
           id: user._id.toString(),
           name: user.name,
           email: user.email,
+          walletBalance: user.walletBalance,
         };
       },
-    })
-
+    }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+    GitHubProvider({
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    }),
   ],
-secret: process.env.NEXTAUTH_SECRET,
-  pages: {
-  signIn: "/auth",
-  },
-session: {
-  strategy: "jwt",
-  },
-callbacks: {
-    async signIn({ user, account }) {
-    if (account?.provider === "credentials") {
-      return true;
-    }
-
-    await connectToDatabase();
-    const existingUser = await User.findOne({ email: user.email });
-
-    if (!existingUser) {
-      await User.create({
-        name: user.name || "Unnamed",
-        email: user.email,
-        isOAuth: true,
-        isVerified: true,
-      });
-    }
-    return true;
-  },
+  secret: process.env.NEXTAUTH_SECRET,
+  pages: { signIn: "/auth" },
+  session: { strategy: "jwt" },
+  callbacks: {
     async jwt({ token, user }) {
-    if (user) {
-      await connectToDatabase();
-      const dbUser = await User.findOne({ email: user.email });
-      if (dbUser) {
-        token.id = dbUser._id.toString();
+      if (user) {
+        token.id = user.id; // user.id is already string
+        token.walletBalance = (user as any).walletBalance;
       }
-    }
-    return token;
-  },
+      return token;
+    },
     async session({ session, token }) {
-    if (token && session.user) {
-      session.user.id = token.id as string;
-    }
-    return session;
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.walletBalance = token.walletBalance as number;
+      }
+      return session;
+    },
   },
-},
 };
 
 const handler = NextAuth(authOptions);

@@ -13,7 +13,7 @@ import {
   Globe,
   RefreshCw,
 } from "lucide-react";
-
+import { LoaderTwo } from "@/components/ui/loader";
 export interface NewsItem {
   id: string;
   title: string;
@@ -156,7 +156,7 @@ export function NewsWidget() {
               <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1 custom-scrollbar">
                 {isLoading ? (
                   <div className="flex justify-center items-center h-48">
-                    <RefreshCw className="h-6 w-6 text-white animate-spin" />
+                   <LoaderTwo />
                   </div>
                 ) : (
                   news.map((item) => (

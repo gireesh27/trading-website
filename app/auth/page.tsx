@@ -14,8 +14,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
-import { FcGoogle } from "react-icons/fc"; // Google icon
-import { FaTwitter } from "react-icons/fa"; // Twitter icon
+import { FcGoogle } from "react-icons/fc";
+import { FaGithub } from "react-icons/fa"; // <-- replaced Twitter with GitHub
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
@@ -29,7 +29,6 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const router = useRouter();
-
   const parentRef = useRef<HTMLDivElement>(null);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
@@ -37,52 +36,48 @@ export default function AuthPage() {
     setIsLoading(true);
 
     try {
-      const apiUrl = isLogin ? "/api/auth/login" : "/api/auth/sign-up";
-      const res = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(emailForm),
-      });
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        if (!isLogin && data.error?.includes("already exists")) {
-          alert("User already exists. Please sign in.");
-          setIsLogin(true);
-        } else {
-          alert(data.message || data.error || "Authentication failed.");
-        }
-        setIsLoading(false);
-        return;
-      }
-
       if (!isLogin) {
-        // After signup, automatically login
-        await handleEmailAuthLogin(emailForm.email, emailForm.password);
+        const res = await fetch("/api/auth/sign-up", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(emailForm),
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          alert(data.message || data.error || "Signup failed.");
+          setIsLoading(false);
+          return;
+        }
+
+        await handleSignIn(emailForm.email, emailForm.password);
       } else {
-        router.push("/dashboard");
+        await handleSignIn(emailForm.email, emailForm.password);
       }
     } catch (err) {
       console.error(err);
       alert("Unexpected error occurred.");
-    } finally {
       setIsLoading(false);
     }
   };
 
-  // Separate function to handle login after signup
-  const handleEmailAuthLogin = async (email: string, password: string) => {
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+  const handleSignIn = async (email: string, password: string) => {
+    const res = await signIn("credentials", {
+      redirect: false,
+      email,
+      password,
     });
-    const data = await res.json();
-    if (res.ok && data.success) router.push("/dashboard");
-    else alert(data.message || "Login failed after signup");
+
+    setIsLoading(false);
+
+    if (res?.error) {
+      alert(res.error || "Login failed");
+    } else {
+      router.push("/dashboard");
+    }
   };
 
-  const handleOAuth = (provider: "google" | "twitter") => {
+  const handleOAuth = (provider: "google" | "github") => {
     signIn(provider, { callbackUrl: "/dashboard" });
   };
 
@@ -91,7 +86,6 @@ export default function AuthPage() {
       ref={parentRef}
       className="relative min-h-screen bg-[#0e0f1a] flex items-center justify-center p-4 overflow-hidden"
     >
-      {/* Background Beams */}
       <BackgroundBeamsWithCollision className="absolute inset-0 z-0 pointer-events-none">
         <div className="w-96 h-96 bg-purple-500 opacity-30 blur-3xl rounded-full" />
         <div className="w-96 h-96 bg-blue-500 opacity-30 blur-3xl rounded-full" />
@@ -116,7 +110,6 @@ export default function AuthPage() {
         <CardContent>
           <ErrorMessage />
 
-          {/* OAuth Buttons Centered */}
           <div className="flex justify-center gap-4 mb-4">
             <Button
               variant="outline"
@@ -127,14 +120,13 @@ export default function AuthPage() {
             </Button>
             <Button
               variant="outline"
-              onClick={() => handleOAuth("twitter")}
+              onClick={() => handleOAuth("github")} // <-- GitHub
               className="flex items-center justify-center border-white/30 bg-[#2a2c3d] hover:bg-[#3a3c5d] text-white transition-all duration-300"
             >
-              <FaTwitter className="h-5 w-5 mr-2" /> Twitter
+              <FaGithub className="h-5 w-5 mr-2" /> GitHub
             </Button>
           </div>
 
-          {/* Divider */}
           <div className="relative text-white mb-4">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t border-white/20" />
@@ -146,7 +138,6 @@ export default function AuthPage() {
             </div>
           </div>
 
-          {/* Email/Password Form */}
           <form onSubmit={handleEmailAuth} className="space-y-4">
             {!isLogin && (
               <div>
@@ -157,7 +148,9 @@ export default function AuthPage() {
                   id="name"
                   type="text"
                   value={emailForm.name}
-                  onChange={(e) => setEmailForm({ ...emailForm, name: e.target.value })}
+                  onChange={(e) =>
+                    setEmailForm({ ...emailForm, name: e.target.value })
+                  }
                   className="bg-[#2a2c3d] text-white placeholder-gray-400 border border-white/20"
                   required
                 />
@@ -172,7 +165,9 @@ export default function AuthPage() {
                 id="email"
                 type="email"
                 value={emailForm.email}
-                onChange={(e) => setEmailForm({ ...emailForm, email: e.target.value })}
+                onChange={(e) =>
+                  setEmailForm({ ...emailForm, email: e.target.value })
+                }
                 className="bg-[#2a2c3d] text-white placeholder-gray-400 border border-white/20"
                 required
               />
@@ -187,7 +182,9 @@ export default function AuthPage() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={emailForm.password}
-                  onChange={(e) => setEmailForm({ ...emailForm, password: e.target.value })}
+                  onChange={(e) =>
+                    setEmailForm({ ...emailForm, password: e.target.value })
+                  }
                   className="bg-[#2a2c3d] text-white placeholder-gray-400 border border-white/20 pr-10"
                   required
                 />
@@ -210,13 +207,14 @@ export default function AuthPage() {
             </Button>
           </form>
 
-          {/* Toggle Login/Signup */}
           <div className="mt-6 text-center text-sm">
             <button
               onClick={() => setIsLogin(!isLogin)}
               className="text-blue-400 hover:underline transition-all"
             >
-              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+              {isLogin
+                ? "Don't have an account? Sign up"
+                : "Already have an account? Sign in"}
             </button>
           </div>
         </CardContent>

@@ -1,12 +1,15 @@
-// app/api/auth/check-user/route.ts
 import { connectToDatabase } from "@/lib/Database/mongodb";
 import { User } from "@/lib/Database/Models/User";
 import { NextResponse } from "next/server";
 
+interface CheckUserRequest {
+  email: string;
+}
+
 export async function POST(req: Request) {
   try {
     await connectToDatabase();
-    const body = await req.json();
+    const body: CheckUserRequest = await req.json();
 
     if (!body.email) {
       return NextResponse.json({ message: "Email is required" }, { status: 400 });
@@ -21,5 +24,6 @@ export async function POST(req: Request) {
   }
 }
 
-// Optional: prevent GET requests from throwing HTML
-export const GET = () => NextResponse.json({ message: "Use POST instead" }, { status: 405 });
+// Prevent GET requests
+export const GET = () => 
+  NextResponse.json({ message: "Use POST instead" }, { status: 405 });

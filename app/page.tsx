@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { LoaderFive } from "@/components/ui/loader";
 import {
   TrendingUp,
 } from "lucide-react";
@@ -22,10 +23,7 @@ export default function HomePage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <TrendingUp className="h-12 w-12 text-blue-500 animate-pulse mx-auto mb-4" />
-          <p className="text-white text-xl">Loading TradeView...</p>
-        </div>
+        <LoaderFive text="Loading..." />;
       </div>
     );
   }

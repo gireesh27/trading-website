@@ -60,8 +60,6 @@ export type WalletContextType = {
   // ✅ Holdings and Transactions
   analytics: AnalyticsData | null
   transactions: Transaction[];
-
-  fetchHoldingsAnalytics: () => Promise<void>;
   fetchTransactions: () => Promise<void>;
 };
 // types/wallet-types.ts (or wherever you store shared types)

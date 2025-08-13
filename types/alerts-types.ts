@@ -34,5 +34,5 @@ export interface AlertContextType {
   ) => Promise<void>;
   updateAlert: (alert: Alert) => Promise<void>;
   deleteAlert: (alertId: string) => Promise<void>;
-  fetchAlerts: (userId: string) => Promise<void>;
+  fetchAlerts: () => Promise<void>;
 }

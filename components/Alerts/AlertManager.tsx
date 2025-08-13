@@ -29,22 +29,42 @@ export function AlertsManager() {
     return <p className="text-gray-400 text-center py-6">Loading session...</p>;
   }
 
-
   return (
     <div>
-      <Card className="bg-gray-800 border-gray-700">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-white">Your Alerts</CardTitle>
+      <Card className="relative overflow-hidden border border-white/10 bg-white/5 backdrop-blur-md rounded-2xl shadow-lg">
+        {/* Decorative Glow Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 pointer-events-none" />
+
+        <CardHeader className="relative z-10 flex flex-row items-center justify-between pb-2">
+          <div>
+            {/* Creative Animated Heading */}
+            <CardTitle className="text-2xl font-extrabold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 animate-gradient-x">
+              📊 Your Smart Alerts
+            </CardTitle>
+
+            {/* Innovative Description */}
+            <p className="mt-1 text-sm text-gray-300">
+              Stay ahead of the market — your active alerts will notify you when{" "}
+              <span className="font-medium text-blue-400">
+                key price levels
+              </span>{" "}
+              or{" "}
+              <span className="font-medium text-pink-400">percent changes</span>{" "}
+              occur.
+            </p>
+          </div>
+
           <Button
             onClick={() => setIsFormOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-md hover:shadow-lg transition-all flex items-center gap-2 rounded-full"
           >
-            <PlusCircle className="h-4 w-4 mr-2" />
+            <PlusCircle className="h-4 w-4" />
             Create Alert
           </Button>
         </CardHeader>
-        <CardContent className="p-4">
-          <AlertsList onEdit={handleEdit} userId={session?.user?.id} />
+
+        <CardContent className="relative z-10 p-4">
+          <AlertsList onEdit={handleEdit} />
         </CardContent>
       </Card>
 

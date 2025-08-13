@@ -20,7 +20,7 @@ interface SymbolSuggestion {
 export function WatchlistWidget() {
   const { activeWatchlist, addToWatchlist, removeFromWatchlist } =
     useWatchlist();
-    const [sector, setSector] = useState("");
+  const [sector, setSector] = useState("");
   const [newSymbol, setNewSymbol] = useState("");
   const [suggestions, setSuggestions] = useState<SymbolSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);

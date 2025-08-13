@@ -23,7 +23,17 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
   const userId = session?.user?.id;
 
   const showError = (message: string) =>
-    toast({ title: "Error", description: message, variant: "destructive" });
+    toast({
+      title: "❌ Error",
+      description: message,
+      variant: "destructive",
+    });
+
+  // Normalize alert so it always has id
+  const normalizeAlert = (alert: any): Alert => ({
+    ...alert,
+    id: alert.id || alert._id,
+  });
 
   // ✅ Fetch alerts for the current user
   const fetchAlerts = useCallback(async () => {
@@ -32,9 +42,10 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
     try {
       const res = await fetch(`/api/alerts?userId=${userId}`);
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message || "Failed to fetch alerts");
+      if (!res.ok) throw new Error(json.error || json.message || "Failed to fetch alerts");
 
-      setAlerts(json.data);
+      const normalized = json.data.map(normalizeAlert);
+      setAlerts(normalized);
     } catch (err: any) {
       showError(err.message || "Could not load alerts");
     } finally {
@@ -59,9 +70,9 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
       });
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message || "Failed to create alert");
+      if (!res.ok) throw new Error(json.error || json.message || "Failed to create alert");
 
-      setAlerts((prev) => [...prev, json.data]);
+      setAlerts((prev) => [...prev, normalizeAlert(json.data)]);
       toast({ title: "✅ Alert Created", description: `${json.data.symbol}` });
     } catch (err: any) {
       showError(err.message || "Unknown error");
@@ -78,12 +89,11 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
       });
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message || "Failed to update alert");
+      if (!res.ok) throw new Error(json.error || json.message || "Failed to update alert");
 
-      setAlerts((prev) =>
-        prev.map((a) => (a.id === alert.id ? json.data : a))
-      );
-      toast({ title: "✅ Alert Updated", description: `${alert.symbol}` });
+      const updated = normalizeAlert(json.alert || json.data);
+      setAlerts((prev) => prev.map((a) => (a.id === alert.id ? updated : a)));
+      toast({ title: "✅ Alert Updated", description: `${updated.symbol}` });
     } catch (err: any) {
       showError(err.message || "Update failed");
     }
@@ -97,10 +107,10 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
       });
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message || "Failed to delete alert");
+      if (!res.ok) throw new Error(json.error || json.message || "Failed to delete alert");
 
       setAlerts((prev) => prev.filter((a) => a.id !== alertId));
-      toast({ title: "🗑️ Alert Deleted" });
+      toast({ title: "🗑️ Alert Deleted", description: json.message || "" });
     } catch (err: any) {
       showError(err.message || "Delete failed");
     }

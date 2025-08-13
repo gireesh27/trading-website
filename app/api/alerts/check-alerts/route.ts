@@ -1,12 +1,19 @@
 import nodemailer from "nodemailer";
 import { connectToDatabase as dbConnect } from "@/lib/Database/mongodb";
-import Alert from "@/lib/Database/Models/Alert";
+import  Alert  from "@/lib/Database/Models/Alert";
 import { User } from "@/lib/Database/Models/User";
 import { stockApi } from "@/lib/api/stock-api";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../../auth/[...nextauth]/route";
 
-// This is a GET function (like in Next.js 13 App Router)
-export async function GET() {
+export async function GET(req: Request) {
   await dbConnect();
+
+  // Get the session of the logged-in user
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user?.email) {
+    return new Response(JSON.stringify({ error: "Not authenticated" }), { status: 401 });
+  }
 
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -16,7 +23,8 @@ export async function GET() {
     },
   });
 
-  const activeAlerts = await Alert.find({ status: "active" });
+  // Only fetch alerts for this user
+  const activeAlerts = await Alert.find({ status: "active", userId: session.user.id });
   let triggeredCount = 0;
 
   for (const alert of activeAlerts) {
@@ -26,22 +34,24 @@ export async function GET() {
 
       let shouldTrigger = false;
       if (alert.type === "price") {
-        if (alert.direction === "above" && currentPrice >= alert.targetPrice) {
-          shouldTrigger = true;
-        } else if (alert.direction === "below" && currentPrice <= alert.targetPrice) {
-          shouldTrigger = true;
-        }
+        if (alert.direction === "above" && currentPrice >= (alert.targetPrice ?? 0)) shouldTrigger = true;
+        if (alert.direction === "below" && currentPrice <= (alert.targetPrice ?? 0)) shouldTrigger = true;
       }
 
       if (shouldTrigger) {
         const user = await User.findById(alert.userId);
         if (!user || !user.email) continue;
 
+        // Send real email
         await transporter.sendMail({
           from: `"TradeView Alerts" <${process.env.SMTP_USER}>`,
           to: user.email,
           subject: `Price Alert Triggered: ${alert.symbol}`,
-          text: `Your alert for ${alert.symbol} was triggered.\nCondition: ${alert.direction.toUpperCase()} ${alert.targetPrice}\nCurrent Price: ${currentPrice}`,
+          text: `Hi ${user.name || ""},
+
+Your alert for ${alert.symbol} was triggered.
+Condition: ${alert.direction?.toUpperCase()} ${alert.targetPrice}
+Current Price: ${currentPrice}`.trim(),
         });
 
         alert.status = "triggered";
@@ -56,10 +66,7 @@ export async function GET() {
   }
 
   return new Response(
-    JSON.stringify({
-      message: "Alert check completed",
-      triggeredCount,
-    }),
+    JSON.stringify({ message: "Alert check completed", triggeredCount }),
     { status: 200 }
   );
 }

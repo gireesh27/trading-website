@@ -1,5 +1,5 @@
 import { connectToDatabase } from "@/lib/Database/mongodb";
-import { AlertModel } from "@/lib/Database/Models/Alert";
+import Alert  from "@/lib/Database/Models/Alert";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Price/Volume/Change alerts must include value and condition" }, { status: 400 });
     }
 
-    const alert = await AlertModel.create({
+    const alert = await Alert.create({
       userId: userId.toString(), // ✅ Ensure it's stored as a string
       symbol: symbol.toUpperCase(),
       type,
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Missing userId in query" }, { status: 400 });
     }
 
-    const alerts = await AlertModel.find({ userId: userId.toString() }).sort({ createdAt: -1 });
+    const alerts = await Alert.find({ userId: userId.toString() }).sort({ createdAt: -1 });
 
     return NextResponse.json({ success: true, data: alerts });
   } catch (err: any) {

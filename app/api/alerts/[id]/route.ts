@@ -1,6 +1,6 @@
 // File: /app/api/alerts/[id]/route.ts
 import { connectToDatabase } from "@/lib/Database/mongodb";
-import { AlertModel } from "@/lib/Database/Models/Alert";
+import  Alert from "@/lib/Database/Models/Alert";
 import mongoose from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -25,7 +25,7 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const updated = await AlertModel.findByIdAndUpdate(id, body, {
+    const updated = await Alert.findByIdAndUpdate(id, body, {
       new: true,
       runValidators: true,
     });
@@ -54,7 +54,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
     }
 
-    const deletedAlert = await AlertModel.findByIdAndDelete(id);
+    const deletedAlert = await Alert.findByIdAndDelete(id);
     if (!deletedAlert) {
       return NextResponse.json({ error: "Alert not found" }, { status: 404 });
     }
@@ -83,7 +83,7 @@ export async function GET(
       return NextResponse.json({ error: "Invalid alert ID" }, { status: 400 });
     }
 
-    const alert = await AlertModel.findById(id);
+    const alert = await Alert.findById(id);
     if (!alert) {
       return NextResponse.json({ error: "Alert not found" }, { status: 404 });
     }

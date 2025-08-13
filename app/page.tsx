@@ -6,6 +6,9 @@ import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { LoaderFive } from "@/components/ui/loader";
+import {ColourfulText} from "@/components/ui/colourful-text"
+import {ContainerTextFlip} from "@/components/ui/container-text-flip"
+import { TailwindcssButtons } from "@/components/ui/useFul-Buttons";
 import {
   TrendingUp,
 } from "lucide-react";
@@ -43,16 +46,9 @@ export default function HomePage() {
 
             <div className="flex items-center space-x-4">
               <Link href="/auth">
-                <Button
-                  variant="ghost"
-                  className="text-white hover:text-blue-400 transition-colors duration-300"
-                >
-                  Sign In
-                </Button>
+               <TailwindcssButtons name="Top Gradient" />
               </Link>
-              <Link href="/auth">
-                <Button className="neon-button px-5 py-2">Get Started</Button>
-              </Link>
+            
             </div>
           </div>
         </div>

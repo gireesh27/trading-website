@@ -90,14 +90,25 @@ const config: Config = {
 					to: {
 						height: '0'
 					}
-				}
+				},
+				 shimmer: {
+					from: {
+						backgroundPosition: "0 0",
+					},
+					to: {
+						backgroundPosition: "-200% 0",
+					},
+				},
 			},
 			animation: {
+				shimmer: "shimmer 2s linear infinite",
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				 'fade-in': 'fadeIn 0.6s ease-out',
+				'fade-in': 'fadeIn 0.6s ease-out',
 			}
-			
+
+
+
 		}
 	},
 	plugins: [require("tailwindcss-animate")],

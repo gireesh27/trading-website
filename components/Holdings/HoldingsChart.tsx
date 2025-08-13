@@ -207,17 +207,28 @@ export default function HoldingsChart({
     const smaValues = sma?.enabled ? calculateSMA(prices, sma.period) : [];
     const emaValues = ema?.enabled ? calculateEMA(prices, ema.period) : [];
 
-    return priceHistory.map((p, index) => ({
-      ...p,
-      timestamp: new Date(p.date).getTime(),
-      formattedDate: new Date(p.date).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "2-digit",
-      }),
-      sma: smaValues[index],
-      ema: emaValues[index],
-    }));
+    return priceHistory.map((p, index) => {
+      const shiftedDate = new Date(p.date); // Corrected: Removed extra comma
+      shiftedDate.setHours(shiftedDate.getHours() + 15); // Shift UTC by +15 hours
+
+      return {
+        ...p,
+        timestamp: shiftedDate.getTime(),
+        formattedDate: `${shiftedDate.toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "2-digit",
+          timeZone: "Asia/Kolkata",
+        })} ${shiftedDate.toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+          timeZone: "Asia/Kolkata",
+        })}`,
+        sma: smaValues[index],
+        ema: emaValues[index],
+      };
+    });
   }, [priceHistory, indicatorSettings]);
 
   const {

@@ -133,7 +133,7 @@ export default function TradingPageContent() {
 
   if (isLoading || !symbol) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-gray-900 text-white">
+      <div className="flex h-screen w-full items-center justify-center bg-gray-900 text-white pt-20">
         <div className="text-center">
           <h1 className="text-2xl font-bold">
             Loading {symbol || "..."} Data...
@@ -146,7 +146,7 @@ export default function TradingPageContent() {
 
   if (error || !selectedStock) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-gray-900 text-white">
+      <div className="flex h-screen w-full items-center justify-center bg-gray-900 text-white pt-20">
         <div className="text-center p-6 bg-gray-800 border border-red-500/50 rounded-lg max-w-md">
           <h1 className="text-2xl font-bold text-red-400">
             Failed to Load {symbol}

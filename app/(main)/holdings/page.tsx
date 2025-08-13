@@ -77,7 +77,7 @@ export default function Holdings() {
   }, [selectedSymbol]);
 
   return (
-    <div className="flex flex-col bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white min-h-screen p-4 gap-4">
+    <div className="flex flex-col bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white min-h-screen  pt-20 px-4 gap-4">
       {/* Top Summary Row */}
       <div className="flex flex-col md:flex-row border border-gray-700 rounded-lg p-4 gap-4">
         <div className="flex-1 flex items-center">

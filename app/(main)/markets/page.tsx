@@ -182,7 +182,7 @@ export default function MarketsPage() {
     handleSymbolChange("global", value); // "global" can be a general ID for non-watchlist cases
   };
   return (
-    <div className="min-h-screen bg-[#131722] text-white">
+    <div className="min-h-screen bg-[#131722] text-white pt-20">
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>

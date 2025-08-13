@@ -163,7 +163,7 @@ export default function CryptoSymbolPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#131722] p-6 text-white rounded-2xl">
+    <div className="min-h-screen bg-[#131722] p-6 text-white rounded-2xl pt-20">
       {selectedStock && (
         <div className="flex flex-col lg:flex-row mt-6 gap-6">
           {/* Left side: Chart + News */}

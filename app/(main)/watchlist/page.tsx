@@ -13,7 +13,7 @@ export default function WatchlistPage() {
   const { isLoading, watchlists, activeWatchlist } = useWatchlist();
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 px-4 py-6">
+    <main className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 px-4 pt-20">
       <div className="max-w-7xl mx-auto space-y-10">
         {/* Page Header */}
         <motion.header

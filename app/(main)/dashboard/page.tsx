@@ -41,14 +41,14 @@ export default function DashboardPage() {
 
   if (authLoading || !user) {
     return (
-      <div className="min-h-screen bg-[#131722] flex items-center justify-center">
+      <div className="min-h-screen bg-[#131722] flex items-center justify-center mt-20">
         <p className="text-white">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#131722]">
+    <div className="min-h-screen bg-[#131722] pt-20">
       <div className="container mx-auto px-4 py-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">

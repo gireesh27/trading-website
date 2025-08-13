@@ -25,14 +25,14 @@ export default function HomePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center">
+      <div className=" bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center">
         <LoaderFive text="Loading..." />;
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
+    <div className=" bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
       {/* Header (only for guests) */}
       <header className="border-b border-white/10 bg-white/5 backdrop-blur-lg shadow-md z-50">
         <div className="container mx-auto px-4 py-4">

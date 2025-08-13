@@ -14,8 +14,12 @@ export default function MainLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Providers>
+         <div className="bg-[#131722] ">
           <MainNav />
+          </div>
+        <Providers>
+          {/* Navbar */}
+         
           <main >{children}</main>
         </Providers>
       </body>

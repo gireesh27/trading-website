@@ -17,7 +17,7 @@ function WalletPageContent() {
   const { isLoading } = useWallet();
 
   return (
-    <div className="bg-gradient-to-br from-[#0f1117] via-[#111827] to-[#1f2937] text-white min-h-screen">
+    <div className="bg-gradient-to-br from-[#0f1117] via-[#111827] to-[#1f2937] text-white min-h-screen pt-20">
       <div className="container mx-auto px-4 py-10 sm:px-6 lg:px-12 space-y-12">
         {/* Header Section */}
         <motion.div

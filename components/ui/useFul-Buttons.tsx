@@ -10,30 +10,6 @@ interface TailwindcssButtonsProps {
 }
 
 export function TailwindcssButtons({ name }: TailwindcssButtonsProps) {
-  const copy = (button: any) => {
-    if (button.code) {
-      copyToClipboard(button.code);
-      return;
-    }
-    const buttonString = reactElementToJSXString(button.component);
-    if (buttonString) {
-      copyToClipboard(buttonString);
-    }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        console.log("Text copied to clipboard:", text);
-        toast.success("Copied to clipboard");
-      })
-      .catch((err) => {
-        console.error("Error copying text to clipboard:", err);
-        toast.error("Error copying to clipboard");
-      });
-  };
-
   // Find the button with the given name
   const selectedButton = buttons.find(
     (btn) => btn.name.toLowerCase() === name.toLowerCase()
@@ -51,7 +27,7 @@ export function TailwindcssButtons({ name }: TailwindcssButtonsProps) {
     <div className="">
       <Toaster position="top-center" />
       <div className="">
-        <ButtonsCard onClick={() => copy(selectedButton)}>
+        <ButtonsCard>
           {selectedButton.component}
         </ButtonsCard>
       </div>

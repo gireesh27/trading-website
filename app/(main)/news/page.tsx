@@ -98,7 +98,7 @@ export default function EnhancedNewsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#131722]">
+    <div className="min-h-screen bg-[#131722] pt-20">
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>

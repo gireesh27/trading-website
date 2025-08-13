@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
-
+import {Tabs} from "@/components/ui/tabs2";
 import RedditImageFeed from "@/components/Community/Images";
 import StockTwitsTrendingFeed from "@/components/Community/Stock-Twits";
 
@@ -128,7 +128,7 @@ export default function CommunityPage() {
   );
 
   return (
-    <div className=" text-white py-8 px-4 min-h-screen bg-[rgb(19,23,34)]">
+    <div className=" text-white pb-8 px-4 min-h-screen bg-[rgb(19,23,34)] pt-20">
       {/* Tabs */}
       <div className="flex flex-wrap gap-3 justify-center md:justify-start mb-6">
         {[

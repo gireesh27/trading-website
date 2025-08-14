@@ -161,7 +161,7 @@ export default function TradingPageContent() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 bg-gray-900 p-4 min-h-screen">
+    <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 bg-gray-900 p-4 min-h-screen pt-20">
       <div className="lg:col-span-2 xl:col-span-3">
         <AdvancedTradingChart
           symbol={symbol}

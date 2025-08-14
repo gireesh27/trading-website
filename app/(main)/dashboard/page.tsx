@@ -9,6 +9,7 @@ import { useMarketData } from "@/contexts/enhanced-market-data-context";
 import { useAuth } from "@/contexts/auth-context";
 import { TextHoverEffect } from "@/components/ui/Text-Hover-Effect";
 import { Vortex } from "@/components/ui/vortex";
+import { TextGenerateEffect } from "@/components/ui/Text-Generate-Effect";
 export interface CandlestickPoint {
   time: string;
   open: number;
@@ -52,9 +53,9 @@ export default function DashboardPage() {
     <div className="relative min-h-screen bg-[#131722] pt-20">
       {/* Vortex Background */}
       <Vortex
-        particleCount={700}
+        particleCount={800}
         rangeY={100}
-        baseHue={220}
+        baseHue={420}
         baseSpeed={0.2}
         rangeSpeed={1.5}
         baseRadius={1}
@@ -74,10 +75,12 @@ export default function DashboardPage() {
               <TextHoverEffect text={user?.name} duration={3} />
             </span>
           </h1>
-
-          <p className="text-gray-400">
-            Here's what's happening with your investments today.
-          </p>
+          <div className="text-lg">
+            <TextGenerateEffect
+              words="Here is What happened to your account"
+              className="flex flex-wrap gap-1 font-semibold"
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

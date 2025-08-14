@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import HeroSection from "@/components/MainPage/Hero";
 import { EnhancedSections } from "@/components/MainPage/EnhancedSections";
+import Loader from "@/components/loader";
 export default function HomePage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
@@ -23,13 +24,14 @@ export default function HomePage() {
     }
   }, [user, isLoading, router]);
 
-  if (isLoading) {
-    return (
-      <div className=" bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center">
-        <LoaderFive text="Loading..." />;
-      </div>
-    );
-  }
+if (isLoading) {
+  return (
+    <div className="flex items-center justify-center w-screen h-screen  bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
+      <Loader />
+    </div>
+  );
+}
+
 
   return (
     <div className=" bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">

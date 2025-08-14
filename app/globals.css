@@ -409,3 +409,44 @@
     }
   }
 }
+
+/* globals.css or loader.css */
+
+/* Stroke styles */
+.stroke-back {
+  stroke: #ff4d5033;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.stroke-front {
+  stroke: #00ffff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  stroke-dasharray: 48, 144;
+  stroke-dashoffset: 192;
+}
+
+/* Animation */
+@keyframes dash {
+  72.5% {
+    opacity: 0;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Tailwind-compatible utility class */
+.animate-dash {
+  animation: dash 2s linear infinite;
+}
+
+/* Delay for front2 */
+.delay-1000 {
+  animation-delay: 1s;
+}

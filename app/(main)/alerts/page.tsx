@@ -16,7 +16,7 @@ export default function AlertsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#131722] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[#131722] flex items-center justify-center px-4 pt-20">
         <div className="w-full max-w-3xl space-y-6">
           <Skeleton className="h-8 w-1/2 rounded bg-gray-700" />
           <Skeleton className="h-4 w-2/3 rounded bg-gray-700" />

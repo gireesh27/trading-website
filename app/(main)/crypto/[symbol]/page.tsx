@@ -148,7 +148,7 @@ export default function CryptoSymbolPage() {
 
   if (loadingPage && !selectedStock) {
     return (
-      <div className="min-h-screen bg-[#131722] flex items-center justify-center">
+      <div className="min-h-screen bg-[#131722] flex items-center justify-center pt-20">
         <p className="text-white text-lg">Loading...</p>
       </div>
     );

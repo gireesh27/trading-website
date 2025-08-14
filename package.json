@@ -85,6 +85,7 @@
     "react-resizable-panels": "^2.1.7",
     "recharts": "latest",
     "redis": "^5.8.0",
+    "simplex-noise": "^4.0.3",
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",

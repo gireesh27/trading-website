@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useToast } from "../ui/use-toast";
 import { stockApi } from "@/lib/api/stock-api";
 import { cn } from "@/lib/utils"; // Optional utility for class merging
+import { Meteors } from "@/components/ui/meteors";
 
 interface SymbolSuggestion {
   symbol: string;
@@ -123,10 +124,14 @@ export function WatchlistWidget() {
   };
 
   return (
-    <Card className="bg-gray-800 border-gray-700">
+    <Card className="bg-gray-800 border-gray-700 relative overflow-hidden">
+      {/* Meteors Effect */}
+      <Meteors className="absolute inset-0 pointer-events-none" number={25} />
+
       <CardHeader>
         <CardTitle className="text-white">Watchlist</CardTitle>
       </CardHeader>
+
       <CardContent>
         <form
           onSubmit={handleAddSymbol}
@@ -184,7 +189,7 @@ export function WatchlistWidget() {
         </form>
 
         {/* Watchlist Items */}
-        <div className="space-y-2 max-h-96 overflow-y-auto">
+        <div className="space-y-2 max-h-96 overflow-y-auto relative z-10">
           {activeWatchlist?.items?.length ? (
             activeWatchlist.items.map((item) => (
               <div

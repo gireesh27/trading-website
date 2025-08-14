@@ -7,6 +7,8 @@ import { WatchlistWidget } from "@/components/watchlist/watchlist-widget";
 import { NewsWidget } from "@/components/newsWidget";
 import { useMarketData } from "@/contexts/enhanced-market-data-context";
 import { useAuth } from "@/contexts/auth-context";
+import { TextHoverEffect } from "@/components/ui/Text-Hover-Effect";
+import { Vortex } from "@/components/ui/vortex";
 export interface CandlestickPoint {
   time: string;
   open: number;
@@ -38,7 +40,6 @@ export default function DashboardPage() {
     }
   }, [marketData, selectedStock, selectStock]);
 
-
   if (authLoading || !user) {
     return (
       <div className="min-h-screen bg-[#131722] flex items-center justify-center mt-20">
@@ -48,22 +49,44 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#131722] pt-20">
-      <div className="container mx-auto px-4 py-6">
+    <div className="relative min-h-screen bg-[#131722] pt-20">
+      {/* Vortex Background */}
+      <Vortex
+        particleCount={700}
+        rangeY={100}
+        baseHue={220}
+        baseSpeed={0.2}
+        rangeSpeed={1.5}
+        baseRadius={1}
+        rangeRadius={2}
+        backgroundColor="transparent"
+        className="absolute inset-0 h-screen -z-10"
+      />
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-6 relative z-10">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            Welcome back, {user.name}!
+          <h1 className="mb-2">
+            <span className="text-lg font-semibold text-white">
+              Welcome back,
+            </span>{" "}
+            <span className="inline-block text-4xl font-extrabold">
+              <TextHoverEffect text={user?.name} duration={3} />
+            </span>
           </h1>
+
           <p className="text-gray-400">
             Here's what's happening with your investments today.
           </p>
         </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 h-full ">
+          <div className="lg:col-span-2 h-full">
             <NewsWidget />
           </div>
+
           {/* Sidebar Column */}
-          <div className="space-y-6 ">
+          <div className="space-y-6">
             <WatchlistWidget />
           </div>
         </div>

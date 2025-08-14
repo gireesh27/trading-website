@@ -12,6 +12,7 @@ import CountUp from "react-countup";
 import { StockQuote } from "@/lib/api/stock-api";
 import { OverviewCard } from "./OverViewCard";
 import { useRouter } from "next/navigation";
+import {DotBackground} from "@/components/ui/DotBackgrounDemo";
 import {
   TableCell,
   TableHead,

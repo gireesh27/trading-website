@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {ContainerScroll} from "@/components/ui/container-scroll-animation";
+
 import {
   Newspaper,
   ExternalLink,

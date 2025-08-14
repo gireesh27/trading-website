@@ -109,11 +109,12 @@ export function EnhancedSections() {
                 revealText="From First Trade to Full Portfolio — We’ve Got You Covered"
               />
             </h2>
-            <div className="text-white">
+            <div className="text-xl font-bold mx-auto text-center text-gray-300">
               <TextGenerateEffect
                 words={
                   "Unlock powerful, intuitive tools crafted for both beginners taking their first steps and professionals aiming for peak performance"
                 }
+                 className=""
               />
             </div>
           </motion.div>

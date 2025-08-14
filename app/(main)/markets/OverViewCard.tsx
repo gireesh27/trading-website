@@ -2,6 +2,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatNumber, formatCurrency } from "@/lib/utils/market"; // Assume you have these helpers
 import { StockQuote } from "@/types/trading-types";
+import { cn } from "@/lib/utils/cn";
 
 interface OverviewCardProps {
   quote: StockQuote;
@@ -24,15 +25,28 @@ export const OverviewCard: React.FC<OverviewCardProps> = ({ quote }) => {
     volume,
   } = quote;
 
-  const changeColor = change > 0 ? "text-green-500" : change < 0 ? "text-red-500" : "text-muted";
+  const changeColor =
+    change > 0 ? "text-green-500" : change < 0 ? "text-red-500" : "text-muted";
 
   return (
-    <Card className="p-4 shadow-md bg-[#131722] text-white" >
-      <CardHeader className="pb-2">
+    <Card className="relative p-4 shadow-md bg-[#131722] text-white overflow-hidden rounded-2xl">
+      {/* Dot Background */}
+      <div
+        className={cn(
+          "absolute inset-0",
+          "[background-size:20px_20px]",
+          "[background-image:radial-gradient(#404040_1px,transparent_1px)]",
+          "dark:[background-image:radial-gradient(#606060_1px,transparent_1px)]",
+          "pointer-events-none"
+        )}
+      />
+
+      <CardHeader className="pb-2 relative z-10">
         <CardTitle className="text-2xl font-semibold">{symbol}</CardTitle>
         <p className="text-muted-foreground text-sm">{name}</p>
       </CardHeader>
-      <CardContent className="space-y-4 mt-2">
+
+      <CardContent className="space-y-4 mt-2 relative z-10">
         {/* Price and Change */}
         <div className="flex items-end gap-4">
           <h2 className="text-4xl font-bold">{formatCurrency(price)}</h2>

@@ -36,20 +36,20 @@ export default function HeroSection() {
       Leap with
       <ColourfulText text=" TradeView" />
     </motion.h1>
+<motion.div
+  initial={{ opacity: 0, y: 40 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.5, duration: 1 }}
+  className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto"
+>
+  <TextGenerateEffect
+    words="Empowering traders with real-time insights, intelligent charting tools, and seamless portfolio management for smarter decisions"
+    duration={1.5}
+    filter={true}
+    className="text-3xl font-bold text-black"
+  />
+</motion.div>
 
-    <motion.p
-      initial={{ opacity: 0, y: 40 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.5, duration: 1 }}
-      className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto"
-    >
-      <TextGenerateEffect
-        words="Empowering traders with real-time insights, intelligent charting tools, and seamless portfolio management for smarter decisions"
-        duration={1.5}
-        filter={true}
-        className="text-3xl font-bold text-black"
-      />
-    </motion.p>
 
     <motion.div
       initial={{ opacity: 0 }}

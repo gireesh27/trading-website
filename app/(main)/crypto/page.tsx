@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cryptoApi } from "@/lib/api/crypto-api"; // ensure correct path
 import type { CryptoData } from "@/types/crypto-types";
-
+import { AuroraText } from "@/components/ui/AuoraText";
 import {
   Search,
   Filter,
@@ -24,6 +24,10 @@ import { CandlestickPoint } from "@/components/advanced-trading-chart";
 import { useRouter } from "next/navigation";
 import Loader from "@/components/loader";
 import { useAuth } from "@/contexts/auth-context";
+import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
+import { InteractiveGridPattern } from "@/components/ui/InteractiveGridPattern";
+import { cn } from "@/lib/utils/cn";
+import { ShinyButton } from "@/components/ui/Shiny";
 export interface CryptoQuote {
   symbol: string;
   sector?: string;
@@ -220,15 +224,36 @@ export default function CryptoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#131722] pt-20">
+    <div className="text-white pt-20 relative min-h-screen bg-[#0e0f1a] flex items-center justify-center p-4 overflow-hidden">
+      {/* Optional: Original background (blurred circles or gradient beams) */}
+      <BackgroundBeamsWithCollision className="absolute inset-0 z-0 pointer-events-none bg-gradient-to-br from-[#1a1c2b]/90 via-[#2a2c3d]/70 to-[#1a1c2b]/90">
+        <div className="w-96 h-96 bg-purple-500 opacity-30 blur-3xl rounded-full" />
+        <div className="w-96 h-96 bg-blue-500 opacity-30 blur-2xl rounded-full" />
+
+        <div className="w-96 h-96 bg-red-500 opacity-30 blur-2xl rounded-full" />
+        <div className="w-96 h-96 bg-yellow-500 opacity-30 blur-3xl rounded-full" />
+        <div className="w-96 h-96 bg-pink-500 opacity-30 blur-xl rounded-full" />
+      </BackgroundBeamsWithCollision>
+
+      {/* Interactive grid as subtle overlay */}
+      <InteractiveGridPattern
+        width={window.innerWidth / 20} // full screen width
+        height={window.innerHeight / 10} // full screen height
+        squares={[
+          Math.ceil(window.innerWidth / 10),
+          Math.ceil(window.innerHeight / 10),
+        ]} // auto number of squares
+        className="absolute inset-0 z-0 pointer-events-none"
+        squaresClassName="bg-white/5"
+      />
       <div className="container mx-auto px-4 py-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 relative z-10">
           <div>
             <h1 className="text-2xl font-bold text-white mb-2">
-              Cryptocurrency
+              <AuroraText>Cryptocurrency</AuroraText>
             </h1>
-            <p className="text-gray-400">Live crypto prices and market data</p>
+            <p className="text-gray-300">Live crypto prices and market data</p>
           </div>
           <div className="flex items-center space-x-4 mt-4 md:mt-0">
             <div className="relative">
@@ -237,12 +262,12 @@ export default function CryptoPage() {
                 placeholder="Search crypto..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-gray-800 border-gray-700 text-white"
+                className="pl-10 bg-gray-900/70 backdrop-blur-sm border border-gray-700 text-white placeholder-gray-400 focus:ring-1 focus:ring-blue-500"
               />
             </div>
             <Button
               variant="outline"
-              className="border-gray-700 text-gray-300 bg-transparent"
+              className="border-gray-700 text-gray-300 bg-gray-900/50 backdrop-blur-sm hover:bg-gray-800/60"
               onClick={() => {
                 const newOrder = sortOrder === "desc" ? "asc" : "desc";
                 setSortOrder(newOrder);
@@ -251,74 +276,65 @@ export default function CryptoPage() {
               <Filter className="h-4 w-4 mr-2" />
               Sort {sortOrder === "desc" ? "↓" : "↑"}
             </Button>
-            <Button
+            <ShinyButton
               onClick={handleRefresh}
-              className="bg-blue-600 hover:bg-blue-700"
               disabled={loadingPage}
+              className="bg-gradient-to-r from-pink-500 via-violet-500 to-orange-400 text-white font-semibold py-2 px-6 rounded-lg hover:brightness-110 transition-all duration-300"
             >
               {loadingPage ? (
                 <RefreshCw className="h-4 w-4 animate-spin" />
               ) : (
                 "Refresh"
               )}
-            </Button>
+            </ShinyButton>
           </div>
         </div>
 
         {/* Market Overview Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="bg-gray-800 border-gray-700">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Total Market Cap</p>
-                  <p className="text-white text-lg font-semibold">
-                    {formatLargeNumber(marketStats.totalMarketCap)}
-                  </p>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 relative z-10">
+          {[
+            {
+              title: "Total Market Cap",
+              value: formatLargeNumber(marketStats.totalMarketCap),
+              icon: <DollarSign className="h-8 w-8 text-blue-500" />,
+              textClass: "text-white",
+            },
+            {
+              title: "24h Volume",
+              value: formatLargeNumber(marketStats.totalVolume),
+              icon: <Activity className="h-8 w-8 text-purple-500" />,
+              textClass: "text-white",
+            },
+            {
+              title: "Gainers",
+              value: <CountUp end={marketStats.gainers} duration={1.5} />,
+              icon: <TrendingUp className="h-8 w-8 text-green-500" />,
+              textClass: "text-green-500",
+            },
+            {
+              title: "Losers",
+              value: <CountUp end={marketStats.losers} duration={1.5} />,
+              icon: <TrendingDown className="h-8 w-8 text-red-500" />,
+              textClass: "text-red-500",
+            },
+          ].map((stat) => (
+            <Card
+              key={stat.title}
+              className="bg-gray-900/70 backdrop-blur-sm border border-gray-700 hover:bg-gray-900/80 transition-colors"
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-300 text-sm">{stat.title}</p>
+                    <p className={`text-lg font-semibold ${stat.textClass}`}>
+                      {stat.value}
+                    </p>
+                  </div>
+                  {stat.icon}
                 </div>
-                <DollarSign className="h-8 w-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gray-800 border-gray-700">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">24h Volume</p>
-                  <p className="text-white text-lg font-semibold">
-                    {formatLargeNumber(marketStats.totalVolume)}
-                  </p>
-                </div>
-                <Activity className="h-8 w-8 text-purple-500" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gray-800 border-gray-700">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Gainers</p>
-                  <p className="text-green-500 text-lg font-semibold">
-                    <CountUp end={marketStats.gainers} duration={1.5} />
-                  </p>
-                </div>
-                <TrendingUp className="h-8 w-8 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gray-800 border-gray-700">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Losers</p>
-                  <p className="text-red-500 text-lg font-semibold">
-                    <CountUp end={marketStats.losers} duration={1.5} />
-                  </p>
-                </div>
-                <TrendingDown className="h-8 w-8 text-red-500" />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         {/* Main Content */}
@@ -326,16 +342,16 @@ export default function CryptoPage() {
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as "overview" | "table")}
         >
-          <TabsList className="bg-gray-800 border-gray-700">
+          <TabsList className="relative z-10 inline-flex space-x-2 bg-gray-900/80 border border-gray-700 rounded-md p-1">
             <TabsTrigger
               value="overview"
-              className="data-[state=active]:bg-gray-700"
+              className="data-[state=active]:bg-gradient-to-r from-pink-400 via-violet-500 to-orange-400 data-[state=active]:text-white rounded-md px-4 py-2 text-gray-300 font-semibold hover:text-white transition-colors"
             >
               Overview
             </TabsTrigger>
             <TabsTrigger
               value="table"
-              className="data-[state=active]:bg-gray-700"
+              className="data-[state=active]:bg-gradient-to-r from-pink-400 via-violet-500 to-orange-400 data-[state=active]:text-white rounded-md px-4 py-2 text-gray-300 font-semibold hover:text-white transition-colors"
             >
               Table View
             </TabsTrigger>
@@ -343,8 +359,8 @@ export default function CryptoPage() {
 
           {/* OVERVIEW TAB */}
           <TabsContent value="overview">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader className="flex flex-row items-center justify-between">
+            <Card className="relative bg-gray-800 border-gray-700 overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between relative z-10">
                 <CardTitle className="text-white">
                   Cryptocurrency Markets
                 </CardTitle>
@@ -362,7 +378,8 @@ export default function CryptoPage() {
                   ))}
                 </div>
               </CardHeader>
-              <CardContent>
+
+              <CardContent className="relative z-10">
                 {isLoading && allCryptoData.length === 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {[...Array(6)].map((_, i) => (
@@ -371,7 +388,7 @@ export default function CryptoPage() {
                       </div>
                     ))}
                   </div>
-                ) : error || fetchError ? ( // Check both context error and fetchError
+                ) : error || fetchError ? (
                   <div className="text-center py-8">
                     <p className="text-red-400 mb-4">{fetchError || error}</p>
                     <Button onClick={handleRefresh}>Retry</Button>
@@ -382,9 +399,20 @@ export default function CryptoPage() {
                       {overviewData.map((crypto) => (
                         <div
                           key={`${crypto.symbol}-${crypto.rank || crypto.name}`}
-                          className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-colors cursor-pointer"
+                          className="bg-gray-900 rounded-lg p-4 hover:bg-gray-700 transition-colors cursor-pointer relative"
                           onClick={() => handleSelect(crypto)}
                         >
+                          {/* Dot Background */}
+                          <div
+                            className={cn(
+                              "absolute inset-0",
+                              "[background-size:20px_20px]",
+                              "[background-image:radial-gradient(#404040_1px,transparent_1px)]",
+                              "dark:[background-image:radial-gradient(#606060_1px,transparent_1px)]",
+                              "pointer-events-none"
+                            )}
+                          />
+                          {/* Crypto Content */}
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center space-x-2">
                               <h3 className="text-white font-semibold">
@@ -449,6 +477,7 @@ export default function CryptoPage() {
                         </div>
                       ))}
                     </div>
+
                     {!loadingPage && overviewData.length === 0 && (
                       <div className="text-center py-8">
                         <p className="text-gray-400">
@@ -469,13 +498,25 @@ export default function CryptoPage() {
 
           {/* TABLE TAB */}
           <TabsContent value="table">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
+            <Card className="relative bg-gray-800 border-gray-700 overflow-hidden">
+              {/* Dot Background */}
+              <div
+                className={cn(
+                  "absolute inset-0",
+                  "[background-size:20px_20px]",
+                  "[background-image:radial-gradient(#404040_1px,transparent_1px)]",
+                  "dark:[background-image:radial-gradient(#606060_1px,transparent_1px)]",
+                  "pointer-events-none"
+                )}
+              />
+
+              <CardHeader className="relative z-10">
                 <CardTitle className="text-white">
                   Cryptocurrency Table
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+
+              <CardContent className="relative z-10">
                 {error || fetchError ? (
                   <div className="text-center py-8">
                     <p className="text-red-400 mb-4">{fetchError || error}</p>
@@ -483,7 +524,7 @@ export default function CryptoPage() {
                   </div>
                 ) : (
                   <>
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto bg-gray-900/80 p-4 rounded-md border border-gray-700">
                       <table className="w-full">
                         <thead>
                           <tr className="border-b border-gray-700">
@@ -514,24 +555,11 @@ export default function CryptoPage() {
                                   key={i}
                                   className="border-b border-gray-800 animate-pulse"
                                 >
-                                  <td className="py-4 px-4">
-                                    <div className="h-4 bg-gray-700 rounded w-1/2"></div>
-                                  </td>
-                                  <td className="py-4 px-4">
-                                    <div className="h-4 bg-gray-700 rounded"></div>
-                                  </td>
-                                  <td className="py-4 px-4 text-right">
-                                    <div className="h-4 bg-gray-700 rounded w-3/4 ml-auto"></div>
-                                  </td>
-                                  <td className="py-4 px-4 text-right">
-                                    <div className="h-4 bg-gray-700 rounded w-1/2 ml-auto"></div>
-                                  </td>
-                                  <td className="py-4 px-4 text-right">
-                                    <div className="h-4 bg-gray-700 rounded w-3/4 ml-auto"></div>
-                                  </td>
-                                  <td className="py-4 px-4 text-right">
-                                    <div className="h-4 bg-gray-700 rounded w-3/4 ml-auto"></div>
-                                  </td>
+                                  {[...Array(6)].map((_, idx) => (
+                                    <td key={idx} className="py-4 px-4">
+                                      <div className="h-4 bg-gray-700 rounded w-full"></div>
+                                    </td>
+                                  ))}
                                 </tr>
                               ))
                             : tableData.length > 0
@@ -582,13 +610,13 @@ export default function CryptoPage() {
                         </tbody>
                       </table>
                     </div>
+
                     {!loadingPage && tableData.length === 0 && !fetchError && (
-                      <div className="text-center py-8">
-                        <p className="text-gray-400">
-                          No cryptocurrencies found.
-                        </p>
+                      <div className="text-center py-8 text-gray-400">
+                        No cryptocurrencies found.
                       </div>
                     )}
+
                     {loadingPage && allCryptoData.length > 0 && (
                       <div className="flex justify-center mt-4">
                         <RefreshCw className="h-6 w-6 animate-spin text-blue-500" />
@@ -603,23 +631,23 @@ export default function CryptoPage() {
 
         {/* Overview Pagination */}
         {activeTab === "overview" && !fetchError && (
-          <div className="flex justify-center items-center mt-6 space-x-4 text-white">
+          <div className="flex justify-center items-center mt-6 space-x-4 relative z-10">
             <Button
               variant="outline"
               onClick={() => handleOverviewPageChange(overviewPage - 1)}
               disabled={overviewPage === 1 || loadingPage}
-              className="border-gray-700 text-gray-300 bg-transparent hover:bg-gray-700"
+              className="border-gray-600 bg-gray-900/70 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors duration-300 rounded-lg backdrop-blur-sm"
             >
               Previous
             </Button>
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-gray-300 px-3 py-1 rounded-md bg-gray-900/50 backdrop-blur-sm border border-gray-700 shadow-sm">
               Page {overviewPage} of {totalPages || 1}
             </span>
             <Button
               variant="outline"
               onClick={() => handleOverviewPageChange(overviewPage + 1)}
               disabled={overviewPage >= totalPages || loadingPage}
-              className="border-gray-700 text-gray-300 bg-transparent hover:bg-gray-700"
+              className="border-gray-600 bg-gray-900/70 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors duration-300 rounded-lg backdrop-blur-sm"
             >
               Next
             </Button>
@@ -628,12 +656,12 @@ export default function CryptoPage() {
 
         {/* Table Load More */}
         {activeTab === "table" && canLoadMoreTable && !fetchError && (
-          <div className="flex justify-center mt-6">
+          <div className="flex justify-center mt-6 relative z-10">
             <Button
               variant="default"
               onClick={handleTableLoadMore}
               disabled={loadingPage}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-gradient-to-r from-pink-500 via-violet-500 to-orange-400 text-white font-semibold py-2 px-6 rounded-lg shadow-lg hover:opacity-90 transition-all duration-300"
             >
               {loadingPage ? (
                 <>
@@ -646,6 +674,7 @@ export default function CryptoPage() {
             </Button>
           </div>
         )}
+
         <FooterTime />
       </div>
     </div>

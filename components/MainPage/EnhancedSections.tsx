@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { TextRevealCard } from "@/components/ui/text-reveal";
 import { FocusCards } from "@/components/ui/focused-cards";
 import Link from "next/link";
+import { NumberTicker } from "@/components/ui/NumberTicker";
 import {
   BarChart3,
   Zap,
@@ -42,7 +43,7 @@ const fadeIn = {
 const cards = [
   {
     title: "Advanced Charting",
-    src: "/images/chart-bg.jpg", 
+    src: "/images/chart-bg.jpg",
     content: {
       desc: "Professional-grade charts with 50+ technical indicators.",
       icon: <BarChart3 className="h-10 w-10 text-blue-500" />,
@@ -80,15 +81,21 @@ const cards = [
       icon: <Globe className="h-10 w-10 text-cyan-500" />,
     },
   },
-    {
+  {
     title: "Crypto",
     src: "/images/crypto-bg.jpg",
     content: {
-      desc: "Track and trade cryptocurrencies in real-time.", 
+      desc: "Track and trade cryptocurrencies in real-time.",
       icon: <Coins className="h-10 w-10 text-yellow-500" />,
     },
   },
 ];
+  const stats: [number, string, string][] = [
+    [10, "Active Traders", "text-blue-500"],
+    [50, "Daily Volume", "text-green-500"],
+    [99.9, "Uptime", "text-purple-500"],
+    [24, "Support", "text-orange-500"],
+  ];
 export function EnhancedSections() {
   return (
     <>
@@ -114,7 +121,7 @@ export function EnhancedSections() {
                 words={
                   "Unlock powerful, intuitive tools crafted for both beginners taking their first steps and professionals aiming for peak performance"
                 }
-                 className=""
+                className=""
               />
             </div>
           </motion.div>
@@ -144,23 +151,24 @@ export function EnhancedSections() {
       <section className="py-20 bg-black/80 text-white">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10 text-center">
-            {[
-              ["1M+", "Active Traders", "text-blue-500"],
-              ["₹50B+", "Daily Volume", "text-green-500"],
-              ["99.9%", "Uptime", "text-purple-500"],
-              ["24/7", "Support", "text-orange-500"],
-            ].map(([stat, label, color], i) => (
+            {stats.map(([stat, label, color], i) => (
               <motion.div
                 key={i}
-                initial="hidden"
-                whileInView="visible"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                variants={fadeIn}
-                custom={i}
+                transition={{ delay: i * 0.2, duration: 0.8 }}
               >
                 <div>
                   <div className={`text-4xl font-bold mb-2 ${color}`}>
-                    {stat}
+                    <NumberTicker value={stat} />
+                    {(stat >= 10 && stat < 50)
+                      ? "B+"
+                      : (stat >= 50 && stat <100)
+                      ? "M+"
+                      : stat < 10
+                      ? "K+"
+                      : ""}
                   </div>
                   <div className="text-gray-300">{label}</div>
                 </div>

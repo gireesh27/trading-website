@@ -9,6 +9,7 @@ import Image from "next/image";
 import {Tabs} from "@/components/ui/tabs2";
 import RedditImageFeed from "@/components/Community/Images";
 import StockTwitsTrendingFeed from "@/components/Community/Stock-Twits";
+import Loader from "@/components/loader";
 
 interface RedditPost {
   image: any;
@@ -175,7 +176,7 @@ export default function CommunityPage() {
           </div>
 
           {loading ? (
-            <p className="text-gray-400 text-center py-20">Loading posts...</p>
+           <Loader/>
           ) : error ? (
             <p className="text-red-500 text-center py-20">Error: {error}</p>
           ) : filteredPosts.length === 0 ? (

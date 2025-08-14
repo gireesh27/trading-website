@@ -11,6 +11,7 @@ import { TextHoverEffect } from "@/components/ui/Text-Hover-Effect";
 import { Vortex } from "@/components/ui/vortex";
 import { TextGenerateEffect } from "@/components/ui/Text-Generate-Effect";
 import Loader from "@/components/loader";
+import { SparklesText } from "@/components/ui/TextSparkle";
 export interface CandlestickPoint {
   time: string;
   open: number;
@@ -51,34 +52,33 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="relative bg-[#131722] items-center justify-center flex flex-col pt-20 mx-auto">
+    <div className="relative bg-[#131722] items-center justify-center flex flex-col pt-12 mx-auto">
       {/* Vortex Background */}
-      <Vortex
-        particleCount={800}
-        rangeY={100}
-        baseHue={420}
-        baseSpeed={0.2}
-        rangeSpeed={1.5}
-        baseRadius={1}
-        rangeRadius={2}
-        backgroundColor="transparent"
-        className="absolute inset-0 w-full h-full -z-10"
-      />
+      <div className="absolute inset-0 w-full h-full z-0">
+        <Vortex
+          particleCount={800}
+          rangeY={100}
+          baseHue={420}
+          baseSpeed={0.2}
+          rangeSpeed={1.5}
+          baseRadius={1}
+          rangeRadius={2}
+          backgroundColor="transparent"
+          className="fixed  inset-0 w-full h-full -z-10"
+        />
+      </div>
 
       {/* Main Content */}
       <div className="relative z-10 mx-auto px-4 py-6">
         <div className="mb-8">
-          <h1 className="mb-2">
-            <span className="text-lg font-semibold text-white">
-              Welcome back,
-            </span>{" "}
-            <span className="inline-block text-4xl font-extrabold">
-              <TextHoverEffect text={user?.name} duration={3} />
-            </span>
+          <h1 className="flex  items-end text-lg font-semibold text-white gap-2">
+            <span>Welcome back,</span>
+            <SparklesText>{user.name}</SparklesText>
           </h1>
+
           <div className="text-lg">
             <TextGenerateEffect
-              words="Here is What happened to your account"
+              words=" Monitor markets, manage your portfolio, and execute trades in real-time"
               className="flex flex-wrap gap-1 font-semibold"
             />
           </div>

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
+import Loader from "../loader";
 
 interface RedditPost {
   id: string;
@@ -127,7 +128,7 @@ export default function RedditImageFeed({ searchTerm, sortOrder }: Props) {
       </div>
 
       {/* Loading & error */}
-      {loading && <p className="text-center text-gray-300">Loading posts...</p>}
+      {loading &&  <Loader/>}
       {error && <p className="text-center text-red-500">Error: {error}</p>}
 
       {/* Posts grid */}

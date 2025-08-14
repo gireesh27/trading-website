@@ -12,7 +12,7 @@ import CountUp from "react-countup";
 import { StockQuote } from "@/lib/api/stock-api";
 import { OverviewCard } from "./OverViewCard";
 import { useRouter } from "next/navigation";
-import {DotBackground} from "@/components/ui/DotBackgrounDemo";
+import { DotBackground } from "@/components/ui/DotBackgrounDemo";
 import {
   TableCell,
   TableHead,
@@ -22,17 +22,26 @@ import {
   TableHeader,
   TableFooter,
 } from "@/components/ui/table";
+import { InteractiveGridPattern } from "@/components/ui/InteractiveGridPattern";
 
 import { formatNumber, formatCurrency } from "@/lib/utils/market";
 import { useSearchContext } from "@/contexts/Search-context";
 import { SymbolSearchBar } from "./Input_autocomplete";
 import { useAuth } from "@/contexts/auth-context";
 import Loader from "@/components/loader";
+import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
+import { ShinyButton } from "@/components/ui/Shiny";
 const ITEMS_PER_PAGE = 12;
 
 export default function MarketsPage() {
-  const { stocks, isLoading:MarketLoading, error, refreshData, loadMoreStocks, selectStock } =
-    useMarketData();
+  const {
+    stocks,
+    isLoading: MarketLoading,
+    error,
+    refreshData,
+    loadMoreStocks,
+    selectStock,
+  } = useMarketData();
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
@@ -184,7 +193,7 @@ export default function MarketsPage() {
     setSearchTerm(value);
     handleSymbolChange("global", value); // "global" can be a general ID for non-watchlist cases
   };
-const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   if (authLoading || !user) {
     return (
       <div className="bg-[#131722] flex flex-col items-center justify-center pt-20">
@@ -193,12 +202,42 @@ const { user, isLoading: authLoading } = useAuth();
     );
   }
   return (
-    <div className="min-h-screen bg-[#131722] text-white pt-20">
-      <div className="container mx-auto px-4 py-6">
+    <div className=" text-white pt-20 relative min-h-screen bg-[#0e0f1a] flex items-center justify-center p-4 overflow-hidden">
+      {/* Optional: Original background (blurred circles or gradient beams) */}
+      <BackgroundBeamsWithCollision className="absolute inset-0 z-0 pointer-events-none bg-gradient-to-br from-[#1a1c2b]/90 via-[#2a2c3d]/70 to-[#1a1c2b]/90">
+        <div className="w-96 h-96 bg-purple-500 opacity-30 blur-3xl rounded-full" />
+        <div className="w-96 h-96 bg-blue-500 opacity-30 blur-2xl rounded-full" />
+       
+        <div className="w-96 h-96 bg-red-500 opacity-30 blur-2xl rounded-full" />
+        <div className="w-96 h-96 bg-yellow-500 opacity-30 blur-3xl rounded-full" />
+        <div className="w-96 h-96 bg-pink-500 opacity-30 blur-xl rounded-full" />
+      </BackgroundBeamsWithCollision>
+
+      {/* Interactive grid as subtle overlay */}
+      <InteractiveGridPattern
+        width={window.innerWidth / 20} // full screen width
+        height={window.innerHeight / 10} // full screen height
+        squares={[
+          Math.ceil(window.innerWidth / 10),
+          Math.ceil(window.innerHeight / 10),
+        ]} // auto number of squares
+        className="absolute inset-0 z-0 pointer-events-none"
+        squaresClassName="bg-white/5"
+      />
+
+      {/* Main content */}
+      <div className="relative z-10 container mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold mb-2">Stock Market</h1>
-            <p className="text-gray-400">Live stock quotes and data</p>
+            <div className="text-left">
+              <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500 animate-gradient-x">
+                Global Markets Dashboard
+              </h1>
+              <p className="mt-3 text-gray-300 text-lg md:text-xl mx-auto">
+                Live stock quotes, market trends, and portfolio insights — all
+                in real time.
+              </p>
+            </div>
           </div>
           <div className="flex items-center space-x-4 mt-4 md:mt-0">
             <SymbolSearchBar
@@ -207,15 +246,17 @@ const { user, isLoading: authLoading } = useAuth();
                 setSearchTerm(symbol);
               }}
             />
-            <Button
-              onClick={() => handleRefresh()}
-              className="bg-blue-600 hover:bg-blue-700"
+            <ShinyButton
+              onClick={handleRefresh}
+              className="bg-gradient-to-r from-pink-500 via-violet-500 to-orange-400
+             text-white font-semibold py-2 px-6 rounded-lg
+             hover:from-pink-400 hover:via-violet-400 hover:to-orange-300
+             transition-all duration-300"
             >
-              <RefreshCw className="h-4 w-4 mr-2" /> Refresh
-            </Button>
+              Refresh
+            </ShinyButton>
           </div>
         </div>
-
         {/* Stats Section */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           {["Market Cap", "Volume", "Gainers", "Losers"].map((label) => (
@@ -252,9 +293,25 @@ const { user, isLoading: authLoading } = useAuth();
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="bg-gray-800 border border-gray-700 mb-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="table">Table</TabsTrigger>
+          <TabsList className="bg-gray-800 border border-gray-700 mb-4 rounded-md inline-flex gap-2 p-1">
+            <TabsTrigger
+              value="overview"
+              className="py-2 px-4 font-semibold rounded-md
+      bg-gradient-to-r from-pink-500 via-violet-500 to-orange-400
+      text-transparent bg-clip-text
+      data-[state=active]:bg-white data-[state=active]:text-white"
+            >
+              Overview
+            </TabsTrigger>
+            <TabsTrigger
+              value="table"
+              className="py-2 px-4 font-semibold rounded-md
+      bg-gradient-to-r from-pink-500 via-violet-500 to-orange-400
+      text-transparent bg-clip-text
+      data-[state=active]:bg-white data-[state=active]:text-white"
+            >
+              Table
+            </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -331,7 +388,7 @@ const { user, isLoading: authLoading } = useAuth();
 
           {/* Table Tab */}
           <TabsContent value="table">
-            <div className="overflow-x-auto border border-gray-700 rounded-md">
+            <div className="bg-gray-900/90 backdrop-blur-sm p-4 rounded-md border border-gray-700 overflow-x-auto">
               <Table className="text-lg">
                 <TableHeader>
                   <TableRow>
@@ -397,7 +454,7 @@ const { user, isLoading: authLoading } = useAuth();
                   {sortedStocks.map((stock) => (
                     <TableRow
                       key={stock.symbol}
-                      className="text-lg"
+                      className="text-lg hover:bg-gray-800 transition-colors cursor-pointer"
                       onClick={() => router.push(`/trade/${stock.symbol}`)}
                     >
                       <TableCell className="font-bold">

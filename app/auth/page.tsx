@@ -19,12 +19,18 @@ import { FaGithub } from "react-icons/fa"; // <-- replaced Twitter with GitHub
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
+import { TextGenerateEffect } from "@/components/ui/Text-Generate-Effect";
+import { ColourfulText } from "@/components/ui/colourful-text";
 
 const ErrorMessage = dynamic(() => import("./ErrorMessage"), { ssr: false });
 
 export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [emailForm, setEmailForm] = useState({ email: "", password: "", name: "" });
+  const [emailForm, setEmailForm] = useState({
+    email: "",
+    password: "",
+    name: "",
+  });
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -86,9 +92,14 @@ export default function AuthPage() {
       ref={parentRef}
       className="relative min-h-screen bg-[#0e0f1a] flex items-center justify-center p-4 overflow-hidden"
     >
-      <BackgroundBeamsWithCollision className="absolute inset-0 z-0 pointer-events-none">
-        <div className="w-96 h-96 bg-purple-500 opacity-30 blur-3xl rounded-full" />
-        <div className="w-96 h-96 bg-blue-500 opacity-30 blur-3xl rounded-full" />
+      <BackgroundBeamsWithCollision className="absolute inset-0 z-0 pointer-events-none bg-gradient-to-br from-[#1a1c2b]/90 via-[#2a2c3d]/70 to-[#1a1c2b]/90">
+        {/* Top points */}
+        <div className="absolute top-0 left-1/4 w-48 h-48 bg-blue-500 opacity-50 blur-3xl rounded-full" />
+        <div className="absolute top-0 right-1/4 w-48 h-48 bg-green-400 opacity-50 blur-3xl rounded-full" />
+
+        {/* Bottom points */}
+        <div className="absolute bottom-0 left-1/4 w-48 h-48 bg-blue-500 opacity-50 blur-3xl rounded-full" />
+        <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-green-400 opacity-50 blur-3xl rounded-full" />
       </BackgroundBeamsWithCollision>
 
       <Card className="w-full max-w-md z-10 backdrop-blur-lg bg-gradient-to-br from-[#1a1c2b]/90 via-[#2a2c3d]/70 to-[#1a1c2b]/90 border border-white/20 shadow-2xl rounded-2xl text-white transition-all duration-500 hover:shadow-neon">
@@ -97,14 +108,11 @@ export default function AuthPage() {
             href="/"
             className="text-3xl font-extrabold text-white drop-shadow-lg transition-all duration-300 hover:scale-105"
           >
-            TradeView
+            <ColourfulText text=" TradeView" />
           </Link>
-          <CardTitle className="text-xl text-blue-300 font-semibold drop-shadow">
+          <CardTitle className="text-xl font-semibold drop-shadow bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 text-transparent bg-clip-text">
             {isLogin ? "Welcome Back" : "Create an Account"}
           </CardTitle>
-          <CardDescription className="text-gray-300">
-            {isLogin ? "Sign in to access your dashboard." : "Get started with trading."}
-          </CardDescription>
         </CardHeader>
 
         <CardContent>
@@ -193,17 +201,36 @@ export default function AuthPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-white/70"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>
 
             <Button
               type="submit"
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white"
               disabled={isLoading}
+              className="relative overflow-hidden w-full py-3 px-6 rounded-lg font-semibold text-white bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 
+             hover:from-pink-500 hover:via-violet-500 hover:to-blue-500 transition-all duration-500 focus:outline-none"
+              onClick={(e) => {
+                const ripple = document.createElement("span");
+                ripple.className =
+                  "ripple absolute rounded-full bg-white/30 animate-ripple";
+                const rect = e.currentTarget.getBoundingClientRect();
+                ripple.style.left = `${e.clientX - rect.left}px`;
+                ripple.style.top = `${e.clientY - rect.top}px`;
+                e.currentTarget.appendChild(ripple);
+                setTimeout(() => ripple.remove(), 600);
+              }}
             >
-              {isLoading ? "Please wait..." : isLogin ? "Sign In" : "Create Account"}
+              {isLoading
+                ? "Please wait..."
+                : isLogin
+                ? "Sign In"
+                : "Create Account"}
             </Button>
           </form>
 

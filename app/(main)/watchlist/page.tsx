@@ -11,9 +11,11 @@ import { CreateWatchlistDialog } from "@/components/watchlist/create-watchlist-d
 import { motion } from "framer-motion";
 import Loader from "@/components/loader";
 import { useAuth } from "@/contexts/auth-context";
+import VantaNetBackground from "@/components/ui/VantaNetBackground";
+import { TextGenerateEffect } from "@/components/ui/Text-Generate-Effect";
 export default function WatchlistPage() {
   const { isLoading, watchlists, activeWatchlist } = useWatchlist();
-  const { user,  } = useAuth();
+  const { user } = useAuth();
   if (isLoading || !user) {
     return (
       <div className="bg-[#131722] flex flex-col items-center justify-center pt-20">
@@ -22,22 +24,27 @@ export default function WatchlistPage() {
     );
   }
   return (
-    <main className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 px-4 pt-20">
-      <div className="max-w-7xl mx-auto space-y-10">
+    <main className="relative min-h-screen">
+      {/* Animated background */}
+      <div className="fixed inset-0 z-0 w-full h-full">
+        <VantaNetBackground />
+      </div>
+
+      {/* Foreground content */}
+      <div className="relative z-10 px-4 pt-20">
         {/* Page Header */}
         <motion.header
-          className="text-center space-y-3 mb-6"
+          className="flex flex-col items-center justify-center text-center space-y-3 mb-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight drop-shadow-sm">
+          <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500 animate-gradient-x">
             📈 Your Watchlists
           </h1>
-          <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto">
-            Track your favorite stocks and crypto assets{" "}
-            <span className="text-blue-400 font-medium">in real-time</span>.
-          </p>
+          <div className="flex flex-wrap justify-center gap-1 font-semibold text-center">
+            <TextGenerateEffect words=" Track your Favourite stocks and Crypto assets in Real Time" />
+          </div>
         </motion.header>
 
         {/* Top Quick Add Widget */}
@@ -55,19 +62,19 @@ export default function WatchlistPage() {
               Manage Watchlists
             </h2>
           </div>
-          <div className="rounded-lg border border-gray-700 bg-gray-800 p-4">
+          <div className="rounded-lg border border-gray-700 bg-gray-900/80 backdrop-blur-sm p-4">
             <WatchlistDisplay />
           </div>
         </section>
 
-        {/* Main Panel: Summary + Alerts + Widget */}
+        {/* Main Panel */}
         <section>
           {isLoading ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-gray-300">
               Loading your watchlists...
             </div>
           ) : !activeWatchlist?.items?.length ? (
-            <div className="text-center py-16 space-y-4 text-gray-400">
+            <div className="text-center py-16 space-y-4 text-gray-300">
               <p className="text-lg">Your current watchlist is empty.</p>
               <CreateWatchlistDialog
                 trigger={<Button>Create Watchlist</Button>}
@@ -88,8 +95,7 @@ export default function WatchlistPage() {
                     {activeWatchlist.name}
                   </h2>
                 </div>
-
-                <div className="rounded-lg border border-gray-700 bg-gray-800 p-4">
+                <div className="rounded-lg border border-gray-700 bg-gray-900/80 backdrop-blur-sm p-4">
                   <WatchlistWidget />
                 </div>
               </div>

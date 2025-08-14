@@ -26,10 +26,12 @@ import {
 import { formatNumber, formatCurrency } from "@/lib/utils/market";
 import { useSearchContext } from "@/contexts/Search-context";
 import { SymbolSearchBar } from "./Input_autocomplete";
+import { useAuth } from "@/contexts/auth-context";
+import Loader from "@/components/loader";
 const ITEMS_PER_PAGE = 12;
 
 export default function MarketsPage() {
-  const { stocks, isLoading, error, refreshData, loadMoreStocks, selectStock } =
+  const { stocks, isLoading:MarketLoading, error, refreshData, loadMoreStocks, selectStock } =
     useMarketData();
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
@@ -182,6 +184,14 @@ export default function MarketsPage() {
     setSearchTerm(value);
     handleSymbolChange("global", value); // "global" can be a general ID for non-watchlist cases
   };
+const { user, isLoading: authLoading } = useAuth();
+  if (authLoading || !user) {
+    return (
+      <div className="bg-[#131722] flex flex-col items-center justify-center pt-20">
+        <Loader />
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-[#131722] text-white pt-20">
       <div className="container mx-auto px-4 py-6">
@@ -249,7 +259,7 @@ export default function MarketsPage() {
 
           {/* Overview Tab */}
           <TabsContent value="overview">
-            {isLoading && currentOverviewData.length === 0 ? (
+            {MarketLoading && currentOverviewData.length === 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[...Array(6)].map((_, i) => (
                   <div key={i} className="animate-pulse">
@@ -282,7 +292,7 @@ export default function MarketsPage() {
                   ))}
                 </div>
 
-                {!isLoading && currentOverviewData.length === 0 && (
+                {!MarketLoading && currentOverviewData.length === 0 && (
                   <div className="text-center py-8">
                     <p className="text-gray-400">
                       No stocks found matching your search.
@@ -292,7 +302,7 @@ export default function MarketsPage() {
               </>
             )}
 
-            {isLoading && currentOverviewData.length > 0 && (
+            {MarketLoading && currentOverviewData.length > 0 && (
               <div className="flex justify-center mt-4">
                 <RefreshCw className="h-6 w-6 animate-spin text-blue-500" />
               </div>
@@ -311,7 +321,7 @@ export default function MarketsPage() {
               </div>
               <Button
                 onClick={handleNextOverview}
-                disabled={isLoading}
+                disabled={MarketLoading}
                 className="bg-gray-700 disabled:opacity-50"
               >
                 Next →
@@ -428,7 +438,7 @@ export default function MarketsPage() {
             <div className="flex justify-center mt-6">
               <Button
                 onClick={handleLoadMoreTable}
-                disabled={isLoading}
+                disabled={MarketLoading}
                 className="bg-blue-600 hover:bg-blue-700"
               >
                 Load More

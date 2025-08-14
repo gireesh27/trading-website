@@ -9,9 +9,18 @@ import { useWatchlist } from "@/contexts/watchlist-context";
 import { Button } from "@/components/ui/button";
 import { CreateWatchlistDialog } from "@/components/watchlist/create-watchlist-dialog";
 import { motion } from "framer-motion";
+import Loader from "@/components/loader";
+import { useAuth } from "@/contexts/auth-context";
 export default function WatchlistPage() {
   const { isLoading, watchlists, activeWatchlist } = useWatchlist();
-
+  const { user,  } = useAuth();
+  if (isLoading || !user) {
+    return (
+      <div className="bg-[#131722] flex flex-col items-center justify-center pt-20">
+        <Loader />
+      </div>
+    );
+  }
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 px-4 pt-20">
       <div className="max-w-7xl mx-auto space-y-10">

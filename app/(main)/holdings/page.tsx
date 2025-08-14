@@ -10,7 +10,7 @@ import SectorAllocation from "@/components/Holdings/sectorAllocation";
 import TotalPortfolioValue from "@/components/Holdings/TotalPortfolioValue";
 import InvestedVsCurrent from "@/components/Holdings/InvestedCurrent";
 import { calculatePortfolioStats } from "@/components/UtilFunctions/HoldingsSummary";
-
+import Loading from "@/components/loader";
 export default function Holdings() {
   const [holdings, setHoldings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -76,6 +76,13 @@ export default function Holdings() {
     fetchHistory();
   }, [selectedSymbol]);
 
+  if (loading)
+    return (
+      <div className="bg-gradient-to-br from-slate-900 via-gray-900 to-black">
+        <Loading />
+      </div>
+    );
+
   return (
     <div className="flex flex-col bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white min-h-screen  pt-20 px-4 gap-4">
       {/* Top Summary Row */}
@@ -110,7 +117,9 @@ export default function Holdings() {
         {selectedSymbol && (
           <div className="bg-gray-900/60 backdrop-blur rounded-lg p-4 w-full lg:w-2/5 min-h-[300px] flex flex-col justify-center">
             {priceLoading ? (
-              <p className="text-gray-400 text-center">Loading price history...</p>
+              <p className="text-gray-400 text-center">
+                Loading price history...
+              </p>
             ) : priceHistory.length ? (
               <HoldingsChart
                 symbol={selectedSymbol}

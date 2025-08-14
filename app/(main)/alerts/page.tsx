@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { AlertsManager } from "@/components/Alerts/AlertManager";
 import { AlertsProvider } from "@/contexts/alerts-context";
 import { Skeleton } from "@/components/ui/skeleton";
+import Loader from "@/components/loader";
 
 export default function AlertsPage() {
   const [loading, setLoading] = useState(true);
@@ -16,16 +17,8 @@ export default function AlertsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#131722] flex items-center justify-center px-4 pt-20">
-        <div className="w-full max-w-3xl space-y-6">
-          <Skeleton className="h-8 w-1/2 rounded bg-gray-700" />
-          <Skeleton className="h-4 w-2/3 rounded bg-gray-700" />
-          <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-20 w-full rounded bg-gray-700" />
-            ))}
-          </div>
-        </div>
+    <div className="bg-[#131722] flex flex-col items-center justify-center pt-20">
+        <Loader />
       </div>
     );
   }

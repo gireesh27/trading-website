@@ -20,10 +20,10 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import CountUp from "react-countup";
-import {
-  CandlestickPoint,
-} from "@/components/advanced-trading-chart";
+import { CandlestickPoint } from "@/components/advanced-trading-chart";
 import { useRouter } from "next/navigation";
+import Loader from "@/components/loader";
+import { useAuth } from "@/contexts/auth-context";
 export interface CryptoQuote {
   symbol: string;
   sector?: string;
@@ -43,8 +43,7 @@ const getCleanSymbol = (raw: string): string =>
 
 const normalizeToYahooSymbol = (clean: string): string => `${clean}-USD`;
 export default function CryptoPage() {
-  const { isLoading, error, refreshCrypto } =
-    useMarketData();
+  const { isLoading, error, refreshCrypto } = useMarketData();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<
@@ -73,56 +72,56 @@ export default function CryptoPage() {
     router.push(`/crypto/${normalized}`);
   };
 
-const fetchCryptoData = useCallback(
-  async (page: number, replace: boolean = false) => {
-    setLoadingPage(true);
-    if (replace) setFetchError(null);
+  const fetchCryptoData = useCallback(
+    async (page: number, replace: boolean = false) => {
+      setLoadingPage(true);
+      if (replace) setFetchError(null);
 
-    try {
-      // Call your cached backend API route here
-      const response = await fetch(`/api/crypto/quotes`);
-      if (!response.ok) throw new Error("Failed to fetch crypto data");
+      try {
+        // Call your cached backend API route here
+        const response = await fetch(`/api/crypto/quotes`);
+        if (!response.ok) throw new Error("Failed to fetch crypto data");
 
-      const quotes = await response.json();
+        const quotes = await response.json();
 
-      // Normalize data
-      const normalized: CryptoData[] = quotes.map((q: any) => ({
-        symbol: q.symbol,
-        sector: "crypto",
-        name: q.name,
-        price: q.price,
-        change: q.change,
-        changePercent: q.changePercent,
-        volume: q.volume,
-        marketCap: q.marketCap ?? 0,
-        high: q.high,
-        low: q.low,
-        rank: q.rank,
-        dominance: q.dominance,
-      }));
+        // Normalize data
+        const normalized: CryptoData[] = quotes.map((q: any) => ({
+          symbol: q.symbol,
+          sector: "crypto",
+          name: q.name,
+          price: q.price,
+          change: q.change,
+          changePercent: q.changePercent,
+          volume: q.volume,
+          marketCap: q.marketCap ?? 0,
+          high: q.high,
+          low: q.low,
+          rank: q.rank,
+          dominance: q.dominance,
+        }));
 
-      if (normalized.length < ITEMS_PER_PAGE) {
-        setHasMoreData(false);
+        if (normalized.length < ITEMS_PER_PAGE) {
+          setHasMoreData(false);
+        }
+
+        setAllCryptoData((prev) => {
+          if (replace) return normalized;
+
+          const existingSymbols = new Set(prev.map((crypto) => crypto.symbol));
+          const newData = normalized.filter(
+            (crypto) => !existingSymbols.has(crypto.symbol)
+          );
+          return [...prev, ...newData];
+        });
+      } catch (error) {
+        console.error("❌ Error in fetchCryptoData:", error);
+        setFetchError("Failed to fetch crypto data. Please try again later.");
+      } finally {
+        setLoadingPage(false);
       }
-
-      setAllCryptoData((prev) => {
-        if (replace) return normalized;
-
-        const existingSymbols = new Set(prev.map((crypto) => crypto.symbol));
-        const newData = normalized.filter(
-          (crypto) => !existingSymbols.has(crypto.symbol)
-        );
-        return [...prev, ...newData];
-      });
-    } catch (error) {
-      console.error("❌ Error in fetchCryptoData:", error);
-      setFetchError("Failed to fetch crypto data. Please try again later.");
-    } finally {
-      setLoadingPage(false);
-    }
-  },
-  []
-);
+    },
+    []
+  );
 
   const handleOverviewPageChange = useCallback(
     (newPage: number) => {
@@ -211,6 +210,14 @@ const fetchCryptoData = useCallback(
       setTablePage(1);
     }
   }, [searchTerm, sortBy, sortOrder, activeTab]);
+  const { user, isLoading: authLoading } = useAuth();
+  if (authLoading || !user) {
+    return (
+      <div className="bg-[#131722] flex flex-col items-center justify-center pt-20">
+        <Loader />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#131722] pt-20">

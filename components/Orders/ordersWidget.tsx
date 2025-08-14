@@ -26,51 +26,48 @@ export default function OrdersWidget() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   const { toast } = useToast();
-  const {
-    getOrder,
-  } = useOrders();
-const { data: session, status } = useSession();
+  const { getOrder } = useOrders();
+  const { data: session, status } = useSession();
 
-const fetchOrders = async () => {
-  if (!session?.user) return; // extra guard
+  const fetchOrders = async () => {
+    if (!session?.user) return; // extra guard
 
-  setLoading(true);
-  try {
-    const res = await fetch("/api/trading/orders", {
-      method: "GET",
-      cache: "no-store",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    setLoading(true);
+    try {
+      const res = await fetch("/api/trading/orders", {
+        method: "GET",
+        cache: "no-store",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to fetch orders");
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to fetch orders");
+      }
+
+      setOrders(data.orders || []);
+    } catch (error: any) {
+      console.error("Error fetching orders:", error);
+      toast({
+        title: "Failed to fetch orders",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-
-    setOrders(data.orders || []);
-  } catch (error: any) {
-    console.error("Error fetching orders:", error);
-    toast({
-      title: "Failed to fetch orders",
-      description: error.message,
-      variant: "destructive",
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
 
-
-useEffect(() => {
-  if (status === "authenticated") {
-    fetchOrders();
-  }
-}, [status]);
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetchOrders();
+    }
+  }, [status]);
   const handleComplete = (order: Order) => {
     setSelectedOrder(order);
     setModalOpen(true);

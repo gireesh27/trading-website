@@ -8,6 +8,7 @@ import {
   Stock,
   Range,
 } from "@/components/advanced-trading-chart";
+import Loading from "@/components/loader";
 import { EnhancedTradingInterface } from "@/components/enhanced-trading-interface";
 import { Activity } from "lucide-react";
 import { stockApi } from "@/lib/api/stock-api";
@@ -131,18 +132,20 @@ export default function TradingPageContent() {
     []
   );
 
-  if (isLoading || !symbol) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-gray-900 text-white pt-20">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">
-            Loading {symbol || "..."} Data...
-          </h1>
-          <Activity className="mx-auto mt-4 h-12 w-12 animate-spin" />
-        </div>
-      </div>
-    );
-  }
+if (isLoading || !symbol) {
+  return (
+    <div className="fixed inset-0 flex flex-col justify-center items-center bg-gray-900 text-white z-50">
+      {/* Centered Loader */}
+      <Loading />
+
+      {/* Text just below loader */}
+      <h1 className="mb-20 text-xl font-bold text-center">
+        Loading {symbol || "..."} Data...
+      </h1>
+    </div>
+  );
+}
+
 
   if (error || !selectedStock) {
     return (

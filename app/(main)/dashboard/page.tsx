@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { TextHoverEffect } from "@/components/ui/Text-Hover-Effect";
 import { Vortex } from "@/components/ui/vortex";
 import { TextGenerateEffect } from "@/components/ui/Text-Generate-Effect";
+import Loader from "@/components/loader";
 export interface CandlestickPoint {
   time: string;
   open: number;
@@ -43,14 +44,14 @@ export default function DashboardPage() {
 
   if (authLoading || !user) {
     return (
-      <div className="min-h-screen bg-[#131722] flex items-center justify-center mt-20">
-        <p className="text-white">Loading...</p>
+      <div className="bg-[#131722] flex flex-col items-center justify-center pt-20">
+        <Loader />
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-screen bg-[#131722] pt-20">
+    <div className="relative bg-[#131722] items-center justify-center flex flex-col pt-20 mx-auto">
       {/* Vortex Background */}
       <Vortex
         particleCount={800}
@@ -61,11 +62,11 @@ export default function DashboardPage() {
         baseRadius={1}
         rangeRadius={2}
         backgroundColor="transparent"
-        className="absolute inset-0 h-screen -z-10"
+        className="absolute inset-0 w-full h-full -z-10"
       />
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-6 relative z-10">
+      <div className="relative z-10 mx-auto px-4 py-6">
         <div className="mb-8">
           <h1 className="mb-2">
             <span className="text-lg font-semibold text-white">

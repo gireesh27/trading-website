@@ -1,23 +1,27 @@
 "use client";
 
 import { WalletProvider, useWallet } from "@/contexts/wallet-context";
-import { Loader2 } from "lucide-react";
-import WalletTransactionTable from "@/components/wallet/WalletTransactionTable";
-import CreateWalletPasswordForm from "@/components/wallet/CreateWalletPasswordForm";
-import GetSubscriptionCard from "@/components/subscription/GetSubscription";
+import { motion } from "framer-motion";
+import Loader from "@/components/loader";
 import AddMoneyButton from "@/components/razorpay/handleAddMoney";
+import CreateWalletPasswordForm from "@/components/wallet/CreateWalletPasswordForm";
 import PaymentForm from "@/components/razorpay/payuAdd";
 import WalletBalancePage from "@/components/wallet/WalletBalance";
-import { motion } from "framer-motion";
-import PayuPayoutForm from "@/components/razorpay/PayuPayoutForm";
 import WithdrawForm from "@/components/razorpay/withdrawForm";
-import BankTransactions from "@/components/razorpay/BankTransactions";
-
+import WalletTransactionTable from "@/components/wallet/WalletTransactionTable";
+import { useAuth } from "@/contexts/auth-context";
 function WalletPageContent() {
-  const { isLoading } = useWallet();
+  const { user, isLoading: authLoading } = useAuth();
+  if (authLoading || !user) {
+    return (
+      <div className="bg-[#131722] flex flex-col items-center justify-center pt-20">
+        <Loader />
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-gradient-to-br from-[#0f1117] via-[#111827] to-[#1f2937] text-white min-h-screen pt-20">
+    <div className="bg-gradient-to-br from-[#0f1117] via-[#111827] to-[#1f2937] text-white pt-20 min-h-screen">
       <div className="container mx-auto px-4 py-10 sm:px-6 lg:px-12 space-y-12">
         {/* Header Section */}
         <motion.div
@@ -48,65 +52,42 @@ function WalletPageContent() {
           </p>
         </motion.div>
 
-        {/* Loading State */}
-        {isLoading ? (
-          <div className="flex justify-center items-center h-96">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+        {/* Section 1: Balance & Actions */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.7 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+        >
+          <div className="w-full flex flex-col items-center justify-center gap-4 p-6 bg-black/30 border border-gray-700/50 rounded-xl backdrop-blur-md shadow-lg">
+            <AddMoneyButton />
+            <CreateWalletPasswordForm />
           </div>
-        ) : (
-          <>
-            {/* Section 1: Balance & Actions */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.7 }}
-              className="grid grid-cols-1 md:grid-cols-3 gap-6"
-            >
-              {/* Add Money */}
-              <div className="w-full flex flex-col items-center justify-center gap-4 p-6 bg-black/30 border border-gray-700/50 rounded-xl backdrop-blur-md shadow-lg">
-                <AddMoneyButton />
-                <CreateWalletPasswordForm />
-              </div>
 
-              {/* Wallet Balance */}
-              <div className="w-full">
-                <WalletBalancePage />
-              </div>
+          <div className="w-full">
+            <WalletBalancePage />
+          </div>
 
-              {/* Withdraw Card */}
-              <div className="w-full">
-                <PaymentForm />
-              </div>
-            </motion.div>
+          <div className="w-full">
+            <PaymentForm />
+          </div>
+        </motion.div>
 
-            {/* Section 2: Withdraw + Transactions */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.8 }}
-              className="grid grid-cols-1 md:grid-cols-2 gap-6"
-            >
-              {/* Withdraw Form */}
-              <div className="w-full">
-                <WithdrawForm />
-              </div>
+        {/* Section 2: Withdraw + Transactions */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.8 }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-6"
+        >
+          <div className="w-full">
+            <WithdrawForm />
+          </div>
 
-              {/* Transactions Table */}
-              <div className="w-full">
-                <WalletTransactionTable />
-              </div>
-            </motion.div>
-
-            {/* Section 3: Charts (optional) */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.8 }}
-            >
-              {/* <WalletHoldingsChart /> */}
-            </motion.div>
-          </>
-        )}
+          <div className="w-full">
+            <WalletTransactionTable />
+          </div>
+        </motion.div>
       </div>
     </div>
   );

@@ -9,7 +9,7 @@ export async function GET(
   req: Request,
   context: { params: { symbol: string } }
 ) {
-  const { symbol } = context.params;
+ const { symbol } = await context.params;
 
   const cacheKey = `daily-prices:${symbol}`;
 

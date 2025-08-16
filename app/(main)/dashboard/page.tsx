@@ -18,6 +18,8 @@ import OrdersListWidget from "@/components/Orders/OrderListWidget";
 import { EnhancedTradingInterface } from "@/components/enhanced-trading-interface";
 import { QuickTrade } from "@/components/quicktrade";
 import AddMoneyButton from "@/components/razorpay/handleAddMoney";
+import PaymentForm from "@/components/razorpay/payuAdd";
+import PayuForm from "@/components/payuMoney";
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
@@ -100,13 +102,14 @@ export default function DashboardPage() {
             <div className="w-full ">
               <NewsWidget />
             </div>
-            <div className=" flex flex-col lg:flex-row gap-6 overflow-x-hidden">
-              <div className="w-full lg:w-3/5">
-                <QuickTrade />
+            <div className=" flex flex-col lg:flex-row overflow-x-hidden">
+               <div className="w-full lg:w-3/5">
+                <PayuForm />
               </div>
               <div className="w-full lg:w-2/5">
-               <AddMoneyButton />
+                <QuickTrade />
               </div>
+             
             </div>
           </div>
 

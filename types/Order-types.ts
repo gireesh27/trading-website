@@ -3,7 +3,7 @@ export interface Order {
   _id: string;
   userId: string; // string representation of mongoose.ObjectId
   symbol: string;
-  sector: "Markets" | "crypto";
+  sector: "Markets" | "crypto" ;
   quantity: number;
   price?: number;
   type: "buy" | "sell";

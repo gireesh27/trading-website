@@ -72,13 +72,18 @@ export default function DashboardPage() {
       {/* Main Content */}
       <div className="relative z-10 mx-auto px-4 pt-6">
         <div className="mb-8">
-          <CryptoTicker/>
-          <h1 className="flex  items-end text-lg font-semibold text-white gap-2">
+          {/* CryptoTicker Container */}
+          <div className="w-full max-w-[99vw] rounded-lg bg-black/50 mt-2 overflow-hidden">
+            <div className="flex items-center justify-center">
+              <CryptoTicker />
+            </div>
+          </div>
+          
+          <h1 className="flex items-end text-lg font-semibold text-white gap-2 mt-4">
             <span>Welcome back,</span>
             <SparklesText>{user.name}</SparklesText>
           </h1>
-
-          <div className="text-lg">
+          <div className="text-lg mt-2">
             <TextGenerateEffect
               words=" Monitor markets, manage your portfolio, and execute trades in real-time"
               className="flex flex-wrap gap-1 font-semibold"

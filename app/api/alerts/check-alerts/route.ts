@@ -12,6 +12,7 @@ export async function GET(req: Request) {
   // ✅ Get the session of the logged-in user
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.email) {
+    console.error("Not authenticated");
     return new Response(JSON.stringify({ error: "Not authenticated" }), {
       status: 401,
     });

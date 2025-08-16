@@ -508,3 +508,28 @@
     }
   }
 }
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-40%);
+  }
+}
+
+.marquee {
+  display: flex;
+  overflow: hidden;
+  width: 100%;
+  background-color: #18181b; /* optional */
+  border-top: 1px solid #27272a;
+  border-bottom: 1px solid #27272a;
+  border-radius: 0.5rem;
+}
+
+.marquee-content {
+  display: flex;
+  gap: 1.5rem;
+  white-space: wrap;
+  animation: marquee 60s linear infinite;
+}

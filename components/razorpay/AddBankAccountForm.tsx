@@ -1,7 +1,26 @@
+"use client";
+
 import React from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import {
+  User,
+  Mail,
+  Phone,
+  Landmark,
+  Hash,
+  Building,
+  MapPin,
+  Globe,
+  Box,
+  AtSign,
+  Loader2,
+  AlertTriangle,
+  CheckCircle,
+} from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 
 type StylishBeneficiaryFormProps = {
   beneForm: Record<string, string>;
@@ -11,7 +30,34 @@ type StylishBeneficiaryFormProps = {
   errorMessage?: string;
   successMessage?: string;
   resetForm: () => void;
+  setBeneFormVisible: React.Dispatch<React.SetStateAction<boolean>>;
 };
+
+// --- Form Field Configuration ---
+const formFields = [
+  { name: "beneficiary_name", label: "Full Name", icon: <User size={18} /> },
+  {
+    name: "beneficiary_email",
+    label: "Email Address",
+    icon: <Mail size={18} />,
+  },
+  {
+    name: "beneficiary_phone",
+    label: "Phone Number",
+    icon: <Phone size={18} />,
+  },
+  { name: "account", label: "Account Number", icon: <Hash size={18} /> },
+  { name: "ifsc", label: "IFSC Code", icon: <Landmark size={18} /> },
+  { name: "vpa", label: "UPI ID (VPA)", icon: <AtSign size={18} /> },
+  { name: "beneficiary_address", label: "Address", icon: <MapPin size={18} /> },
+  { name: "beneficiary_city", label: "City", icon: <Building size={18} /> },
+  { name: "beneficiary_state", label: "State", icon: <Globe size={18} /> },
+  {
+    name: "beneficiary_postal_code",
+    label: "Postal Code",
+    icon: <Box size={18} />,
+  },
+];
 
 export default function StylishBeneficiaryForm({
   beneForm,
@@ -21,63 +67,138 @@ export default function StylishBeneficiaryForm({
   errorMessage,
   successMessage,
   resetForm,
+  setBeneFormVisible,
 }: StylishBeneficiaryFormProps) {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setBeneForm((prev) => ({ ...prev, [id]: value }));
+  };
+
   return (
-    <form
+    <motion.form
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
       onSubmit={handleAddBeneficiary}
-      className="space-y-6 max-w-xl mx-auto p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-lg shadow-2xl transition-all"
+      className="space-y-6"
     >
-      {Object.entries(beneForm).map(([key, val]) => (
-        <div key={key} className="space-y-2">
-          <Label
-            htmlFor={key}
-            className="capitalize text-sm font-medium text-white tracking-wide"
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+        {formFields.map(({ name, label, icon }, index) => (
+          <motion.div
+            key={name}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
+            className="space-y-2"
           >
-            {key.replaceAll("_", " ")}
-          </Label>
-          <Input
-            id={key}
-            className="w-full bg-white/10 text-white placeholder:text-white/40 border border-white/20 rounded-lg px-4 py-2 transition focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400"
-            placeholder={key.replaceAll("_", " ")}
-            value={val}
-            onChange={(e) =>
-              setBeneForm((prev) => ({
-                ...prev,
-                [key]: e.target.value,
-              }))
-            }
-          />
-        </div>
-      ))}
+            <Label
+              htmlFor={name}
+              className="text-sm font-medium text-slate-300"
+            >
+              {label}
+            </Label>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                {icon}
+              </span>
+              <Input
+                id={name}
+                className="h-12 pl-10 bg-slate-800/60 text-white border-2 border-slate-700 rounded-lg focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/30 transition-all"
+                placeholder={`Enter ${label}`}
+                value={beneForm[name]}
+                onChange={handleInputChange}
+              />
+            </div>
+          </motion.div>
+        ))}
+      </div>
 
       {errorMessage && (
-        <p className="text-red-400 text-sm bg-red-400/10 px-3 py-2 rounded-lg border border-red-400/30">
-          {errorMessage}
-        </p>
+        <div className="flex items-center gap-3 text-red-400 text-sm bg-red-500/10 px-4 py-3 rounded-lg border border-red-500/30">
+          <AlertTriangle size={20} />
+          <span>{errorMessage}</span>
+        </div>
       )}
       {successMessage && (
-        <p className="text-green-400 text-sm bg-green-400/10 px-3 py-2 rounded-lg border border-green-400/30">
-          {successMessage}
-        </p>
+        <div className="flex items-center gap-3 text-emerald-400 text-sm bg-emerald-500/10 px-4 py-3 rounded-lg border border-emerald-500/30">
+          <CheckCircle size={20} />
+          <span>{successMessage}</span>
+        </div>
       )}
 
-      <div className="flex gap-4 pt-4">
+      <div className="flex flex-col sm:flex-row gap-4 pt-4">
+        {/* Add Beneficiary */}
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="bg-cyan-600 text-white hover:bg-cyan-700 transition-all rounded-xl px-6"
+          className="
+      w-full sm:w-auto flex-1
+      h-12
+      px-6
+      text-lg
+      font-semibold
+      text-white
+      rounded-lg
+      bg-gradient-to-r from-cyan-500 to-blue-600
+      shadow-lg shadow-blue-600/30
+      hover:scale-105
+      hover:shadow-xl hover:shadow-blue-500/40
+      transition-transform transition-shadow duration-200 ease-in-out
+      flex items-center justify-center
+      gap-2
+    "
         >
-          {isSubmitting ? "Submitting..." : "Add Beneficiary"}
+          {isSubmitting ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            "Add Beneficiary"
+          )}
         </Button>
+
+        {/* Reset */}
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           onClick={resetForm}
-          className="border-white/20 text-black dark:text-white hover:bg-white/10 transition-all rounded-xl px-6"
+          className="
+      w-full sm:w-auto flex-1
+      h-12
+      px-6
+      rounded-lg
+      border border-gray-400
+      bg-gray-100
+      text-gray-800
+      font-medium
+      shadow-sm
+      hover:bg-gray-200
+      hover:text-gray-900
+      focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500
+      transition duration-200 ease-in-out
+    "
         >
           Reset
         </Button>
+
+        {/* Cancel */}
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => setBeneFormVisible(false)}
+          className="
+      w-full sm:w-auto flex-1
+      h-12
+      px-6
+      rounded-lg
+      text-gray-400
+      font-medium
+      hover:bg-gray-700/20
+      hover:text-white
+      transition-colors duration-200 ease-in-out
+    "
+        >
+          Cancel
+        </Button>
       </div>
-    </form>
+    </motion.form>
   );
 }

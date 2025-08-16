@@ -1,20 +1,23 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { WalletProvider, useWallet } from "@/contexts/wallet-context";
 import { motion } from "framer-motion";
 import Loader from "@/components/loader";
-import AddMoneyButton from "@/components/razorpay/handleAddMoney";
 import CreateWalletPasswordForm from "@/components/wallet/CreateWalletPasswordForm";
-import PaymentForm from "@/components/razorpay/payuAdd";
 import WithdrawForm from "@/components/razorpay/withdrawForm";
 import WalletTransactionTable from "@/components/wallet/WalletTransactionTable";
 import { useAuth } from "@/contexts/auth-context";
-import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
 import { Button } from "@/components/ui/button";
+import PayuForm from "@/components/payuMoney";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Wallet, RefreshCw, Plus, Minus } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
+import AddMoney from "@/components/razorpay/handleAddMoney";
+
 function WalletPageContent() {
   const { user, isLoading: authLoading } = useAuth();
-
-  // ✅ Hooks always run
   const [balance, setBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -32,112 +35,129 @@ function WalletPageContent() {
   };
 
   useEffect(() => {
-    fetchBalance();
-  }, []);
+    if (user) {
+      fetchBalance();
+    }
+  }, [user]);
 
-  // 🚦 Return early after hooks are declared
   if (authLoading || !user) {
     return (
-      <div className="bg-[#131722] flex flex-col items-center justify-center pt-20">
+      <div className="min-h-screen w-full flex items-center justify-center bg-slate-900">
         <Loader />
       </div>
     );
   }
+
   return (
-    <div className="relative  bg-[#0e0f1a] items-center justify-center mx-auto  pt-20">
-      <BackgroundBeamsWithCollision className=" fixed inset-0 z-0 w-full h-full pointer-events-none bg-gradient-to-br from-[#1a1c2b]/90 via-[#2a2c3d]/70 to-[#1a1c2b]/90">
-        <div className="w-96 h-96 bg-purple-500 opacity-30 blur-3xl rounded-full" />
-        <div className="w-96 h-96 bg-blue-500 opacity-30 blur-2xl rounded-full" />
-        <div className="w-96 h-96 bg-pink-500 opacity-30 blur-xl rounded-full" />
-        <div className="w-96 h-96 bg-red-500 opacity-30 blur-2xl rounded-full" />
-        <div className="w-96 h-96 bg-yellow-500 opacity-30 blur-3xl rounded-full" />
-      </BackgroundBeamsWithCollision>
+    <div className="min-h-screen w-full bg-slate-900 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))] p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto pt-20">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Left Column - Compact Wallet Info */}
+          <div className="flex flex-col gap-8 lg:w-[40%] flex-shrink-0">
+            {/* Balance Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="bg-slate-900/60 backdrop-blur-xl border border-cyan-400/20 shadow-2xl shadow-black/40">
+                <CardHeader className="flex flex-row items-center justify-between pb-3">
+                  <div className="flex items-center gap-3">
+                    <Wallet className="w-6 h-6 text-cyan-300" />
+                    <CardTitle className="text-lg font-semibold text-slate-200">
+                      Your Balance
+                    </CardTitle>
+                  </div>
+                  <Button
+                    onClick={fetchBalance}
+                    size="icon"
+                    variant="ghost"
+                    className="text-slate-400 h-7 w-7 rounded-full hover:bg-slate-700/50 hover:text-white"
+                  >
+                    <RefreshCw
+                      className={cn("h-4 w-4", loading && "animate-spin")}
+                    />
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="h-10 w-36 bg-slate-800 rounded-md animate-pulse" />
+                  ) : (
+                    <div className="text-3xl font-bold text-white">
+                      ₹
+                      {balance?.toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
 
-      {/* Header Section */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4"
-      >
-        {/* Left: Heading & Subheading */}
-        <div className="mx-auto">
-          <h1
-            className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent 
-  bg-gradient-to-r from-green-300 via-emerald-400 to-blue-400 
-  drop-shadow-[0_0_10px_rgba(34,197,94,0.8)] animate-gradient-x"
-          >
-           💸 Wallet Chronicles
-          </h1>
+            {/* Actions Tabs */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="w-full"
+            >
+              <Tabs defaultValue="add-money" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 bg-slate-800/80 rounded-lg p-1 h-10">
+                  <TabsTrigger
+                    value="add-money"
+                    className="data-[state=active]:bg-cyan-600/80 data-[state=active]:text-white rounded-md transition-all text-sm"
+                  >
+                    <Plus className="mr-1 h-4 w-4" /> Add
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="withdraw"
+                    className="data-[state=active]:bg-blue-600/80 data-[state=active]:text-white rounded-md transition-all text-sm"
+                  >
+                    <Minus className="mr-1 h-4 w-4" /> Withdraw
+                  </TabsTrigger>
+                </TabsList>
 
-          <p className="text-gray-100 drop-shadow-sm leading-relaxed">
-            A complete overview of your{" "}
-            <span className="text-blue-400 font-semibold">
-              financial journey
-            </span>{" "}
-            — track every
-            <span className="text-green-400 font-semibold"> deposit</span>,{" "}
-            <span className="text-red-400 font-semibold">withdrawal</span>, and{" "}
-            <span className="text-yellow-300 font-semibold">trade</span> with
-            precision.
-            <br className="hidden sm:block" />
-            Know exactly{" "}
-            <span className="text-blue-300 font-medium">
-              where your money moves
-            </span>
-            , and how your strategy performs over time.
-            <br className="hidden sm:block" />
-            Your wallet is more than just a balance — it’s the{" "}
-            <span className="italic text-purple-400">heartbeat</span> of your
-            trading evolution.
-          </p>
-        </div>
+                <TabsContent value="add-money" className="mt-4 w-full">
+                  <div className="flex flex-col gap-4 w-full">
+                    <div className="w-full">
+                      <AddMoney />
+                    </div>
+                    <div className="w-full">
+                      <PayuForm />
+                    </div>
+                  </div>
+                </TabsContent>
 
-        {/* Right: Wallet balance & Refresh */}
-        <div className="flex flex-col items-end gap-2">
-          <div className="text-3xl sm:text-4xl font-bold text-green-400 drop-shadow-md tracking-wide">
-            ₹ {balance?.toFixed(2)}
+                <TabsContent value="withdraw" className="mt-4 w-full">
+                  <WithdrawForm />
+                </TabsContent>
+              </Tabs>
+            </motion.div>
           </div>
-          <Button
-            onClick={fetchBalance}
-            className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold rounded-xl backdrop-blur transition-all duration-200"
+
+          {/* Right Column - Expanded Transaction History */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
+            className="w-[60%]"
           >
-            Refresh
-          </Button>
+            <div className=" flex flex-col gap-4 w-full overflow-hidden ">
+              <WalletTransactionTable />
+              {/* Security Section */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="w-full items-end flex justify-end"
+              >
+                <CreateWalletPasswordForm />
+              </motion.div>
+            </div>
+          </motion.div>
         </div>
-      </motion.div>
-
-      {/* Section 1: Balance & Actions */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1, duration: 0.7 }}
-        className="grid grid-cols-1 md:grid-cols-3 gap-6"
-      >
-        <div className="w-full flex flex-col items-center justify-center gap-4 p-6 bg-black/30 border border-gray-700/50 rounded-xl backdrop-blur-md shadow-lg">
-          <AddMoneyButton />
-          <CreateWalletPasswordForm />
-        </div>
-        <div className="w-full">
-          <PaymentForm />
-        </div>
-      </motion.div>
-
-      {/* Section 2: Withdraw + Transactions */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.8 }}
-        className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mx-auto mt-10 w-full"
-      >
-        <div className="w-full">
-          <WithdrawForm />
-        </div>
-
-        <div className="w-full">
-          <WalletTransactionTable />
-        </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

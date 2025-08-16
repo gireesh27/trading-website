@@ -7,6 +7,8 @@ import StylishBeneficiaryForm from "./AddBankAccountForm";
 import { ConfirmPasswordModal } from "./confirm-password-modal";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { motion } from "framer-motion";
+import { DollarSign, Banknote, AlertTriangle } from "lucide-react"; // Assuming lucide-react for icons
+
 import {
   Select,
   SelectTrigger,
@@ -162,122 +164,131 @@ export default function WithdrawForm() {
   };
 
   return (
-    <div className="space-y-8 max-w-2xl mx-auto p-8 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl">
-      <motion.h2
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="text-4xl font-extrabold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(255,255,255,0.25)] tracking-wide"
-      >
-        Withdraw Funds
-      </motion.h2>
+ <div className="space-y-8 max-w-2xl mx-auto p-8 bg-black/30 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl shadow-purple-500/10">
+  
+  {/* --- Header --- */}
+  <motion.h2
+    initial={{ opacity: 0, y: -20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.6, ease: "easeOut" }}
+    className="text-3xl text-center font-bold bg-gradient-to-br from-cyan-300 via-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(192,132,252,0.3)] tracking-tight"
+  >
+    Secure Withdrawal
+  </motion.h2>
 
-      {beneficiaries.length === 0 ? (
-        <Alert
-          variant="default"
-          className="bg-yellow-200/10 border-yellow-300/30 text-yellow-300"
+  {/* --- No Beneficiaries Alert --- */}
+  {beneficiaries.length === 0 ? (
+    <Alert
+      variant="default"
+      className="bg-amber-500/10 border-amber-400/30 text-amber-300 rounded-lg"
+    >
+      <AlertTriangle className="h-4 w-4 text-amber-400" />
+      <AlertDescription className="ml-2">
+        No bank accounts found. Please add one to proceed.
+      </AlertDescription>
+    </Alert>
+  ) : (
+    <>
+      {/* --- Bank Account Selector --- */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium text-gray-300 tracking-wide">
+          Select Account
+        </Label>
+        <Select
+          value={primaryIndex?.toString() ?? ""}
+          onValueChange={(val) => handleChangePrimary(Number(val))}
         >
-          <AlertDescription>
-            No bank accounts found. Please add one below.
-          </AlertDescription>
-        </Alert>
-      ) : (
-        <>
-          <div className="space-y-2">
-            <Label className="text-white text-sm font-medium">
-              Primary Bank Account
-            </Label>
-
-            <Select
-              value={primaryIndex?.toString() ?? ""}
-              onValueChange={(val) => handleChangePrimary(Number(val))}
-            >
-              <SelectTrigger className="w-full bg-white/5 border border-white/20 text-white">
-                <SelectValue placeholder="Select a bank account" />
-              </SelectTrigger>
-              <SelectContent className="bg-black border-white/10 text-white">
-                {beneficiaries.map((b, idx) => (
-                  <SelectItem
-                    key={b._id}
-                    value={idx.toString()}
-                    className="text-white"
-                  >
-                    {b.beneficiary_name} — {b.bank_account_number}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label
-              htmlFor="amount"
-              className="text-sm font-medium text-white/80 tracking-wide"
-            >
-              Enter Amount (INR)
-            </Label>
-
-            <Input
-              id="amount"
-              type="number"
-              placeholder="e.g., 500"
-              value={amount}
-              onChange={(e) => setAmount(Number(e.target.value))}
-              className="bg-gradient-to-br from-slate-900/60 via-slate-800/60 to-slate-900/60 
-               text-white placeholder:text-white/40 
-               border border-white/20 shadow-inner 
-               rounded-xl px-4 py-2 backdrop-blur-md 
-               focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition duration-200"
-            />
-          </div>
-
-          <Button
-            className="bg-white text-black hover:bg-white/80 transition"
-            onClick={handleWithdraw}
-            disabled={loading || primaryIndex === null || !amount}
-          >
-            {loading ? "Processing..." : "Withdraw to Primary Bank"}
-          </Button>
-          <ConfirmPasswordModal
-            open={isPasswordModalOpen}
-            onClose={() => setIsPasswordModalOpen(false)}
-            onConfirm={(password: string) => {
-              setIsPasswordModalOpen(false);
-              doWithdraw(password);
-            }}
-            loading={loading}
-          />
-        </>
-      )}
-
-      <div className="h-px bg-white/20 my-6" />
-
-      <div className="bg-white/5 p-6 rounded-xl border border-white/20">
-        <h3 className="text-xl font-semibold mb-4 text-white/80">
-          {beneFormVisible ? "Add New Bank Account" : "Add Another Bank"}
-        </h3>
-
-        {!beneFormVisible ? (
-          <Button
-  onClick={() => setBeneFormVisible(true)}
-  className="relative inline-flex items-center justify-center px-6 py-2 rounded-xl text-white font-semibold transition-all bg-gradient-to-br from-blue-500/70 via-cyan-500/60 to-purple-600/70 border border-white/10 shadow-md backdrop-blur hover:scale-105 hover:shadow-lg hover:from-blue-600 hover:to-purple-700"
->
-  <span className="text-lg">+ Create New Bank Account</span>
-</Button>
-        ) : (
-          <>
-            <StylishBeneficiaryForm
-              beneForm={beneForm}
-              setBeneForm={setBeneForm}
-              handleAddBeneficiary={handleAddBeneficiary}
-              isSubmitting={isSubmitting}
-              errorMessage={errorMessage}
-              successMessage={successMessage}
-              resetForm={() => setBeneForm(initialBeneForm)}
-            />
-          </>
-        )}
+          <SelectTrigger className="w-full h-12 bg-gray-900/50 border border-white/10 text-white placeholder:text-gray-400 rounded-lg shadow-inner focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all duration-300">
+            <SelectValue placeholder="Choose a destination account..." />
+          </SelectTrigger>
+          <SelectContent className="bg-gray-950/80 backdrop-blur-lg border-white/10 text-white rounded-lg">
+            {beneficiaries.map((b, idx) => (
+              <SelectItem
+                key={b._id}
+                value={idx.toString()}
+                className="focus:bg-purple-500/20 cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <Banknote className="h-4 w-4 text-gray-400" />
+                  <span>{b.beneficiary_name} — **** {b.bank_account_number.slice(-4)}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
-    </div>
+
+      {/* --- Amount Input --- */}
+      <div className="space-y-3">
+        <Label
+          htmlFor="amount"
+          className="text-sm font-medium text-gray-300 tracking-wide"
+        >
+          Amount (INR)
+        </Label>
+        <div className="relative">
+          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Input
+            id="amount"
+            type="number"
+            placeholder="5000"
+            value={amount}
+            onChange={(e) => setAmount(Number(e.target.value))}
+            className="w-full h-12 pl-10 bg-gray-900/50 border border-white/10 text-white placeholder:text-gray-400 rounded-lg shadow-inner focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all duration-300"
+          />
+        </div>
+      </div>
+
+      {/* --- Withdraw Button --- */}
+      <Button
+        className="w-full font-semibold  bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg shadow-lg shadow-purple-500/20 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/30 active:scale-100 transition-all duration-300 ease-in-out disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed"
+        onClick={handleWithdraw}
+        disabled={loading || primaryIndex === null || !amount}
+      >
+        {loading ? "Processing..." : "Withdraw to Bank"}
+      </Button>
+
+      <ConfirmPasswordModal
+        open={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+        onConfirm={(password: string) => {
+          setIsPasswordModalOpen(false);
+          doWithdraw(password);
+        }}
+        loading={loading}
+      />
+    </>
+  )}
+
+  {/* --- Divider --- */}
+  <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+
+  {/* --- Add New Account Section --- */}
+  <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
+    <h3 className="text-xl font-semibold mb-4 text-gray-200">
+      {beneFormVisible ? "New Account Details" : "Manage Beneficiaries"}
+    </h3>
+
+    {!beneFormVisible ? (
+      <Button
+        onClick={() => setBeneFormVisible(true)}
+        className="w-full bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/20 hover:border-white/30 transition-all duration-300"
+      >
+        + Add New Bank Account
+      </Button>
+    ) : (
+      <StylishBeneficiaryForm
+        beneForm={beneForm}
+        setBeneForm={setBeneForm}
+        handleAddBeneficiary={handleAddBeneficiary}
+        isSubmitting={isSubmitting}
+        errorMessage={errorMessage}
+        successMessage={successMessage}
+        resetForm={() => setBeneForm(initialBeneForm)}
+        setBeneFormVisible={setBeneFormVisible}
+      />
+    )}
+  </div>
+</div>
   );
 }

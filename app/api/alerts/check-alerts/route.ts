@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import { connectToDatabase as dbConnect } from "@/lib/Database/mongodb";
-import  Alert  from "@/lib/Database/Models/Alert";
+import Alert from "@/lib/Database/Models/Alert";
 import { User } from "@/lib/Database/Models/User";
 import { stockApi } from "@/lib/api/stock-api";
 import { getServerSession } from "next-auth";
@@ -9,10 +9,12 @@ import { authOptions } from "../../auth/[...nextauth]/route";
 export async function GET(req: Request) {
   await dbConnect();
 
-  // Get the session of the logged-in user
+  // ✅ Get the session of the logged-in user
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.email) {
-    return new Response(JSON.stringify({ error: "Not authenticated" }), { status: 401 });
+    return new Response(JSON.stringify({ error: "Not authenticated" }), {
+      status: 401,
+    });
   }
 
   const transporter = nodemailer.createTransport({
@@ -23,8 +25,12 @@ export async function GET(req: Request) {
     },
   });
 
-  // Only fetch alerts for this user
-  const activeAlerts = await Alert.find({ status: "active", userId: session.user.id });
+  // ✅ Only fetch alerts for this logged-in user
+  const activeAlerts = await Alert.find({
+    status: "active",
+    userId: session.user.id,
+  });
+
   let triggeredCount = 0;
 
   for (const alert of activeAlerts) {
@@ -33,16 +39,25 @@ export async function GET(req: Request) {
       const currentPrice = priceData.price;
 
       let shouldTrigger = false;
+
       if (alert.type === "price") {
-        if (alert.direction === "above" && currentPrice >= (alert.targetPrice ?? 0)) shouldTrigger = true;
-        if (alert.direction === "below" && currentPrice <= (alert.targetPrice ?? 0)) shouldTrigger = true;
+        if (
+          alert.direction === "above" &&
+          currentPrice >= (alert.targetPrice ?? 0)
+        )
+          shouldTrigger = true;
+        if (
+          alert.direction === "below" &&
+          currentPrice <= (alert.targetPrice ?? 0)
+        )
+          shouldTrigger = true;
       }
 
       if (shouldTrigger) {
         const user = await User.findById(alert.userId);
         if (!user || !user.email) continue;
 
-        // Send real email
+        // ✅ Send email notification
         await transporter.sendMail({
           from: `"TradeView Alerts" <${process.env.SMTP_USER}>`,
           to: user.email,

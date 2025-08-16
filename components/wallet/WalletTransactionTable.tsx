@@ -54,20 +54,6 @@ export default function WalletTransactionTable() {
     });
   }, [transactions, sortKey, sortOrder]);
 
-  if (loading) {
-    return (
-      <Card className="p-6 bg-muted/30 shadow-lg rounded-2xl border border-border">
-        <CardHeader>
-          <CardTitle className="text-lg">Loading Wallet Transactions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-4 w-full mb-2" />
-          <Skeleton className="h-4 w-full mb-2" />
-          <Skeleton className="h-4 w-full mb-2" />
-        </CardContent>
-      </Card>
-    );
-  }
 
   if (!transactions.length) {
     return (
@@ -93,7 +79,11 @@ export default function WalletTransactionTable() {
     <Card className="bg-white/10 backdrop-blur-md border border-white/10 shadow-xl rounded-2xl text-white">
       <CardHeader className="border-b border-white/10 px-6 py-4">
         <div className="flex items-center justify-between w-full">
-          <CardTitle className="text-2xl font-bold text-white tracking-wide bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent animate-pulse drop-shadow-md">
+          <CardTitle
+            className="text-2xl font-extrabold tracking-wide bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 
+             bg-clip-text text-transparent animate-gradient drop-shadow-lg 
+             hover:drop-shadow-xl transition-all duration-300 ease-in-out"
+          >
             Complete Transaction History
           </CardTitle>
 

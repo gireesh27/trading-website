@@ -204,13 +204,12 @@ export default function MarketsPage() {
   return (
     <div className=" text-white pt-20 relative min-h-screen bg-[#0e0f1a] flex items-center justify-center p-4 overflow-hidden">
       {/* Optional: Original background (blurred circles or gradient beams) */}
-      <BackgroundBeamsWithCollision className="absolute inset-0 z-0 pointer-events-none bg-gradient-to-br from-[#1a1c2b]/90 via-[#2a2c3d]/70 to-[#1a1c2b]/90">
+      <BackgroundBeamsWithCollision className=" fixed inset-0 z-0 w-full h-full pointer-events-none bg-gradient-to-br from-[#1a1c2b]/90 via-[#2a2c3d]/70 to-[#1a1c2b]/90">
         <div className="w-96 h-96 bg-purple-500 opacity-30 blur-3xl rounded-full" />
         <div className="w-96 h-96 bg-blue-500 opacity-30 blur-2xl rounded-full" />
-       
+        <div className="w-96 h-96 bg-pink-500 opacity-30 blur-xl rounded-full" />
         <div className="w-96 h-96 bg-red-500 opacity-30 blur-2xl rounded-full" />
         <div className="w-96 h-96 bg-yellow-500 opacity-30 blur-3xl rounded-full" />
-        <div className="w-96 h-96 bg-pink-500 opacity-30 blur-xl rounded-full" />
       </BackgroundBeamsWithCollision>
 
       {/* Interactive grid as subtle overlay */}

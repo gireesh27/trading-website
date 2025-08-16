@@ -8,7 +8,7 @@ export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return new Response(
         JSON.stringify({ success: false, message: "Unauthorized" }),
         { status: 401 }
@@ -23,19 +23,19 @@ export async function GET(req: Request) {
     const from = searchParams.get("from");
     const to = searchParams.get("to");
 
-    // Use email to fetch transactions if userId not in session
-    const filters: any = { userEmail: session.user.email }; // Use userEmail instead of ObjectId
+    // Filter by ObjectId
+    const filters: any = { userId: new mongoose.Types.ObjectId(session.user.id) };
 
     if (type && type !== "all") filters.type = type;
     if (symbol) filters.symbol = symbol;
 
     if (from || to) {
-      filters.date = {};
-      if (from && !isNaN(Date.parse(from))) filters.date.$gte = new Date(from);
-      if (to && !isNaN(Date.parse(to))) filters.date.$lte = new Date(to);
+      filters.createdAt = {};
+      if (from && !isNaN(Date.parse(from))) filters.createdAt.$gte = new Date(from);
+      if (to && !isNaN(Date.parse(to))) filters.createdAt.$lte = new Date(to);
     }
 
-    const transactions = await Transaction.find(filters).sort({ date: -1 });
+    const transactions = await Transaction.find(filters).sort({ createdAt: -1 });
 
     return new Response(JSON.stringify({ success: true, transactions }), { status: 200 });
   } catch (err: any) {

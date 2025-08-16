@@ -13,6 +13,7 @@ import Loader from "@/components/loader";
 import { useAuth } from "@/contexts/auth-context";
 import VantaNetBackground from "@/components/ui/VantaNetBackground";
 import { TextGenerateEffect } from "@/components/ui/Text-Generate-Effect";
+import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
 export default function WatchlistPage() {
   const { isLoading, watchlists, activeWatchlist } = useWatchlist();
   const { user } = useAuth();
@@ -24,12 +25,15 @@ export default function WatchlistPage() {
     );
   }
   return (
-    <main className="relative min-h-screen">
-      {/* Animated background */}
-      <div className="fixed inset-0 z-0 w-full h-full">
-        <VantaNetBackground />
-      </div>
-
+    <main className="relative min-h-screen  bg-[#0e0f1a] flex items-center justify-center mx-auto overflow-hidden">
+       {/* Optional: Original background (blurred circles or gradient beams) */}
+            <BackgroundBeamsWithCollision className=" fixed inset-0 z-0 w-full h-full pointer-events-none bg-gradient-to-br from-[#1a1c2b]/90 via-[#2a2c3d]/70 to-[#1a1c2b]/90">
+              <div className="w-96 h-96 bg-purple-500 opacity-30 blur-3xl rounded-full" />
+              <div className="w-96 h-96 bg-blue-500 opacity-30 blur-2xl rounded-full" />
+              <div className="w-96 h-96 bg-pink-500 opacity-30 blur-xl rounded-full" />
+              <div className="w-96 h-96 bg-red-500 opacity-30 blur-2xl rounded-full" />
+              <div className="w-96 h-96 bg-yellow-500 opacity-30 blur-3xl rounded-full" />
+            </BackgroundBeamsWithCollision>
       {/* Foreground content */}
       <div className="relative z-10 px-4 pt-20">
         {/* Page Header */}

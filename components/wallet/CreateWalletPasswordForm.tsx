@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 export default function CreateWalletPasswordForm() {
   const { toast } = useToast();
 
@@ -87,68 +88,69 @@ export default function CreateWalletPasswordForm() {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="max-w-md w-full bg-gradient-to-b from-black/60 to-black/40 border border-white/10 rounded-2xl p-6 shadow-2xl backdrop-blur-xl space-y-6"
-    >
-      <h2 className="text-2xl font-bold text-white tracking-wide mb-4">
-        Create Wallet Password
-      </h2>
+     <Card className="max-w-md w-full bg-gradient-to-b from-zinc-900/80 to-zinc-800/60 border border-zinc-700 rounded-2xl shadow-2xl backdrop-blur-xl">
+      <CardHeader>
+        <CardTitle className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-indigo-200 bg-clip-text text-transparent">
+          Create Wallet Password
+        </CardTitle>
+      </CardHeader>
 
-      {/* Password Field */}
-      <div className="relative">
-        <label className="text-white text-sm mb-1 block">New Password</label>
-        <Input
-          type={showPassword ? "text" : "password"}
-          placeholder="Enter new password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="pr-12 focus:ring-2 focus:ring-indigo-500"
-        />
-        <button
-          type="button"
-          onClick={() => setShowPassword((prev) => !prev)}
-          className="absolute right-3 top-9 text-indigo-400 hover:text-indigo-300 transition"
-        >
-          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-        </button>
-        {errors.password && (
-          <p className="text-sm text-red-500 mt-1">{errors.password}</p>
-        )}
-      </div>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Password Field */}
+          <div className="relative">
+            <label className="text-white text-sm mb-1 block">New Password</label>
+            <Input
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter new password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="pr-12"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 top-9 text-indigo-400 hover:text-indigo-300 transition"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+            {errors.password && (
+              <p className="text-sm text-red-500 mt-1">{errors.password}</p>
+            )}
+          </div>
 
-      {/* Confirm Password Field */}
-      <div className="relative">
-        <label className="text-white text-sm mb-1 block">
-          Confirm Password
-        </label>
-        <Input
-          type={showConfirm ? "text" : "password"}
-          placeholder="Confirm password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          className="pr-12 focus:ring-2 focus:ring-indigo-500"
-        />
-        <button
-          type="button"
-          onClick={() => setShowConfirm((prev) => !prev)}
-          className="absolute right-3 top-9 text-indigo-400 hover:text-indigo-300 transition"
-        >
-          {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
-        </button>
-        {errors.confirm && (
-          <p className="text-sm text-red-500 mt-1">{errors.confirm}</p>
-        )}
-      </div>
+          {/* Confirm Password Field */}
+          <div className="relative">
+            <label className="text-white text-sm mb-1 block">Confirm Password</label>
+            <Input
+              type={showConfirm ? "text" : "password"}
+              placeholder="Confirm password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="pr-12"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirm((prev) => !prev)}
+              className="absolute right-3 top-9 text-indigo-400 hover:text-indigo-300 transition"
+            >
+              {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+            {errors.confirm && (
+              <p className="text-sm text-red-500 mt-1">{errors.confirm}</p>
+            )}
+          </div>
 
-      {/* Submit Button */}
-      <Button
-        type="submit"
-        className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 transition text-white font-semibold py-2 rounded-xl"
-        disabled={password.length < 8 || password !== confirmPassword}
-      >
-        Set Password
-      </Button>
-    </form>
+          {/* Submit Button */}
+          <Button
+            type="submit"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 transition text-white font-semibold py-2 rounded-xl"
+            disabled={password.length < 8 || password !== confirmPassword}
+          >
+            Set Password
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

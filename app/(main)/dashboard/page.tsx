@@ -12,6 +12,7 @@ import { Vortex } from "@/components/ui/vortex";
 import { TextGenerateEffect } from "@/components/ui/Text-Generate-Effect";
 import Loader from "@/components/loader";
 import { SparklesText } from "@/components/ui/TextSparkle";
+import CryptoTicker from "@/components/slide-crypto";
 export interface CandlestickPoint {
   time: string;
   open: number;
@@ -45,7 +46,7 @@ export default function DashboardPage() {
 
   if (authLoading || !user) {
     return (
-      <div className="bg-[#131722] flex flex-col items-center justify-center pt-20">
+      <div className="bg-[#131722] flex flex-col items-center justify-center pt-2">
         <Loader />
       </div>
     );
@@ -69,8 +70,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 mx-auto px-4 py-6">
+      <div className="relative z-10 mx-auto px-4 pt-6">
         <div className="mb-8">
+          <CryptoTicker/>
           <h1 className="flex  items-end text-lg font-semibold text-white gap-2">
             <span>Welcome back,</span>
             <SparklesText>{user.name}</SparklesText>
@@ -85,12 +87,12 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 h-full">
+          <div className="col-span-1 h-full">
             <NewsWidget />
           </div>
 
           {/* Sidebar Column */}
-          <div className="space-y-6">
+          <div className="space-y-6 col-span-1">
             <WatchlistWidget />
           </div>
         </div>

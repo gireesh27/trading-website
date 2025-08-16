@@ -53,21 +53,36 @@ export const authOptions: NextAuthOptions = {
   pages: { signIn: "/auth" },
   session: { strategy: "jwt" },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
+      await connectToDatabase();
+
       if (user) {
-        token.id = user.id; // user.id is already string
-        token.walletBalance = (user as any).walletBalance;
+        let dbUser = await User.findOne({ email: user.email });
+
+        // If not found, create new OAuth user in DB
+        if (!dbUser) {
+          dbUser = await User.create({
+            name: user.name,
+            email: user.email,
+            isOAuth: true,
+            walletBalance: 1000,
+          });
+        }
+
+        token.id = dbUser._id.toString();
+        token.walletBalance = dbUser.walletBalance ?? 0;
       }
+
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
+        session.user.id = token.id as string; // Always valid ObjectId now
         session.user.walletBalance = token.walletBalance as number;
       }
       return session;
     },
-  },
+  }
 };
 
 const handler = NextAuth(authOptions);

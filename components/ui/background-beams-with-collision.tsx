@@ -64,6 +64,22 @@ export const BackgroundBeamsWithCollision = ({
       delay: 2,
       className: "h-6",
     },
+    {
+      initialX: 1400,
+      translateX: 1400,
+      duration: 8,
+      repeatDelay: 2,
+      className: "h-12",
+    },
+    {
+      initialX: 1600,
+      translateX: 1600,
+      duration: 3,
+      repeatDelay: 3,
+      delay: 2,
+      className: "h-24",
+    },
+
   ];
 
   return (

@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {ContainerScroll} from "@/components/ui/container-scroll-animation";
-
 import {
   Newspaper,
   ExternalLink,
@@ -16,6 +14,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { LoaderTwo } from "@/components/ui/loader";
+import Loader from "./loader";
 export interface NewsItem {
   id: string;
   title: string;
@@ -114,24 +113,26 @@ export function NewsWidget() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="h-full"
+      transition={{ duration: 0.4, ease: "easeOut" }}
     >
-      <Card className="bg-zinc-900/80 backdrop-blur-md border border-zinc-700 rounded-2xl shadow-2xl text-white h-full">
-        <CardHeader>
+      <Card className="bg-gradient-to-br from-zinc-900/90 via-zinc-900/80 to-black/70 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] text-white h-full">
+        {/* Header */}
+        <CardHeader className="pb-3 border-b border-zinc-800">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center space-x-2 text-lg font-semibold">
               <Newspaper className="h-5 w-5 text-primary" />
-              <span>Market News</span>
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-green-400">
+                Market News
+              </span>
             </CardTitle>
             <Button
               variant="ghost"
               size="sm"
               onClick={refreshNews}
               disabled={isLoading}
-              className="text-zinc-400 hover:text-white transition"
+              className="text-zinc-400 hover:text-white transition-colors"
             >
               <RefreshCw
                 className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
@@ -140,34 +141,38 @@ export function NewsWidget() {
           </div>
         </CardHeader>
 
+        {/* Content */}
         <CardContent className="p-0">
           <Tabs value={activeTab} onValueChange={handleTabChange}>
-            <TabsList className="grid grid-cols-4 bg-zinc-800/70 border-b border-zinc-700 rounded-t-xl px-2 py-1">
+            {/* Tab List */}
+            <TabsList className="grid grid-cols-4 bg-zinc-800/60 border-b border-zinc-800 rounded-t-xl">
               {["all", "general", "crypto", "forex"].map((tab) => (
                 <TabsTrigger
                   key={tab}
                   value={tab}
-                  className="text-sm text-zinc-300 hover:bg-zinc-700 rounded-md transition"
+                  className="text-sm text-zinc-300 hover:bg-zinc-700/80 rounded-md transition-all"
                 >
                   {tab.charAt(0).toUpperCase() + tab.slice(1)}
                 </TabsTrigger>
               ))}
             </TabsList>
 
+            {/* Tab Content */}
             <TabsContent value={activeTab} className="px-4 py-4">
-              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1 custom-scrollbar">
+           <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar">
                 {isLoading ? (
-                  <div className="flex justify-center items-center h-48">
-                   <LoaderTwo />
+                  <div className="flex justify-center items-start pt-4">
+                    <Loader />
                   </div>
-                ) : (
+                ) : news.length > 0 ? (
                   news.map((item) => (
                     <motion.div
                       key={item.id}
-                      className="p-5 bg-zinc-800 rounded-xl hover:bg-zinc-700 transition cursor-pointer min-h-[140px]"
+                      className="p-5 bg-zinc-800/60 rounded-xl border border-zinc-700 hover:border-primary/60 hover:bg-zinc-700/70 transition-all cursor-pointer min-h-[140px]"
                       onClick={() => window.open(item.url, "_blank")}
                       whileHover={{ scale: 1.01 }}
                     >
+                      {/* Top Row: Category + Related Symbols */}
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge
@@ -193,6 +198,7 @@ export function NewsWidget() {
                         <ExternalLink className="h-4 w-4 text-zinc-400" />
                       </div>
 
+                      {/* Title & Summary */}
                       <h3 className="text-white font-semibold text-sm mb-1 line-clamp-2">
                         {item.title}
                       </h3>
@@ -200,6 +206,7 @@ export function NewsWidget() {
                         {item.summary}
                       </p>
 
+                      {/* Footer: Source & Time */}
                       <div className="flex justify-between text-xs text-zinc-500">
                         <div className="flex items-center gap-2">
                           <span className="text-zinc-400">{item.source}</span>
@@ -218,6 +225,10 @@ export function NewsWidget() {
                       </div>
                     </motion.div>
                   ))
+                ) : (
+                  <div className="flex justify-center items-center h-48 text-zinc-500">
+                    No news available
+                  </div>
                 )}
               </div>
             </TabsContent>

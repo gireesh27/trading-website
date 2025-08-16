@@ -111,28 +111,28 @@ export function NewsWidget() {
     return "Just now";
   };
 
-  return (
+ return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
     >
-      <Card className="bg-gradient-to-br from-zinc-900/90 via-zinc-900/80 to-black/70 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] text-white h-full">
+      <Card className="bg-slate-900/60 backdrop-blur-lg border border-slate-800 rounded-2xl shadow-2xl shadow-black/30 text-slate-100 h-full">
         {/* Header */}
-        <CardHeader className="pb-3 border-b border-zinc-800">
+        <CardHeader className="pb-4 border-b border-slate-800">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center space-x-2 text-lg font-semibold">
-              <Newspaper className="h-5 w-5 text-primary" />
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-green-400">
+            <CardTitle className="flex items-center space-x-3 text-lg font-semibold">
+              {/* Aurora Gradient Header */}
+              <span className="bg-gradient-to-br from-slate-200 to-cyan-400 bg-clip-text text-transparent">
                 Market News
               </span>
             </CardTitle>
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={refreshNews}
               disabled={isLoading}
-              className="text-zinc-400 hover:text-white transition-colors"
+              className="text-slate-400 h-8 w-8 rounded-full hover:bg-slate-700/50 hover:text-white transition-colors"
             >
               <RefreshCw
                 className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
@@ -143,82 +143,77 @@ export function NewsWidget() {
 
         {/* Content */}
         <CardContent className="p-0">
-          <Tabs value={activeTab} onValueChange={handleTabChange}>
-            {/* Tab List */}
-            <TabsList className="grid grid-cols-4 bg-zinc-800/60 border-b border-zinc-800 rounded-t-xl">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+            {/* Pill-style Tabs */}
+            <TabsList className="grid w-full grid-cols-4 bg-slate-900/80 h-auto p-1 rounded-none">
               {["all", "general", "crypto", "forex"].map((tab) => (
                 <TabsTrigger
                   key={tab}
                   value={tab}
-                  className="text-sm text-zinc-300 hover:bg-zinc-700/80 rounded-md transition-all"
+                  className="text-sm capitalize text-slate-400 rounded-md data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:font-semibold data-[state=active]:shadow-lg transition-all"
                 >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  {tab}
                 </TabsTrigger>
               ))}
             </TabsList>
 
             {/* Tab Content */}
-            <TabsContent value={activeTab} className="px-4 py-4">
-           <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar">
+            <TabsContent value={activeTab} className="p-4">
+              <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
                 {isLoading ? (
-                  <div className="flex justify-center items-start pt-4">
+                  <div className="flex justify-center items-center h-48">
                     <Loader />
                   </div>
                 ) : news.length > 0 ? (
-                  news.map((item) => (
+                  news.map((item, index) => (
                     <motion.div
                       key={item.id}
-                      className="p-5 bg-zinc-800/60 rounded-xl border border-zinc-700 hover:border-primary/60 hover:bg-zinc-700/70 transition-all cursor-pointer min-h-[140px]"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      whileHover={{ scale: 1.02 }}
+                      className="group p-4 bg-slate-800/50 rounded-lg border-l-2 border-slate-700 hover:border-l-cyan-400 hover:bg-slate-800 transition-all cursor-pointer shadow-md hover:shadow-lg hover:shadow-cyan-500/10"
                       onClick={() => window.open(item.url, "_blank")}
-                      whileHover={{ scale: 1.01 }}
                     >
                       {/* Top Row: Category + Related Symbols */}
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between mb-3">
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge
-                            className={`${getSentimentBadge(
-                              item.sentiment
-                            )} text-xs`}
-                          >
+                          <Badge className={`${getSentimentBadge(item.sentiment)} text-xs py-1`}>
                             {getCategoryIcon(item.category)}
-                            <span className="ml-1 capitalize">
-                              {item.category}
-                            </span>
+                            <span className="ml-1.5 capitalize">{item.category}</span>
                           </Badge>
                           {item.relatedSymbols?.slice(0, 2).map((symbol) => (
                             <Badge
                               key={symbol}
                               variant="outline"
-                              className="text-xs border-zinc-600 text-zinc-300"
+                              className="text-xs border-slate-600 text-slate-300 rounded-full px-2.5 py-0.5"
                             >
                               {symbol}
                             </Badge>
                           ))}
                         </div>
-                        <ExternalLink className="h-4 w-4 text-zinc-400" />
+                        <ExternalLink className="h-4 w-4 text-slate-500 group-hover:text-cyan-400 transition-colors" />
                       </div>
 
                       {/* Title & Summary */}
-                      <h3 className="text-white font-semibold text-sm mb-1 line-clamp-2">
+                      <h3 className="text-slate-100 font-semibold text-sm mb-1.5 line-clamp-2">
                         {item.title}
                       </h3>
-                      <p className="text-zinc-400 text-xs mb-3 line-clamp-2">
+                      <p className="text-slate-400 text-xs mb-4 line-clamp-2">
                         {item.summary}
                       </p>
 
                       {/* Footer: Source & Time */}
-                      <div className="flex justify-between text-xs text-zinc-500">
-                        <div className="flex items-center gap-2">
-                          <span className="text-zinc-400">{item.source}</span>
+                      <div className="flex justify-between items-center text-xs text-slate-500">
+                        <div className="flex items-center gap-2 font-medium">
+                          <span className="text-slate-400">{item.source}</span>
                           {item.sentiment && (
-                            <span
-                              className={`${getSentimentColor(item.sentiment)}`}
-                            >
+                            <span className={`${getSentimentColor(item.sentiment)}`}>
                               • {item.sentiment}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
                           <Clock className="h-3 w-3" />
                           <span>{formatTimeAgo(item.publishedAt)}</span>
                         </div>
@@ -226,7 +221,7 @@ export function NewsWidget() {
                     </motion.div>
                   ))
                 ) : (
-                  <div className="flex justify-center items-center h-48 text-zinc-500">
+                  <div className="flex justify-center items-center h-48 text-slate-500">
                     No news available
                   </div>
                 )}

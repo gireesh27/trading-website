@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { NewsWidget } from "@/components/newsWidget";
@@ -12,20 +12,42 @@ import { SparklesText } from "@/components/ui/TextSparkle";
 import CryptoTicker from "@/components/slide-crypto";
 import { WatchlistItems } from "@/components/watchlist/WatchlistItems";
 import { Vortex } from "@/components/ui/vortex";
-
+import { TextGenerateSameColour } from "@/components/ui/TextGenerateSameColour";
+import HoldingsList from "@/components/Holdings/HoldingsList";
+import OrdersListWidget from "@/components/Orders/OrderListWidget";
+import { EnhancedTradingInterface } from "@/components/enhanced-trading-interface";
+import { QuickTrade } from "@/components/quicktrade";
+import AddMoneyButton from "@/components/razorpay/handleAddMoney";
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const { stocks: marketData, selectedStock, selectStock } = useMarketData();
-
+  const [holdings, setHoldings] = useState([]);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     if (!authLoading && !user) router.push("/");
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    if (marketData.length > 0 && !selectedStock) selectStock(marketData[0].symbol);
+    if (marketData.length > 0 && !selectedStock)
+      selectStock(marketData[0].symbol);
   }, [marketData, selectedStock, selectStock]);
-
+  // Fetch holdings on mount
+  useEffect(() => {
+    async function fetchHoldings() {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/holdings");
+        const data = await res.json();
+        setHoldings(data?.holdings || []);
+      } catch (err) {
+        console.error("Failed to load holdings", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchHoldings();
+  }, []);
   if (authLoading || !user)
     return (
       <div className="bg-[#131722] flex flex-col items-center justify-center relative mx-auto pt-12">
@@ -65,7 +87,7 @@ export default function DashboardPage() {
           <SparklesText>{user.name}</SparklesText>
         </h1>
         <div className="text-lg mt-2">
-          <TextGenerateEffect
+          <TextGenerateSameColour
             words=" Monitor markets, manage your portfolio, and execute trades in real-time"
             className="flex flex-wrap gap-1 font-semibold"
           />
@@ -74,13 +96,31 @@ export default function DashboardPage() {
         {/* Widgets: Flex layout 60/40 */}
         <div className="flex flex-col lg:flex-row gap-6 mt-6 w-full">
           {/* News (60%) */}
-          <div className="w-full lg:w-3/5">
-            <NewsWidget />
+          <div className="w-full lg:w-3/5 flex flex-col gap-6 overflow-x-hidden">
+            <div className="w-full ">
+              <NewsWidget />
+            </div>
+            <div className=" flex flex-col lg:flex-row gap-6 overflow-x-hidden">
+              <div className="w-full lg:w-3/5">
+                <QuickTrade />
+              </div>
+              <div className="w-full lg:w-2/5">
+               <AddMoneyButton />
+              </div>
+            </div>
           </div>
 
           {/* Watchlist (40%) */}
           <div className="w-full lg:w-2/5 overflow-x-hidden">
-            <WatchlistItems />
+            <div className="flex flex-col lg:flex-row gap-6  w-full">
+              <WatchlistItems />
+            </div>
+            <div className="flex flex-col lg:flex-row gap-6 w-full">
+              <HoldingsList holdings={holdings} />
+            </div>
+            <div className="flex flex-col lg:flex-row gap-6 w-full">
+              <OrdersListWidget />
+            </div>
           </div>
         </div>
       </div>

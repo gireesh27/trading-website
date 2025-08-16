@@ -32,7 +32,7 @@ export default function AddMoney() {
       const { orderId } = res.data;
 
       const options = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
         amount: amount * 100,
         currency: "INR",
         name: "TradeView",
@@ -68,13 +68,13 @@ export default function AddMoney() {
   };
 
   return (
-    <Card className="w-full mx-auto shadow-2xl rounded-2xl bg-white/10 backdrop-blur-lg border border-white/20 relative overflow-hidden group transition-all duration-300">
+    <Card className="bg-slate-900/60 backdrop-blur-lg border border-slate-800 rounded-2xl shadow-2xl shadow-black/30 text-slate-100 w-full mx-auto border-white/20 relative overflow-hidden group transition-all duration-300">
       {/* Optional animated glowing background */}
       <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/10 via-purple-500/10 to-pink-500/10 opacity-30 rounded-2xl blur-2xl group-hover:opacity-60 transition duration-500 z-0" />
 
       <div className="relative z-10">
         <CardHeader>
-          <CardTitle className="text-xl text-white drop-shadow-sm tracking-wide">
+          <CardTitle className="text-xl  drop-shadow-sm tracking-wide bg-gradient-to-br from-slate-200 to-cyan-400 bg-clip-text text-transparent">
             Add Money to Wallet
           </CardTitle>
         </CardHeader>
@@ -91,7 +91,13 @@ export default function AddMoney() {
           <Button
             onClick={handlePayment}
             disabled={loading || !amount}
-            className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:brightness-110 text-white font-semibold shadow-md shadow-indigo-600 transition-all duration-200"
+            className="w-full text-sm capitalize rounded-md 
+             bg-gradient-to-r from-cyan-500 to-blue-600
+             hover:brightness-110 
+             text-white font-semibold 
+             shadow-md shadow-indigo-600 
+             transition-all duration-200 
+            "
           >
             {loading ? "Processing..." : "Pay with Razorpay"}
           </Button>

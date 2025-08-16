@@ -18,7 +18,7 @@ export async function PATCH(
 ) {
   try {
     await connectToDatabase();
-    const { id } = params;
+    const { id } = await params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
@@ -49,7 +49,7 @@ export async function DELETE(
   try {
     await connectToDatabase();
 
-    const { id } = params;
+    const { id } = await params;
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
     }
@@ -78,7 +78,7 @@ export async function GET(
   try {
     await connectToDatabase();
 
-    const { id } = params;
+    const { id } = await params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid alert ID" }, { status: 400 });
     }

@@ -34,11 +34,11 @@ function WalletPageContent() {
     }
   };
 
-  useEffect(() => {
-    if (user) {
-      fetchBalance();
-    }
-  }, [user]);
+useEffect(() => {
+  if (user?.id) {
+    fetchBalance();
+  }
+}, [user?.id]);
 
   if (authLoading || !user) {
     return (

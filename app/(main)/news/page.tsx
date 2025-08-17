@@ -20,6 +20,8 @@ import {
 import { useState } from "react";
 import { useMarketData } from "@/contexts/enhanced-market-data-context";
 import { gsap } from "gsap";
+import { useAuth } from "@/contexts/auth-context";
+import Loader from "@/components/loader";
 
 export default function EnhancedNewsPage() {
   const cardRef = useRef(null);
@@ -96,7 +98,14 @@ export default function EnhancedNewsPage() {
       "bg-gray-500/20 text-gray-400 border-gray-500/30"
     );
   };
-
+  const { user, isLoading: authLoading } = useAuth();
+  if (authLoading || !user) {
+    return (
+      <div className="bg-[#131722] flex flex-col items-center justify-center pt-20">
+        <Loader />
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-[#131722] pt-20">
       <div className="container mx-auto px-4 py-6">

@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       walletPassword
     } = await req.json();
     if (!transfer_amount || transfer_amount <= 0) {
-      console.log("Invalid transfer amount:", transfer_amount)
+     
       return NextResponse.json({ error: "Invalid transfer amount" }, { status: 400 });
     }
 
@@ -55,12 +55,12 @@ export async function POST(req: NextRequest) {
       instrument_type === "bankaccount" &&
       (!bank_account_number || !bank_account_number || !beneficiary_email || !beneficiary_phone)
     ) {
-      console.log("Missing bank details:", { bank_account_number, bank_ifsc, beneficiary_email, beneficiary_phone })
+     
       return NextResponse.json({ error: "Missing bank details" }, { status: 400 });
     }
 
     if (instrument_type === "upi" && !vpa) {
-      console.log("Missing UPI VPA for transfer:", vpa)
+     
       return NextResponse.json({ error: "Missing UPI VPA for transfer" }, { status: 400 });
     }
     if (!walletPassword) {
@@ -85,8 +85,6 @@ export async function POST(req: NextRequest) {
 
     const transferId = `WD-${Date.now()}`;
     let beneficiaryId: string | null = beneficiary_id || null;
-    console.log("beneficiaryId:", beneficiaryId);
-    console.log("Trnsfer_id:", transferId);
     if (!beneficiaryId && instrument_type === "bankaccount") {
       const lookupUrl = new URL(`${BASE_URL}/beneficiary`);
       lookupUrl.searchParams.set("bank_account_number", bank_account_number);
@@ -98,7 +96,6 @@ export async function POST(req: NextRequest) {
 
       if (lookupRes.ok && lookupData?.data?.beneficiary_id) {
         beneficiaryId = lookupData.data.beneficiary_id;
-        console.log("Found beneficiaryId:", beneficiaryId);
       } else {
         const validBeneId = generateBeneficiaryId();
 
@@ -132,7 +129,6 @@ export async function POST(req: NextRequest) {
         }
 
         beneficiaryId = createBeneData.beneficiary_id || validBeneId;
-        console.log("Created beneficiaryId:", beneficiaryId);
       }
     }
     // ✅ Step 2: Construct Transfer Payload

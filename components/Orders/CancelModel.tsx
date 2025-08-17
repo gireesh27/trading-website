@@ -10,8 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Order } from "@/types/Order-types";
 import { useOrders } from "@/contexts/order-context";
 import { Loader2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-
+import { toast } from "react-toastify";
 export interface CancelModelProps {
   open: boolean;
   onClose: () => void;
@@ -28,49 +27,35 @@ const CancelModel = ({
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(false);
   const { getOrder, cancelOrder } = useOrders();
-  const { toast } = useToast();
 
-  useEffect(() => {
-    if (open && orderId) {
-      getOrder(orderId)
-        .then((data) => setOrder(data))
-        .catch(() =>
-          toast({
-            title: "Failed to load order",
-            variant: "destructive",
-          })
-        );
-    }
-  }, [open, orderId]);
-
-  const handleConfirmCancel = async () => {
-    try {
-      setLoading(true);
-      const success = await cancelOrder(orderId);
-      if (success) {
-        toast({
-          title: "Order Cancelled",
-          description: `Order for ${order?.symbol} has been cancelled.`,
-          variant: "destructive",
-        });
-        onSuccess();
-        onClose();
-      } else {
-        toast({
-          title: "Cancellation Failed",
-          variant: "destructive",
-        });
-      }
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "An error occurred while cancelling the order.",
-        variant: "destructive",
+useEffect(() => {
+  if (open && orderId) {
+    getOrder(orderId)
+      .then((data) => setOrder(data))
+      .catch(() => {
+        toast.error("Failed to load order");
       });
-    } finally {
-      setLoading(false);
+  }
+}, [open, orderId]);
+
+const handleConfirmCancel = async () => {
+  try {
+    setLoading(true);
+    const success = await cancelOrder(orderId);
+
+    if (success) {
+      toast.success(`Order for ${order?.symbol} has been cancelled.`);
+      onSuccess();
+      onClose();
+    } else {
+      toast.error("Cancellation failed. Please try again.");
     }
-  };
+  } catch (err) {
+    toast.error("An error occurred while cancelling the order.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

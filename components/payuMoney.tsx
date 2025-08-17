@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils/cn"; // Assumes you have a utility function for merging Tailwind classes
 import { AtSign, CreditCard, FlaskConical, IndianRupee, Info, Loader2, Phone, User, AlertTriangle } from "lucide-react";
-
+import { toast } from "react-toastify";
 // --- TYPE DEFINITIONS ---
 // This interface defines the shape of our form data.
 interface PaymentFormData {
@@ -85,55 +85,55 @@ const PayuForm: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
-    e.preventDefault();
+const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+  e.preventDefault();
 
-    // Stop submission if validation fails.
-    if (!validateForm()) return;
+  // Stop submission if validation fails.
+  if (!validateForm()) return;
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      // Call our own backend API to get the hashed payment data.
-      const response = await fetch("/api/wallet/payu", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+  try {
+    // Call backend API to get the hashed payment data.
+    const response = await fetch("/api/wallet/payu", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+
+    const data: ApiResponse = await response.json();
+
+    if (data.success && data.paymentData) {
+      // Show a success toast for initiating payment
+      toast.success("Redirecting to PayU payment gateway...");
+
+      // Dynamically create a form and submit it to PayU
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = process.env.NEXT_PUBLIC_PAYU_BASE_URL || "https://test.payu.in/_payment";
+
+      Object.entries(data.paymentData).forEach(([key, value]) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = String(value);
+        form.appendChild(input);
       });
 
-      const data: ApiResponse = await response.json();
-
-      if (data.success && data.paymentData) {
-        // If the API call is successful, we dynamically create a form
-        // and submit it to redirect the user to the PayU payment page.
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = process.env.NEXT_PUBLIC_PAYU_BASE_URL || "https://test.payu.in/_payment";
-
-        // Append all the required payment fields as hidden inputs.
-        Object.entries(data.paymentData).forEach(([key, value]) => {
-          const input = document.createElement("input");
-          input.type = "hidden";
-          input.name = key;
-          input.value = String(value);
-          form.appendChild(input);
-        });
-
-        document.body.appendChild(form);
-        form.submit();
-      } else {
-        // It's better to use a toast notification here instead of alert.
-        console.error("Payment initiation failed:", data.message);
-        alert(data.message || "Payment initiation failed. Please try again.");
-      }
-    } catch (error) {
-      console.error("Payment submission error:", error);
-      alert("An unexpected error occurred. Please try again.");
-    } finally {
-      // Ensure loading is set to false even if there's an error.
-      setLoading(false);
+      document.body.appendChild(form);
+      form.submit();
+    } else {
+      // Payment initiation failed
+      toast.error(data.message || "Payment initiation failed. Please try again.");
+      console.error("Payment initiation failed:", data.message);
     }
-  };
+  } catch (error: any) {
+    toast.error("An unexpected error occurred. Please try again.");
+    console.error("Payment submission error:", error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // --- RENDER ---
   return (

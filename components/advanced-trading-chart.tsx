@@ -8,7 +8,6 @@ import React, {
   useReducer,
   Dispatch,
 } from "react";
-import { useToast } from "@/components/ui/use-toast";
 import { TooltipContent, Tooltip } from "@/components/ui/tooltip";
 
 import { StockChartHeader } from "./stock-chart-header";

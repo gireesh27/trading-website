@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "react-toastify";
 import { stockApi } from "@/lib/api/stock-api";
 
 export function WatchlistDisplay() {
@@ -51,31 +51,45 @@ export function WatchlistDisplay() {
     }
   };
 
-  const handleRename = async (id: string) => {
-    if (!editedName.trim()) return;
+const handleRename = async (id: string) => {
+  if (!editedName.trim()) {
+    toast.error("Please enter a valid name.");
+    return;
+  }
+
+  try {
     await updateWatchlistName(id, editedName.trim());
-    toast({ title: "Renamed", description: "Watchlist name updated." });
+    toast.success("Watchlist name updated.");
     setEditId(null);
-  };
+  } catch (error: any) {
+    toast.error(error?.message || "Failed to rename watchlist.");
+  }
+};
 
-  const handleAddStock = async (watchlistId: string, sector: string) => {
-    const symbol = newSymbols[watchlistId]?.trim().toUpperCase();
-    if (!symbol) return;
+const handleAddStock = async (watchlistId: string, sector: string) => {
+  const symbol = newSymbols[watchlistId]?.trim().toUpperCase();
+  if (!symbol) {
+    toast.error("Please enter a stock symbol.");
+    return;
+  }
 
-    try {
-      const data = await stockApi.getQuote(symbol);
-      if (!data || !data.symbol) throw new Error("Invalid symbol");
+  try {
+    const data = await stockApi.getQuote(symbol);
+    if (!data || !data.symbol) throw new Error("Invalid symbol");
 
-      setErrors((prev) => ({ ...prev, [watchlistId]: "" }));
-      addToWatchlist(watchlistId, symbol, sector);
-      setNewSymbols((prev) => ({ ...prev, [watchlistId]: "" }));
-    } catch {
-      setErrors((prev) => ({
-        ...prev,
-        [watchlistId]: `Symbol '${symbol}' not found.`,
-      }));
-    }
-  };
+    setErrors((prev) => ({ ...prev, [watchlistId]: "" }));
+    await addToWatchlist(watchlistId, symbol, sector);
+
+    toast.success(`${symbol} added to your watchlist.`);
+    setNewSymbols((prev) => ({ ...prev, [watchlistId]: "" }));
+  } catch (error: any) {
+    setErrors((prev) => ({
+      ...prev,
+      [watchlistId]: `Symbol '${symbol}' not found.`,
+    }));
+    toast.error(error?.message || `Symbol '${symbol}' not found.`);
+  }
+};
 
   const handleSymbolChange = async (watchlistId: string, value: string) => {
     setNewSymbols((prev) => ({ ...prev, [watchlistId]: value }));

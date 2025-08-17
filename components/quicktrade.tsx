@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/auth-context";
 import { useOrders } from "@/contexts/order-context";
 import { Loader2, XCircle, Zap } from "lucide-react";
-
+import { toast } from "react-toastify";
 // --- TYPES ---
 type OrderType = "market" | "limit" | "stop";
 type SectorType = "Markets" | "crypto" ;
@@ -52,43 +52,55 @@ export function QuickTrade() {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   // --- DATA FETCHING ---
-  const fetchStockData = useCallback(
-    async (selectedSymbol: string, selectedSector: SectorType) => {
-      if (!selectedSymbol) return;
-      setIsFetchingPrice(true);
-      setStockData(null);
-      try {
-        let res;
-        // Fetch from the correct endpoint based on the selected sector
-        if (selectedSector === "Markets") {
-          res = await fetch(`/api/stocks/quote?symbol=${selectedSymbol}`);
-        } else if (selectedSector === "crypto") {
-          res = await fetch(`/api/crypto/quote?symbol=${selectedSymbol}`);
-        }
 
-        if (!res || !res.ok) throw new Error("Symbol not found");
+const fetchStockData = useCallback(
+  async (selectedSymbol: string, selectedSector: SectorType) => {
+    if (!selectedSymbol) return;
 
-        const data = await res.json();
+    setIsFetchingPrice(true);
+    setStockData(null);
 
-        setStockData({
-          name: data.name || selectedSymbol,
-          currentPrice: data.price,
-          change: data.change ?? (Math.random() - 0.5) * 20,
-          changePercent: data.changePercent ?? (Math.random() - 0.5) * 5,
-          sector: selectedSector, // Save sector in stockData
-        });
+    try {
+      let res;
 
-        setPrice(data.price.toString());
-      } catch (err) {
-        console.error(err);
-        setStockData(null);
-        setSymbol(null);
-      } finally {
-        setIsFetchingPrice(false);
+      // Fetch from the correct endpoint based on the selected sector
+      if (selectedSector === "Markets") {
+        res = await fetch(`/api/stocks/quote?symbol=${selectedSymbol}`);
+      } else if (selectedSector === "crypto") {
+        res = await fetch(`/api/crypto/quote?symbol=${selectedSymbol}`);
       }
-    },
-    []
-  );
+
+      if (!res || !res.ok) {
+        throw new Error("Symbol not found or unavailable");
+      }
+
+      const data = await res.json();
+
+      setStockData({
+        name: data.name || selectedSymbol,
+        currentPrice: data.price,
+        change: data.change ?? (Math.random() - 0.5) * 20,
+        changePercent: data.changePercent ?? (Math.random() - 0.5) * 5,
+        sector: selectedSector,
+      });
+
+      setPrice(data.price.toString());
+
+      // Optional success/info toast
+      toast.success(`Loaded ${selectedSymbol} data successfully`);
+    } catch (err: any) {
+      console.error(err);
+      setStockData(null);
+      setSymbol(null);
+
+      toast.error(`Failed to load data for ${selectedSymbol}: ${err.message}`);
+    } finally {
+      setIsFetchingPrice(false);
+    }
+  },
+  []
+);
+
 
   // --- EFFECTS ---
   useEffect(() => {
@@ -122,11 +134,19 @@ export function QuickTrade() {
     await fetchStockData(upperSymbol, sector);
   };
 
-  const handleTrade = async (side: "buy" | "sell",) => {
-    if (!symbol || !stockData) return;
-    const qty = Number(quantity);
-    if (qty <= 0) return;
+const handleTrade = async (side: "buy" | "sell") => {
+  if (!symbol || !stockData) {
+    toast.error("No stock selected. Please choose a symbol before trading.");
+    return;
+  }
 
+  const qty = Number(quantity);
+  if (qty <= 0) {
+    toast.error("Enter a valid quantity greater than 0.");
+    return;
+  }
+
+  try {
     await placeOrder({
       symbol,
       sector: stockData.sector,
@@ -135,8 +155,17 @@ export function QuickTrade() {
       type: side,
       orderType,
     });
+
+    toast.success(
+      `${side === "buy" ? "Buy" : "Sell"} order placed for ${qty} ${symbol}`
+    );
+
     setQuantity("");
-  };
+  } catch (err: any) {
+    console.error("Trade error:", err);
+    toast.error(`Failed to place order: ${err.message}`);
+  }
+};
 
   // --- COMPUTED VALUES ---
   const calculateTotal = () => {

@@ -3,7 +3,7 @@
 import { useWatchlist } from "@/contexts/watchlist-context";
 import { Button } from "@/components/ui/button";
 import { Star, StarOff, ArrowDown, ArrowUp } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "react-toastify";
 import { Stock } from "@/types/trading-types";
 import { WatchlistButton } from "./Button-animation";
 
@@ -30,7 +30,6 @@ interface StockChartHeaderProps {
 export function StockChartHeader({ stock, sector }: StockChartHeaderProps) {
   const { activeWatchlist, addToWatchlist, removeFromWatchlist, isLoading } =
     useWatchlist();
-  const { toast } = useToast();
 
   if (!stock) return null;
 
@@ -50,23 +49,13 @@ export function StockChartHeader({ stock, sector }: StockChartHeaderProps) {
     try {
       if (isInWatchlist) {
         await removeFromWatchlist(activeWatchlist._id, stock.symbol);
-        toast({
-          title: "Removed",
-          description: `${stock.symbol} removed from your watchlist.`,
-        });
+        toast.info(`${stock.symbol} removed from your watchlist.`);
       } else {
         await addToWatchlist(activeWatchlist._id, stock.symbol, sector);
-        toast({
-          title: "Added",
-          description: `${stock.symbol} added to your watchlist.`,
-        });
+        toast.success(`${stock.symbol} added to your watchlist.`);
       }
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error?.message || "Failed to update watchlist.",
-        variant: "destructive",
-      });
+      toast.error(error?.message || "Failed to update watchlist.");
     }
   };
 

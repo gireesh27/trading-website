@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Trash2, Plus, Search, X } from "lucide-react";
 import Link from "next/link";
-import { useToast } from "../ui/use-toast";
+import { toast } from "react-toastify";
 import { stockApi } from "@/lib/api/stock-api";
 import { cn } from "@/lib/utils"; // Optional utility for class merging
 import { Meteors } from "@/components/ui/meteors";
@@ -26,7 +26,6 @@ export function WatchlistWidget() {
   const [suggestions, setSuggestions] = useState<SymbolSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loadingId, setLoadingId] = useState<string | null>(null);
-  const { toast } = useToast();
 
   useEffect(() => {
     const delayDebounce = setTimeout(async () => {
@@ -47,17 +46,12 @@ export function WatchlistWidget() {
 
     return () => clearTimeout(delayDebounce);
   }, [newSymbol]);
-
   const handleAddSymbol = async (e: React.FormEvent) => {
     e.preventDefault();
     const symbol = newSymbol.trim().toUpperCase();
 
     if (!symbol) {
-      toast({
-        title: "Error",
-        description: "Please enter a stock symbol.",
-        variant: "destructive",
-      });
+      toast.error("Please enter a stock symbol.");
       return;
     }
 
@@ -72,31 +66,21 @@ export function WatchlistWidget() {
       );
 
       if (!matched) {
-        toast({
-          title: "Invalid Symbol",
-          description: `Symbol "${symbol}" not found.`,
-          variant: "destructive",
-        });
+        toast.error(`Symbol "${symbol}" not found.`);
         setLoadingId(null);
         return;
       }
+
       // Pass the sector from the matched suggestion
       await addToWatchlist(activeWatchlist._id, symbol, sector);
 
-      toast({
-        title: "Success",
-        description: `${symbol} added to your watchlist.`,
-      });
+      toast.success(`${symbol} added to your watchlist.`);
 
       setNewSymbol("");
       setSuggestions([]);
       setShowSuggestions(false);
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error?.message || "Failed to add symbol",
-        variant: "destructive",
-      });
+      toast.error(error?.message || "Failed to add symbol");
     } finally {
       setLoadingId(null);
     }
@@ -108,16 +92,9 @@ export function WatchlistWidget() {
 
     try {
       await removeFromWatchlist(activeWatchlist._id, symbol);
-      toast({
-        title: "Removed",
-        description: `${symbol.toUpperCase()} removed from your watchlist.`,
-      });
+      toast.info(`${symbol.toUpperCase()} removed from your watchlist.`);
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error?.message || "Failed to remove symbol",
-        variant: "destructive",
-      });
+      toast.error(error?.message || "Failed to remove symbol");
     } finally {
       setLoadingId(null);
     }

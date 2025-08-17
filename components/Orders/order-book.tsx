@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import clsx from "clsx";
 import type { Order } from "@/types/Order-types";
 import { useOrders } from "@/contexts/order-context";
-import { toast } from "../ui/use-toast";
 import { OrderDatePicker } from "../DatePicker";
 import Loading from "@/components/loader"
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "react-toastify";
 import {
   Select,
   SelectContent,
@@ -97,7 +97,7 @@ export function OrderBook() {
       setAllOrders(data.orders || []);
       setOrderHistory(data.orders || []);
     } catch (error) {
-      toast({ title: "Failed to fetch orders", variant: "destructive" });
+      toast.error("Failed to fetch orders");
     } finally {
       setIsRefreshing(false);
     }

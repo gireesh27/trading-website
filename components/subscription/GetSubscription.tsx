@@ -3,10 +3,9 @@
 
 import { useWallet } from "@/contexts/wallet-context";
 import { Card, CardContent } from "@/components/ui/card";
-import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
-
+import { toast } from "react-toastify";
 interface GetSubscriptionCardProps {
   amount: number;
   planName: string;
@@ -20,17 +19,19 @@ export default function GetSubscriptionCard({
 
   const handleSubscription = async () => {
     try {
-      await addMoney(amount);
-      toast({
-        title: "Subscription Activated",
-        description: `You added ₹${amount} to your wallet for ${planName}.`,
+      const res = await fetch("/api/wallet/add-money", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
       });
+
+      if (!res.ok) {
+        throw new Error("Subscription failed");
+      }
+
+      toast.success(`Subscription Activated: ₹${amount} added for ${planName}`);
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Subscription failed. Try again later.",
-      });
+      toast.error("Subscription failed. Try again later.");
     }
   };
 

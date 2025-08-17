@@ -5,6 +5,7 @@ import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { toast } from "react-toastify";
 declare global {
   interface Window {
     Razorpay: any;
@@ -15,57 +16,69 @@ export default function AddMoney() {
   const [amount, setAmount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
 
-  const handlePayment = async () => {
-    // console.log("Razorpay Key:", process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID);
-    if (!amount || amount < 1) {
-      alert("Enter a valid amount");
-      return;
-    }
+const handlePayment = async () => {
+  if (!amount || amount < 1) {
+    toast.error("Enter a valid amount");
+    return;
+  }
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      const res = await axios.post("/api/wallet/razorpay/create-order", {
-        amount,
-      });
+  try {
+    // Create Razorpay order
+    const res = await fetch("/api/wallet/razorpay/create-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount }),
+    });
 
-      const { orderId } = res.data;
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || "Order creation failed");
 
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-        amount: amount * 100,
-        currency: "INR",
-        name: "TradeView",
-        description: "Wallet Top-Up",
-        order_id: orderId,
-        handler: async function (response: any) {
-          try {
-            await axios.post("/api/wallet/razorpay/verify-payment", {
+    const { orderId } = data;
+
+    const options = {
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+      amount: amount * 100,
+      currency: "INR",
+      name: "TradeView",
+      description: "Wallet Top-Up",
+      order_id: orderId,
+      handler: async function (response: any) {
+        try {
+          // Verify payment
+          const verifyRes = await fetch("/api/wallet/razorpay/verify-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
               amount, // original amount in ₹
-            });
-            alert("Wallet credited successfully!");
-          } catch (err) {
-            console.error("Payment verification failed:", err);
-            alert("Verification failed. Contact support.");
-          }
-        },
-        theme: {
-          color: "#6366f1",
-        },
-      };
+            }),
+          });
 
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (err) {
-      console.error("Payment Error:", err);
-      alert("Payment failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+          const verifyData = await verifyRes.json();
+          if (!verifyRes.ok) throw new Error(verifyData?.error || "Verification failed");
+
+          toast.success("Wallet credited successfully!");
+        } catch (err: any) {
+          console.error("Payment verification failed:", err);
+          toast.error(`Verification failed: ${err.message || "Contact support"}`);
+        }
+      },
+      theme: { color: "#6366f1" },
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+  } catch (err: any) {
+    console.error("Payment Error:", err);
+    toast.error(`Payment failed: ${err.message || "Please try again"}`);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <Card className="bg-slate-900/60 backdrop-blur-lg border border-slate-800 rounded-2xl shadow-2xl shadow-black/30 text-slate-100 w-full mx-auto border-white/20 relative overflow-hidden group transition-all duration-300">

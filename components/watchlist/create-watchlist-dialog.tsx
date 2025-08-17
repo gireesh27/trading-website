@@ -8,13 +8,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "react-toastify";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils"; // If you use className utility
 
 export function CreateWatchlistDialog({ trigger }: { trigger: React.ReactNode }) {
   const { createWatchlist } = useWatchlist();
-  const { toast } = useToast();
 
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -22,30 +21,23 @@ export function CreateWatchlistDialog({ trigger }: { trigger: React.ReactNode })
   const [color, setColor] = useState("#3b82f6"); // Default blue
   const [loading, setLoading] = useState(false);
 
-  const handleCreate = async () => {
-    if (!name.trim()) return;
+const handleCreate = async () => {
+  if (!name.trim()) return;
 
-    setLoading(true);
-    try {
-      await createWatchlist(name.trim());
-      toast({
-        title: "✅ Watchlist Created",
-        description: `"${name}" has been successfully added.`,
-      });
-      setName("");
-      setDescription("");
-      setColor("#3b82f6");
-      setOpen(false);
-    } catch (err: any) {
-      toast({
-        title: "❌ Creation Failed",
-        description: err.message || "Could not create watchlist.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    await createWatchlist(name.trim());
+    toast.success(`✅ Watchlist "${name}" has been successfully added.`);
+    setName("");
+    setDescription("");
+    setColor("#3b82f6");
+    setOpen(false);
+  } catch (err: any) {
+    toast.error(`❌ Creation Failed: ${err.message || "Could not create watchlist."}`);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

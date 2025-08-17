@@ -5,7 +5,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useToast } from "@/components/ui/use-toast";
 import ConfirmOrderModal from "@/components/wallet/ConfirmOrderModal";
 import CancelModel from "./CancelModel";
 import type { Order } from "@/types/Order-types";
@@ -13,6 +12,7 @@ import { Loader2 } from "lucide-react";
 import { useOrders } from "@/contexts/order-context";
 import { OrderDetailsModal } from "./OrderDetailsModal";
 import { useSession } from "next-auth/react";
+import { toast } from "react-toastify";
 export default function OrdersWidget() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
@@ -24,44 +24,37 @@ export default function OrdersWidget() {
   const [complete, setComplete] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-
-  const { toast } = useToast();
   const { getOrder } = useOrders();
   const { data: session, status } = useSession();
 
-  const fetchOrders = async () => {
-    if (!session?.user) return; // extra guard
+const fetchOrders = async () => {
+  if (!session?.user) return;
 
-    setLoading(true);
-    try {
-      const res = await fetch("/api/trading/orders", {
-        method: "GET",
-        cache: "no-store",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+  setLoading(true);
+  try {
+    const res = await fetch("/api/trading/orders", {
+      method: "GET",
+      cache: "no-store",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
-      const data = await res.json();
+    const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to fetch orders");
-      }
-
-      setOrders(data.orders || []);
-    } catch (error: any) {
-      console.error("Error fetching orders:", error);
-      toast({
-        title: "Failed to fetch orders",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to fetch orders");
     }
-  };
 
+    setOrders(data.orders || []);
+  } catch (error: any) {
+    console.error("Error fetching orders:", error);
+    toast.error(`Failed to fetch orders: ${error.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -90,7 +83,7 @@ export default function OrdersWidget() {
         setIsViewModalOpen(true);
       }
     } catch (err) {
-      toast({ title: "Failed to load order details", variant: "destructive" });
+      toast.error("Failed to load order details");
     }
   };
 

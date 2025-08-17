@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "react-toastify";
 
 interface ConfirmOrderModalProps {
   open: boolean;
@@ -26,7 +26,6 @@ export default function ConfirmOrderModal({
 }: ConfirmOrderModalProps) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
 
   const handleConfirm = async (password: string, orderId: string) => {
     setLoading(true);
@@ -36,7 +35,7 @@ export default function ConfirmOrderModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          password, 
+          password,
           orderId,
         }),
       });
@@ -44,26 +43,16 @@ export default function ConfirmOrderModal({
       const data = await res.json();
 
       if (!res.ok) {
-        toast({
-          title: data.error || "Failed to confirm order",
-          variant: "destructive",
-        });
+        toast.info(data.error || "Failed to confirm order");
         return;
       }
 
-      toast({
-        title: "Order completed successfully!",
-        variant: "default",
-      });
-
+      toast("Order completed successfully!");
       setPassword("");
-      onSuccess(); // triggers fetchOrders from OrdersWidget
+      onSuccess();
     } catch (error) {
-      console.log(error)
-      toast({
-        title: "Something went wrong",
-        variant: "destructive",
-      });
+      console.log(error);
+      toast.error("Something went wrong",);
     } finally {
       setLoading(false);
     }
@@ -79,7 +68,6 @@ export default function ConfirmOrderModal({
         <p className="text-sm text-muted-foreground">
           Please enter your wallet password to confirm this order.
         </p>
-
         <Input
           type="password"
           placeholder="Wallet Password"
@@ -97,7 +85,10 @@ export default function ConfirmOrderModal({
           >
             Cancel
           </Button>
-          <Button onClick={() => handleConfirm(password,orderId)} disabled={loading || !password}>
+          <Button
+            onClick={() => handleConfirm(password, orderId)}
+            disabled={loading || !password}
+          >
             {loading ? "Verifying..." : "Confirm Order"}
           </Button>
         </div>

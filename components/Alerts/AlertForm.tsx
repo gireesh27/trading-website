@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
 import { useAlerts } from "@/contexts/alerts-context";
 import { stockApi } from "@/lib/api/stock-api";
 import {
@@ -22,6 +21,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import type { Alert } from "@/types/alerts-types";
+import { toast } from "react-toastify";
 
 interface AlertFormProps {
   isOpen: boolean;
@@ -37,7 +37,6 @@ interface SymbolSuggestion {
 }
 
 export function AlertForm({ isOpen, onClose, alert, userId }: AlertFormProps) {
-  const { toast } = useToast();
   const { addAlert, updateAlert } = useAlerts();
 
   const [type, setType] = useState<Alert["type"]>("price");
@@ -91,80 +90,67 @@ export function AlertForm({ isOpen, onClose, alert, userId }: AlertFormProps) {
   }, [symbol]);
 
   // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
 
-    const numericValue = parseFloat(value);
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (!symbol || (type !== "news" && isNaN(numericValue))) {
-      toast({
-        title: "Error",
-        description: "Please fill all required fields.",
-        variant: "destructive",
-      });
+  const numericValue = parseFloat(value);
+
+  if (!symbol || (type !== "news" && isNaN(numericValue))) {
+    toast.error("Please fill all required fields.");
+    return;
+  }
+
+  setLoadingId("submit");
+
+  try {
+    const allSuggestions = await stockApi.searchSymbol(symbol.trim());
+    const matched = allSuggestions.find(
+      (s) => s.symbol.toUpperCase() === symbol.trim().toUpperCase()
+    );
+
+    if (!matched) {
+      toast.error(`Invalid Symbol: "${symbol}" not found.`);
+      setLoadingId(null);
       return;
     }
 
-    setLoadingId("submit");
+    const payload: any = {
+      symbol: matched.symbol.toUpperCase(),
+      sector: sector || "",
+      type,
+    };
 
-    try {
-      const allSuggestions = await stockApi.searchSymbol(symbol.trim());
-      const matched = allSuggestions.find(
-        (s) => s.symbol.toUpperCase() === symbol.trim().toUpperCase()
-      );
+    if (type !== "news") {
+      payload.condition = condition;
+      payload.value = numericValue;
+    }
 
-      if (!matched) {
-        toast({
-          title: "Invalid Symbol",
-          description: `Symbol "${symbol}" not found.`,
-          variant: "destructive",
-        });
+    if (alert) {
+      await updateAlert({ ...alert, ...payload });
+    } else {
+      if (!userId) {
+        console.error("User ID is missing for new alert.");
         setLoadingId(null);
         return;
       }
-
-      const payload: any = {
-        symbol: matched.symbol.toUpperCase(),
-        sector: sector || "",
-        type,
-      };
-
-      if (type !== "news") {
-        payload.condition = condition;
-        payload.value = numericValue;
-      }
-
-      if (alert) {
-        await updateAlert({ ...alert, ...payload });
-      } else {
-        if (!userId) {
-          console.error("User ID is missing for new alert.");
-          setLoadingId(null);
-          return;
-        }
-        await addAlert({ ...payload, userId });
-      }
-
-      toast({
-        title: "Success",
-        description: alert ? "Alert updated." : "Alert created.",
-      });
-
-      setSymbol("");
-      setSector("");
-      setSuggestions([]);
-      setShowSuggestions(false);
-      onClose();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error?.message || "Failed to save alert",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingId(null);
+      await addAlert({ ...payload, userId });
     }
-  };
+
+    toast.success(alert ? "Alert updated successfully." : "Alert created successfully.");
+
+    setSymbol("");
+    setSector("");
+    setSuggestions([]);
+    setShowSuggestions(false);
+    onClose();
+  } catch (error: any) {
+    toast.error(error?.message || "Failed to save alert");
+  } finally {
+    setLoadingId(null);
+  }
+};
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

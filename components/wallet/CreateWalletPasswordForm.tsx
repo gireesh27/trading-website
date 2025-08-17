@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "react-toastify";
 import { Eye, EyeOff, ShieldCheck, Lock, AlertTriangle } from "lucide-react";
 import { z } from "zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +30,6 @@ const formSchema = z
 
 // --- Component ---
 export default function CreateWalletPasswordForm() {
-  const { toast } = useToast();
 
   // --- State Management ---
   const [password, setPassword] = useState("");
@@ -70,40 +69,34 @@ export default function CreateWalletPasswordForm() {
   };
 
   // --- Event Handlers ---
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!validate()) return;
 
-    try {
-      const res = await fetch("/api/wallet/set-wallet-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-      const data = await res.json();
+  try {
+    const res = await fetch("/api/wallet/set-wallet-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
 
-      if (!res.ok) {
-        toast({
-          title: "Error",
-          description: data.message || "Something went wrong",
-          variant: "destructive",
-        });
-        return;
-      }
+    const data = await res.json();
 
-      toast({ title: "Success!", description: "Wallet password has been set securely." });
-      setPassword("");
-      setConfirmPassword("");
-      setErrors({});
-    } catch (error) {
-      console.error("Submit Error:", error);
-      toast({
-        title: "Network Error",
-        description: "Could not connect to the server. Please try again later.",
-        variant: "destructive",
-      });
+    if (!res.ok) {
+      toast.error(data.message || "Something went wrong");
+      return;
     }
-  };
+
+    toast.success("Wallet password has been set securely.");
+    setPassword("");
+    setConfirmPassword("");
+    setErrors({});
+  } catch (error) {
+    console.error("Submit Error:", error);
+    toast.error("Could not connect to the server. Please try again later.");
+  }
+};
+
 
   // --- Strength Bar Colors ---
   // This array defines the color for each step of the strength meter.

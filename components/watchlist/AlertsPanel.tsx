@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useWatchlist } from "@/contexts/watchlist-context";
 import { PriceAlert } from "@/types/watchlistypes";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "react-toastify";
 import { Input } from "@/components/ui/input"; // Assuming this is correct
 import type { AlertContextType, Alert } from "@/types/alerts-types"; // Assuming this is correct
 export function AlertsPanel() {
@@ -53,24 +53,22 @@ export function AlertsPanel() {
     }).format(new Date(date));
   };
 
-  const toggleAlert = async (alertId: string, symbol: string) => {
-    try {
-      const res = await fetch("/api/watchlist/toggle-alert", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ alertId, symbol }),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message);
-      toast({ title: "Alert Updated", description: `Status changed.` });
-    } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err.message || "Failed to update alert",
-        variant: "destructive",
-      });
-    }
-  };
+const toggleAlert = async (alertId: string, symbol: string) => {
+  try {
+    const res = await fetch("/api/watchlist/toggle-alert", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ alertId, symbol }),
+    });
+    const data = await res.json();
+
+    if (!data.success) throw new Error(data.message);
+
+    toast.success("✅ Alert Updated: Status changed.");
+  } catch (err: any) {
+    toast.error(`❌ Error: ${err.message || "Failed to update alert"}`);
+  }
+};
 
   const filteredAlerts = useMemo(
     () =>

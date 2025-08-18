@@ -1,12 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TextRevealCard } from "@/components/ui/text-reveal";
 import { FocusCards } from "@/components/ui/focused-cards";
@@ -22,7 +16,7 @@ import {
   Coins,
 } from "lucide-react";
 import { BoxesCore } from "@/components/ui/background-boxes";
-import { TextGenerateEffect } from "../ui/Text-Generate-Effect";
+import { TextGenerateSameColour } from "../ui/TextGenerateSameColour";
 // Framer Variants
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
@@ -90,12 +84,12 @@ const cards = [
     },
   },
 ];
-  const stats: [number, string, string][] = [
-    [10, "Active Traders", "text-blue-500"],
-    [50, "Daily Volume", "text-green-500"],
-    [99.9, "Uptime", "text-purple-500"],
-    [24, "Support", "text-orange-500"],
-  ];
+const stats: [number, string, string][] = [
+  [10, "Active Traders", "text-blue-500"],
+  [50, "Daily Volume", "text-green-500"],
+  [99.9, "Uptime", "text-purple-500"],
+  [24, "Support", "text-orange-500"],
+];
 export function EnhancedSections() {
   return (
     <>
@@ -105,23 +99,24 @@ export function EnhancedSections() {
           <motion.div
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true }}
+            viewport={{ once: true, amount: 0.4 }}
             variants={fadeInUp}
             custom={0}
-            className="text-center mb-16"
+            className="text-center mb-20"
           >
-            <h2 className="text-4xl font-extrabold mb-4 glow-text">
+            {/* Main Heading */}
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 tracking-tight glow-text">
               <TextRevealCard
                 text="Everything You Need to Trade — All in One Place"
                 revealText="From First Trade to Full Portfolio — We’ve Got You Covered"
               />
             </h2>
-            <div className="text-xl font-bold mx-auto text-center text-gray-300">
-              <TextGenerateEffect
-                words={
-                  "Unlock powerful, intuitive tools crafted for both beginners taking their first steps and professionals aiming for peak performance"
-                }
-                className=""
+
+            {/* Subheading */}
+            <div className="max-w-3xl mx-auto text-center text-lg md:text-xl font-medium text-gray-300 leading-relaxed">
+              <TextGenerateSameColour
+                words="Unlock powerful, intuitive tools crafted for both beginners taking their first steps and professionals aiming for peak performance."
+                className="text-gray-300"
               />
             </div>
           </motion.div>
@@ -162,9 +157,9 @@ export function EnhancedSections() {
                 <div>
                   <div className={`text-4xl font-bold mb-2 ${color}`}>
                     <NumberTicker value={stat} />
-                    {(stat >= 10 && stat < 50)
+                    {stat >= 10 && stat < 50
                       ? "B+"
-                      : (stat >= 50 && stat <100)
+                      : stat >= 50 && stat < 100
                       ? "M+"
                       : stat < 10
                       ? "K+"
@@ -225,18 +220,22 @@ export function EnhancedSections() {
         </div>
       </section>
       {/* Footer */}
-      <footer className="bg-black text-gray-300 py-16 border-t border-white/10">
+      <footer className="bg-black text-gray-300 py-12 md:py-16 border-t border-white/10">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
+          {/* Grid Sections */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12 xl:gap-16">
+            {/* Brand Section */}
+            <div className="text-center sm:text-left">
+              <div className="flex justify-center sm:justify-start items-center space-x-2 mb-4">
                 <TrendingUp className="h-6 w-6 text-blue-500" />
                 <span className="text-xl font-bold text-white">TradeView</span>
               </div>
-              <p className="text-gray-400">
+              <p className="text-gray-400 text-sm md:text-base max-w-xs mx-auto sm:mx-0">
                 Professional trading platform for modern investors.
               </p>
             </div>
+
+            {/* Links Section */}
             {[
               ["Platform", ["Trading", "Portfolio", "Analytics", "Mobile App"]],
               ["Support", ["Help Center", "Contact Us", "API Docs", "Status"]],
@@ -250,12 +249,17 @@ export function EnhancedSections() {
                 ],
               ],
             ].map(([title, links], i) => (
-              <div key={i}>
-                <h3 className="text-white font-semibold mb-4">{title}</h3>
-                <ul className="space-y-2 text-gray-400">
+              <div key={i} className="text-center sm:text-left">
+                <h3 className="text-white font-semibold mb-4 text-base md:text-lg">
+                  {title}
+                </h3>
+                <ul className="space-y-2 text-sm md:text-base text-gray-400">
                   {(links as string[]).map((link, j) => (
                     <li key={j}>
-                      <a href="#" className="hover:text-white transition-all">
+                      <a
+                        href="#"
+                        className="hover:text-white transition-colors duration-200"
+                      >
                         {link}
                       </a>
                     </li>
@@ -264,7 +268,9 @@ export function EnhancedSections() {
               </div>
             ))}
           </div>
-          <div className="border-t border-gray-800 mt-12 pt-8 text-center text-sm text-gray-500">
+
+          {/* Bottom Section */}
+          <div className="border-t border-gray-800 mt-12 pt-8 text-center text-xs sm:text-sm md:text-base text-gray-500">
             &copy; 2025 Trade-View. All rights reserved.
           </div>
         </div>

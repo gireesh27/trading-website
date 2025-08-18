@@ -6,9 +6,8 @@ import { BookOpen, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import clsx from "clsx";
 import type { Order } from "@/types/Order-types";
-import { useOrders } from "@/contexts/order-context";
 import { OrderDatePicker } from "../DatePicker";
-import Loading from "@/components/loader"
+import Loading from "@/components/loader";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "react-toastify";
 import {
@@ -18,10 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-interface OrderBookProps {
-  symbol: string;
-  orderId: string;
-}
 
 interface OrderBookEntry {
   price: number;
@@ -42,36 +37,29 @@ interface HistoryEntry {
   status: "pending" | "completed" | "cancelled";
   createdAt: string;
   updatedAt?: string;
-  holdingPeriod?: number; // in days or N/A
+  holdingPeriod?: number;
 }
 
 export function OrderBook() {
   const [selectedStock, setSelectedStock] = useState<Order | null>(null);
   const [symbol, setSymbol] = useState<string>("");
+
   const [bids, setBids] = useState<OrderBookEntry[]>([]);
   const [asks, setAsks] = useState<OrderBookEntry[]>([]);
   const [depth, setDepth] = useState(10);
+
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastPrice, setLastPrice] = useState<number | null>(null);
   const [priceFlash, setPriceFlash] = useState<"up" | "down" | null>(null);
+
   const [showHistory, setShowHistory] = useState(false);
   const [orderHistory, setOrderHistory] = useState<HistoryEntry[]>([]);
+  const [allOrders, setAllOrders] = useState<HistoryEntry[]>([]);
+
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
-  const {
-    orders,
-    isLoading,
-    placeOrder,
-    cancelOrder,
-    getOrderHistory,
-    getOpenOrders,
-    fetchOrders,
-    getOrder,
-  } = useOrders();
-  const [allOrders, setAllOrders] = useState<HistoryEntry[]>([]);
-
-  // Call this with selected status/date to filter
+  // 🔎 Filter orders by status/date
   const filterOrders = (status: string, date?: Date) => {
     let filtered = allOrders;
 
@@ -89,11 +77,18 @@ export function OrderBook() {
     setOrderHistory(filtered);
   };
 
+  // 📡 Fetch orders from API
   const fetchOrderHistory = async () => {
     if (!isRefreshing) setIsRefreshing(true);
+
     try {
-      const res = await fetch("/api/trading/orders");
+      const res = await fetch("/api/trading/orders", {
+        credentials: "include", // ✅ Send cookies/session
+      });
+
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to fetch");
+
       setAllOrders(data.orders || []);
       setOrderHistory(data.orders || []);
     } catch (error) {
@@ -103,37 +98,12 @@ export function OrderBook() {
     }
   };
 
+  // 👀 Fetch when toggling "Order History"
   useEffect(() => {
     if (showHistory) fetchOrderHistory();
   }, [showHistory]);
 
-  useEffect(() => {
-    if (!symbol || showHistory) return;
-
-    const fetchOrderBook = async () => {
-      try {
-        setIsRefreshing(true);
-        const res = await fetch(`/api/trading/orderbook/${symbol}`);
-        const data = await res.json();
-
-        if (res.ok) {
-          setBids(data.bids || []);
-          setAsks(data.asks || []);
-        } else {
-          console.error("Order book API error:", data.error);
-        }
-      } catch (err) {
-        console.error("Failed to fetch order book:", err);
-      } finally {
-        setIsRefreshing(false);
-      }
-    };
-
-    fetchOrderBook();
-    const interval = setInterval(fetchOrderBook, 5000);
-    return () => clearInterval(interval);
-  }, [symbol, showHistory]);
-
+  // 💡 Price flash animation when selectedStock changes
   useEffect(() => {
     const price = selectedStock?.price;
     if (!price || price === lastPrice) return;
@@ -145,15 +115,13 @@ export function OrderBook() {
     return () => clearTimeout(timeout);
   }, [selectedStock?.price]);
 
-  useEffect(() => {
-    if (showHistory) fetchOrderHistory();
-  }, [showHistory]);
-
+  // 📊 Max depth calc
   const maxTotal = useMemo(() => {
     const all = [...bids, ...asks];
     return all.length ? Math.max(...all.map((e) => e.total)) : 1;
   }, [bids, asks]);
 
+  // 🟢 Render Order Book row
   const renderOrderRow = (order: OrderBookEntry, type: "bid" | "ask") => {
     const barWidth = (order.total / maxTotal) * 100;
     const colorClass = type === "bid" ? "bg-green-500/20" : "bg-red-500/20";
@@ -181,57 +149,66 @@ export function OrderBook() {
     );
   };
 
-const renderHistoryRow = (order: HistoryEntry) => {
-  const createdDate = new Date(order.createdAt);
-  const completedDate = order.updatedAt ? new Date(order.updatedAt) : null;
+  // 📜 Render History row
+  const renderHistoryRow = (order: HistoryEntry) => {
+    const createdDate = new Date(order.createdAt);
+    const completedDate = order.updatedAt ? new Date(order.updatedAt) : null;
 
-  const holdingPeriod = completedDate
-    ? Math.ceil((completedDate.getTime() - createdDate.getTime()) / (1000 * 3600 * 24))
-    : "N/A";
+    const holdingPeriod = completedDate
+      ? Math.ceil(
+          (completedDate.getTime() - createdDate.getTime()) /
+            (1000 * 3600 * 24)
+        )
+      : "N/A";
 
-  const isBuy = order.type === "buy";
-  const priceFormatted = order.price
-    ? `${isBuy ? "-" : "+"}₹${order.price.toFixed(2)}`
-    : "Market";
+    const isBuy = order.type === "buy";
+    const priceFormatted = order.price
+      ? `${isBuy ? "-" : "+"}₹${order.price.toFixed(2)}`
+      : "Market";
 
-  const statusColor =
-    order.status === "completed"
-      ? "text-green-400"
-      : order.status === "pending"
-      ? "text-yellow-400"
-      : "text-red-400";
+    const statusColor =
+      order.status === "completed"
+        ? "text-green-400"
+        : order.status === "pending"
+        ? "text-yellow-400"
+        : "text-red-400";
 
-  return (
-    <div
-      key={order._id}
-      className="grid grid-cols-7 gap-2 px-3 py-1.5 text-xs border-b border-gray-800 text-white hover:bg-gray-800"
-    >
-      <span className="font-medium">{order.orderType.toUpperCase()}</span>
-      <span className={clsx(isBuy ? "text-green-400" : "text-red-400", "font-semibold")}>
-        {order.type.toUpperCase()}
-      </span>
-      <span className="text-right">{order.quantity}</span>
-      <span className={clsx("text-right", isBuy ? "text-green-400" : "text-red-400")}>
-        {priceFormatted}
-      </span>
-      <span className={clsx("text-right", statusColor)}>{order.status}</span>
-      <span className="text-right">{holdingPeriod}</span>
-      <span className="text-right text-gray-400 font-mono">
-        {createdDate.toLocaleString("en-IN", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-        })}
-      </span>
-    </div>
-  );
-};
-
-
+    return (
+      <div
+        key={order._id}
+        className="grid grid-cols-7 gap-2 px-3 py-1.5 text-xs border-b border-gray-800 text-white hover:bg-gray-800"
+      >
+        <span className="font-medium">{order.orderType.toUpperCase()}</span>
+        <span
+          className={clsx(
+            isBuy ? "text-green-400" : "text-red-400",
+            "font-semibold"
+          )}
+        >
+          {order.type.toUpperCase()}
+        </span>
+        <span className="text-right">{order.quantity}</span>
+        <span
+          className={clsx("text-right", isBuy ? "text-green-400" : "text-red-400")}
+        >
+          {priceFormatted}
+        </span>
+        <span className={clsx("text-right", statusColor)}>{order.status}</span>
+        <span className="text-right">{holdingPeriod}</span>
+        <span className="text-right text-gray-400 font-mono">
+          {createdDate.toLocaleString("en-IN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+          })}
+        </span>
+      </div>
+    );
+  };
 
   return (
     <Card className="bg-gradient-to-br from-zinc-900/80 to-black border border-white/10 shadow-2xl rounded-3xl overflow-hidden">
@@ -276,6 +253,7 @@ const renderHistoryRow = (order: HistoryEntry) => {
         </div>
       </CardHeader>
 
+      {/* 🔎 Filter controls */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 bg-black/20">
         <OrderDatePicker
           onDateSelect={(date) => {
@@ -303,6 +281,7 @@ const renderHistoryRow = (order: HistoryEntry) => {
         </Select>
       </div>
 
+      {/* 📊 Main Content */}
       <CardContent className="pb-6">
         {showHistory ? (
           <ScrollArea className="max-h-[400px] px-6">
@@ -321,18 +300,16 @@ const renderHistoryRow = (order: HistoryEntry) => {
               </>
             ) : (
               <div className="text-center text-white py-6 text-sm">
-                {selectedStatus === "pending" &&
-                  `No pending orders`}
-                {selectedStatus === "completed" &&
-                  `No completed orders`}
-                {selectedStatus === "cancelled" &&
-                  `No cancelled orders`}
+                {selectedStatus === "pending" && "No pending orders"}
+                {selectedStatus === "completed" && "No completed orders"}
+                {selectedStatus === "cancelled" && "No cancelled orders"}
                 {selectedStatus === "all" && `No history for ${symbol}`}
               </div>
             )}
           </ScrollArea>
         ) : (
           <div className="space-y-2">
+            {/* Asks */}
             <div className="px-6 py-2 bg-gray-800 rounded-t-lg">
               <div className="grid grid-cols-3 text-xs font-semibold text-white">
                 <span>Price (USD)</span>
@@ -342,16 +319,14 @@ const renderHistoryRow = (order: HistoryEntry) => {
             </div>
 
             {asks.length ? (
-              [...asks]
-                .reverse()
-                .slice(0, depth)
-                .map((ask) => renderOrderRow(ask, "ask"))
+              [...asks].reverse().slice(0, depth).map((ask) => renderOrderRow(ask, "ask"))
             ) : (
               <div className="text-center text-white py-4 text-sm">
                 No sell orders
               </div>
             )}
 
+            {/* Last Price */}
             <div className="px-6 py-4 text-white bg-gray-900 border-y border-gray-700 text-center">
               <div
                 className={clsx(
@@ -366,6 +341,7 @@ const renderHistoryRow = (order: HistoryEntry) => {
               <div className="text-xs text-white mt-1">Last Price</div>
             </div>
 
+            {/* Bids */}
             {bids.length ? (
               bids.slice(0, depth).map((bid) => renderOrderRow(bid, "bid"))
             ) : (

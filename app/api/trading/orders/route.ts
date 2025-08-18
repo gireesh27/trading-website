@@ -5,9 +5,8 @@ import { User } from "@/lib/Database/Models/User";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../auth/[...nextauth]/route";
 
-const BROKERAGE_PERCENT = 0.005; // 0.5%
-const CONVENIENCE_FEE = 20; // Flat fee
-export const dynamic = "force-dynamic";
+const BROKERAGE_PERCENT = 0.005;
+const CONVENIENCE_FEE = 20; 
 
 // Place a new order
 export async function POST(req: NextRequest) {
@@ -92,7 +91,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Get all orders for logged-in user
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
@@ -103,12 +101,14 @@ export async function GET(req: NextRequest) {
 
   try {
     const user = await User.findOne({ email: session.user.email });
-    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
 
     const orders = await Order.find({ userId: user._id }).sort({ createdAt: -1 });
     return NextResponse.json({ success: true, orders });
   } catch (err: any) {
-    console.error("GET /orders error:", err);
+    console.error("GET /api/trading/orders error:", err);
     return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 });
   }
 }

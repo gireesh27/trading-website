@@ -2,13 +2,11 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { ColourfulText } from "@/components/ui/colourful-text";
-import { ContainerTextFlip } from "@/components/ui/container-text-flip";
-import { TextGenerateEffect } from "@/components/ui/Text-Generate-Effect";
-import { MovingBorder, MovingButton } from "@/components/ui/moving-border";
+import {  MovingButton } from "@/components/ui/moving-border";
 import { TailwindcssButtons } from "../ui/useFul-Buttons";
 import { SparklesCore } from "@/components/ui/sparkles";
+import { TextGenerateSameColour } from "../ui/TextGenerateSameColour";
 
 export default function HeroSection() {
   return (
@@ -42,10 +40,8 @@ export default function HeroSection() {
           transition={{ delay: 0.5, duration: 1 }}
           className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto"
         >
-          <TextGenerateEffect
+          <TextGenerateSameColour
             words="Empowering traders with real-time insights, intelligent charting tools, and seamless portfolio management for smarter decisions"
-            duration={1.5}
-            filter={true}
             className="text-3xl font-bold text-black"
           />
         </motion.div>

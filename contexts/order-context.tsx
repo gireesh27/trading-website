@@ -7,38 +7,50 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
-import { useToast } from "@/hooks/use-toast";
 import type { Order, OrderContextType } from "@/types/Order-types";
-
+import { toast } from "react-toastify";
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
 
 export function OrderProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders] = useState<Order[]>([]);
 
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchOrders();
   }, []);
 
-  const fetchOrders = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/trading/orders", { method: "GET" });
-      const data = await res.json();
-      if (data.success) {
-        setOrders(data.orders);
-      } else {
-        toast({ title: "Failed to load orders", variant: "destructive" });
-      }
-    } catch (err) {
-      console.error("Error fetching orders:", err);
-      toast({ title: "Error fetching orders", variant: "destructive" });
-    } finally {
-      setIsLoading(false);
+const fetchOrders = async () => {
+  setIsLoading(true);
+  try {
+    const res = await fetch("/api/trading/orders", {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (res.status === 401) {
+      setOrders([]);
+      return;
     }
-  };
+
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      setOrders(data.orders);
+    } else {
+      toast.error(
+        <div>
+          <strong>Failed to load orders</strong>
+          <div>{data.error || "Unknown error"}</div>
+        </div>
+      );
+    }
+  } catch (err) {
+    console.error("Error fetching orders:", err);
+    toast.error("Error fetching orders");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const placeOrder = async (orderData: Partial<Order>): Promise<boolean> => {
     setIsLoading(true);
@@ -51,24 +63,24 @@ export function OrderProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       if (data.success) {
         setOrders((prev) => [data.order, ...prev]);
-        toast({
-          title: "Order Placed",
-          description: `${orderData.type?.toUpperCase()} order for ${
+        toast.success(
+          `Order Placed: ${orderData.type?.toUpperCase()} order for ${
             orderData.quantity
-          } ${orderData.symbol} placed.`,
-        });
+          } ${orderData.symbol} placed.`
+        );
         return true;
       } else {
-        toast({
-          title: "Order Failed",
-          description: data.error || "Unknown error",
-          variant: "destructive",
-        });
+        toast.error(
+          <div>
+            <strong>Order Failed</strong>
+            <div>{data.error || "Unknown error"}</div>
+          </div>
+        );
         return false;
       }
     } catch (error) {
       console.error("Place order error:", error);
-      toast({ title: "Network error", variant: "destructive" });
+      toast.info("Network error");
       return false;
     } finally {
       setIsLoading(false);
@@ -88,19 +100,20 @@ export function OrderProvider({ children }: { children: ReactNode }) {
             order._id === orderId ? { ...order, status: "cancelled" } : order
           )
         );
-        toast({ title: "Order Cancelled" });
+        toast("Order Cancelled");
         return true;
       } else {
-        toast({
-          title: "Cancel Failed",
-          description: data.error || "Unknown error",
-          variant: "destructive",
-        });
+        toast.error(
+          <div>
+            <strong>Cancel Failed</strong>
+            <div>{data.error || "Unknown error"}</div>
+          </div>
+        );
         return false;
       }
     } catch (err) {
       console.error("Cancel order error:", err);
-      toast({ title: "Network error", variant: "destructive" });
+      toast.error("Network error");
       return false;
     } finally {
       setIsLoading(false);

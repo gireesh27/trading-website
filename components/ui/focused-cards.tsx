@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/cn";
 export const Card = React.memo(
   ({
     card,

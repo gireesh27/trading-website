@@ -111,125 +111,153 @@ export function NewsWidget() {
     return "Just now";
   };
 
- return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-    >
-      <Card className="bg-slate-900/60 backdrop-blur-lg border border-slate-800 rounded-2xl shadow-2xl shadow-black/30 text-slate-100 h-full">
-        {/* Header */}
-        <CardHeader className="pb-4 border-b border-slate-800">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center space-x-3 text-lg font-semibold">
-              {/* Aurora Gradient Header */}
-              <span className="bg-gradient-to-br from-slate-200 to-cyan-400 bg-clip-text text-transparent">
-                Market News
-              </span>
-            </CardTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={refreshNews}
-              disabled={isLoading}
-              className="text-slate-400 h-8 w-8 rounded-full hover:bg-slate-700/50 hover:text-white transition-colors"
+  return (
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.5, ease: "easeOut" }}
+>
+  <Card className="bg-slate-900/60 backdrop-blur-lg border border-slate-800 rounded-2xl shadow-2xl shadow-black/30 text-slate-100 h-full">
+    {/* Header */}
+    <CardHeader className="pb-4 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <CardTitle>
+          {/* Aurora Gradient Header */}
+          <span
+            className="
+              text-xl  xl:text-2xl 2xl:text-3xl 
+              text-center sm:text-left 
+              font-semibold 
+              bg-gradient-to-br from-slate-200 to-cyan-400 
+              bg-clip-text text-transparent
+              leading-snug tracking-tight
+            "
+          >
+            Market News
+          </span>
+        </CardTitle>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={refreshNews}
+          disabled={isLoading}
+          className="text-slate-400 h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-full hover:bg-slate-700/50 hover:text-white transition-colors mx-auto sm:mx-0"
+        >
+          <RefreshCw className={`h-4 w-4 md:h-5 md:w-5 ${isLoading ? "animate-spin" : ""}`} />
+        </Button>
+      </div>
+    </CardHeader>
+
+    {/* Content */}
+    <CardContent className="p-0">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        {/* Pill-style Tabs */}
+        <TabsList
+          className="
+            grid grid-cols-2 sm:grid-cols-4 
+            bg-slate-900/80 
+            h-auto p-1 rounded-none
+            text-xs sm:text-sm md:text-base
+          "
+        >
+          {["all", "general", "crypto", "forex"].map((tab) => (
+            <TabsTrigger
+              key={tab}
+              value={tab}
+              className="
+                capitalize text-slate-400 rounded-md 
+                data-[state=active]:bg-gradient-to-r 
+                data-[state=active]:from-cyan-500 data-[state=active]:to-blue-600 
+                data-[state=active]:text-white data-[state=active]:font-semibold 
+                data-[state=active]:shadow-lg 
+                transition-all
+              "
             >
-              <RefreshCw
-                className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
-              />
-            </Button>
-          </div>
-        </CardHeader>
+              {tab}
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-        {/* Content */}
-        <CardContent className="p-0">
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            {/* Pill-style Tabs */}
-            <TabsList className="grid w-full grid-cols-4 bg-slate-900/80 h-auto p-1 rounded-none">
-              {["all", "general", "crypto", "forex"].map((tab) => (
-                <TabsTrigger
-                  key={tab}
-                  value={tab}
-                  className="text-sm capitalize text-slate-400 rounded-md data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:font-semibold data-[state=active]:shadow-lg transition-all"
-                >
-                  {tab}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
-            {/* Tab Content */}
-            <TabsContent value={activeTab} className="p-4">
-              <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
-                {isLoading ? (
-                  <div className="flex justify-center items-center h-48">
-                    <Loader />
-                  </div>
-                ) : news.length > 0 ? (
-                  news.map((item, index) => (
-                    <motion.div
-                      key={item.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
-                      whileHover={{ scale: 1.02 }}
-                      className="group p-4 bg-slate-800/50 rounded-lg border-l-2 border-slate-700 hover:border-l-cyan-400 hover:bg-slate-800 transition-all cursor-pointer shadow-md hover:shadow-lg hover:shadow-cyan-500/10"
-                      onClick={() => window.open(item.url, "_blank")}
-                    >
-                      {/* Top Row: Category + Related Symbols */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge className={`${getSentimentBadge(item.sentiment)} text-xs py-1`}>
-                            {getCategoryIcon(item.category)}
-                            <span className="ml-1.5 capitalize">{item.category}</span>
-                          </Badge>
-                          {item.relatedSymbols?.slice(0, 2).map((symbol) => (
-                            <Badge
-                              key={symbol}
-                              variant="outline"
-                              className="text-xs border-slate-600 text-slate-300 rounded-full px-2.5 py-0.5"
-                            >
-                              {symbol}
-                            </Badge>
-                          ))}
-                        </div>
-                        <ExternalLink className="h-4 w-4 text-slate-500 group-hover:text-cyan-400 transition-colors" />
-                      </div>
-
-                      {/* Title & Summary */}
-                      <h3 className="text-slate-100 font-semibold text-sm mb-1.5 line-clamp-2">
-                        {item.title}
-                      </h3>
-                      <p className="text-slate-400 text-xs mb-4 line-clamp-2">
-                        {item.summary}
-                      </p>
-
-                      {/* Footer: Source & Time */}
-                      <div className="flex justify-between items-center text-xs text-slate-500">
-                        <div className="flex items-center gap-2 font-medium">
-                          <span className="text-slate-400">{item.source}</span>
-                          {item.sentiment && (
-                            <span className={`${getSentimentColor(item.sentiment)}`}>
-                              • {item.sentiment}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <Clock className="h-3 w-3" />
-                          <span>{formatTimeAgo(item.publishedAt)}</span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))
-                ) : (
-                  <div className="flex justify-center items-center h-48 text-slate-500">
-                    No news available
-                  </div>
-                )}
+        {/* Tab Content */}
+        <TabsContent value={activeTab} className="p-4">
+          <div className="space-y-4 max-h-[60vh] sm:max-h-[65vh] md:max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+            {isLoading ? (
+              <div className="flex justify-center items-center h-40 sm:h-48">
+                <Loader />
               </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    </motion.div>
+            ) : news.length > 0 ? (
+              news.map((item, index) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  whileHover={{ scale: 1.02 }}
+                  className="
+                    group p-3 sm:p-4 
+                    bg-slate-800/50 rounded-lg border-l-2 border-slate-700 
+                    hover:border-l-cyan-400 hover:bg-slate-800 
+                    transition-all cursor-pointer 
+                    shadow-md hover:shadow-lg hover:shadow-cyan-500/10
+                  "
+                  onClick={() => window.open(item.url, "_blank")}
+                >
+                  {/* Top Row: Category + Related Symbols */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge className={`${getSentimentBadge(item.sentiment)} text-xs sm:text-sm py-1`}>
+                        {getCategoryIcon(item.category)}
+                        <span className="ml-1.5 capitalize">{item.category}</span>
+                      </Badge>
+                      {item.relatedSymbols?.slice(0, 2).map((symbol) => (
+                        <Badge
+                          key={symbol}
+                          variant="outline"
+                          className="text-xs sm:text-sm border-slate-600 text-slate-300 rounded-full px-2.5 py-0.5"
+                        >
+                          {symbol}
+                        </Badge>
+                      ))}
+                    </div>
+                    <ExternalLink className="h-4 w-4 text-slate-500 group-hover:text-cyan-400 transition-colors self-end sm:self-center" />
+                  </div>
+
+                  {/* Title & Summary */}
+                  <h3 className="text-slate-100 font-semibold text-sm sm:text-base md:text-lg mb-1.5 line-clamp-2">
+                    {item.title}
+                  </h3>
+                  <p className="text-slate-400 text-xs sm:text-sm mb-4 line-clamp-2">
+                    {item.summary}
+                  </p>
+
+                  {/* Footer: Source & Time */}
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs sm:text-sm text-slate-500 gap-2">
+                    <div className="flex items-center gap-2 font-medium">
+                      <span className="text-slate-400">{item.source}</span>
+                      {item.sentiment && (
+                        <span className={`${getSentimentColor(item.sentiment)}`}>
+                          • {item.sentiment}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span>{formatTimeAgo(item.publishedAt)}</span>
+                    </div>
+                  </div>
+                </motion.div>
+              ))
+            ) : (
+              <div className="flex justify-center items-center h-40 sm:h-48 text-slate-500">
+                No news available
+              </div>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
+    </CardContent>
+  </Card>
+</motion.div>
+
   );
 }

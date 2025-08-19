@@ -9,12 +9,13 @@ import WithdrawForm from "@/components/razorpay/withdrawForm";
 import WalletTransactionTable from "@/components/wallet/WalletTransactionTable";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
-import PayuForm from "@/components/payuMoney";
+import PayuForm from "@/components/wallet/payuform";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Wallet, RefreshCw, Plus, Minus } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import AddMoney from "@/components/razorpay/handleAddMoney";
+import AddMoney from "@/components/wallet/AddMoney";
+import TestCards from "@/components/wallet/TestCards";
 
 function WalletPageContent() {
   const { user, isLoading: authLoading } = useAuth();
@@ -34,11 +35,11 @@ function WalletPageContent() {
     }
   };
 
-useEffect(() => {
-  if (user?.id) {
-    fetchBalance();
-  }
-}, [user?.id]);
+  useEffect(() => {
+    if (user?.id) {
+      fetchBalance();
+    }
+  }, [user?.id]);
 
   if (authLoading || !user) {
     return (
@@ -64,7 +65,11 @@ useEffect(() => {
                 <CardHeader className="flex flex-row items-center justify-between pb-3">
                   <div className="flex items-center gap-3">
                     <Wallet className="w-6 h-6 text-cyan-300" />
-                    <CardTitle className="text-lg font-semibold text-slate-200">
+                    <CardTitle
+                      className="text-2xl font-bold tracking-wide bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 
+             bg-clip-text text-transparent animate-gradient drop-shadow-lg 
+             hover:drop-shadow-xl transition-all duration-300 ease-in-out"
+                    >
                       Your Balance
                     </CardTitle>
                   </div>
@@ -83,7 +88,11 @@ useEffect(() => {
                   {loading ? (
                     <div className="h-10 w-36 bg-slate-800 rounded-md animate-pulse" />
                   ) : (
-                    <div className="text-3xl font-bold text-white">
+                    <div
+                      className="text-3xl font-bold  bg-gradient-to-r from-green-400 via-green-900 to-cyan-200 
+             bg-clip-text text-transparent animate-gradient drop-shadow-lg 
+             hover:drop-shadow-xl transition-all duration-300 ease-in-out "
+                    >
                       ₹
                       {balance?.toLocaleString("en-IN", {
                         minimumFractionDigits: 2,
@@ -112,7 +121,7 @@ useEffect(() => {
                   </TabsTrigger>
                   <TabsTrigger
                     value="withdraw"
-                    className="data-[state=active]:bg-blue-600/80 data-[state=active]:text-white rounded-md transition-all text-sm"
+                    className="data-[state=active]:bg-cyan-600/80 data-[state=active]:text-white rounded-md transition-all text-sm"
                   >
                     <Minus className="mr-1 h-4 w-4" /> Withdraw
                   </TabsTrigger>
@@ -134,6 +143,16 @@ useEffect(() => {
                 </TabsContent>
               </Tabs>
             </motion.div>
+            {!user?.walletPasswordHash && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="w-full"
+              >
+                <CreateWalletPasswordForm />
+              </motion.div>
+            )}
           </div>
 
           {/* Right Column - Expanded Transaction History */}
@@ -152,7 +171,7 @@ useEffect(() => {
                 transition={{ duration: 0.5, delay: 0.2 }}
                 className="w-full items-end flex justify-end"
               >
-                <CreateWalletPasswordForm />
+                <TestCards />
               </motion.div>
             </div>
           </motion.div>

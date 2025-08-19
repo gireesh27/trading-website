@@ -108,7 +108,7 @@ const handleSubmit = async (e: React.FormEvent) => {
   ];
 
   return (
-    <Card className="max-w-md w-full bg-slate-900/60 backdrop-blur-xl border border-cyan-400/20 shadow-2xl shadow-black/40 rounded-2xl relative overflow-hidden group">
+    <Card className=" bg-slate-900/60 backdrop-blur-xl border border-cyan-400/20 shadow-2xl shadow-black/40 rounded-2xl relative overflow-hidden ">
       <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-purple-500/10 to-pink-500/10 opacity-50 group-hover:opacity-80 transition-opacity duration-500 z-0" />
       <div className="relative z-10">
         <CardHeader>

@@ -37,6 +37,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           email: user.email,
           walletBalance: user.walletBalance,
+          walletPasswordHash: user.walletPasswordHash ?? null,
         };
       },
     }),
@@ -71,6 +72,7 @@ export const authOptions: NextAuthOptions = {
 
         token.id = dbUser._id.toString();
         token.walletBalance = dbUser.walletBalance ?? 0;
+        token.walletPasswordHash = dbUser.walletPasswordHash ?? null;
       }
 
       return token;
@@ -79,6 +81,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string; // Always valid ObjectId now
         session.user.walletBalance = token.walletBalance as number;
+        session.user.walletPasswordHash = token.walletPasswordHash as string | null;
       }
       return session;
     },

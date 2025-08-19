@@ -12,6 +12,7 @@ interface AuthContextType {
     name?: string | null
     email?: string | null
     image?: string | null
+    walletPasswordHash?: string | null
   } | null
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
@@ -105,6 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               name: session.user.name,
               email: session.user.email,
               image: session.user.image,
+              walletPasswordHash: session.user.walletPasswordHash,
             }
           : null,
         isLoading: status === "loading",
@@ -113,6 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout,
         loginWithGoogle,
         loginWithGithub,
+      
       }}
     >
       {children}

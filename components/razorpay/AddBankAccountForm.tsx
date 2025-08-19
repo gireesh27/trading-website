@@ -135,15 +135,13 @@ export default function StylishBeneficiaryForm({
       w-full sm:w-auto flex-1
       h-12
       px-6
-      text-lg
+      text-sm
       font-semibold
       text-white
       rounded-lg
       bg-gradient-to-r from-cyan-500 to-blue-600
-      shadow-lg shadow-blue-600/30
-      hover:scale-105
-      hover:shadow-xl hover:shadow-blue-500/40
-      transition-transform transition-shadow duration-200 ease-in-out
+    
+      transition-transform  duration-200 ease-in-out
       flex items-center justify-center
       gap-2
     "
@@ -166,12 +164,12 @@ export default function StylishBeneficiaryForm({
       px-6
       rounded-lg
       border border-gray-400
-      bg-gray-100
-      text-gray-800
+  
       font-medium
       shadow-sm
-      hover:bg-gray-200
-      hover:text-gray-900
+      bg-white/20
+      hover:bg-white/30
+      text-white
       focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500
       transition duration-200 ease-in-out
     "

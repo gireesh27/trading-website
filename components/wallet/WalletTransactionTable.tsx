@@ -76,7 +76,7 @@ export default function WalletTransactionTable() {
   };
 
   return (
-    <Card className="bg-white/10 backdrop-blur-md border border-white/10 shadow-xl rounded-2xl text-white">
+    <Card className="bg-slate-900/60 backdrop-blur-xl border border-cyan-400/20 shadow-black/40 shadow-xl rounded-2xl text-white">
       <CardHeader className="border-b border-white/10 px-6 py-4">
         <div className="flex items-center justify-between w-full">
           <CardTitle

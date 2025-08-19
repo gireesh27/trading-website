@@ -79,9 +79,9 @@ export default function HoldingsPieChart({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
-        className="relative z-10 w-full max-w-full"
+        className="relative z-10 "
       >
-        <Card className=" bg-gradient-to-br from-slate-900/80 via-gray-900/70 to-black/80  text-white backdrop-blur-md border border-gray-700 shadow-2xl rounded-2xl overflow-hidden">
+        <Card className="bg-gray-900/50 relative backdrop-blur-xl border border-gray-800  rounded-2xl w-full max-w-lg mx-auto shadow-2xl shadow-blue-500/10">
           <CardHeader className="flex flex-row items-center justify-center">
             <FaCoins className="text-yellow-400" size={20} />
             <CardTitle className="text-white text-center font-bold text-xl drop-shadow-lg bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">

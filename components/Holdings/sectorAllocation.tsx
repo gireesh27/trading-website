@@ -215,10 +215,10 @@ export default function App({ holdings }: AppProps) {
         initial={{ opacity: 0, y: 50, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="bg-gray-900/50 relative backdrop-blur-xl border border-gray-800 p-6 rounded-2xl w-full max-w-lg mx-auto shadow-2xl shadow-blue-500/10"
+        className="bg-gray-900/50 relative backdrop-blur-xl border border-gray-800 p-4 lg:p-6 rounded-2xl w-full max-w-lg mx-auto shadow-2xl shadow-blue-500/10"
       >
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-200 flex items-center gap-2">
+        <div className="flex items-center justify-between mb-6 text-center font-bold text-xl drop-shadow-lg bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+          <h2 className="text-xl font-bold flex items-center gap-2">
             <PieChartIcon className="text-blue-400" size={24} />
             Sector Allocation
           </h2>

@@ -84,13 +84,13 @@ export default function Holdings() {
     );
 
   return (
-    <div className="flex flex-col bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white min-h-screen  pt-20 px-4 gap-4">
-      {/* Top Summary Row */}
-      <div className="flex flex-col md:flex-row border border-gray-700 rounded-lg  gap-4">
+    <div className="flex flex-col bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white min-h-screen pt-20 px-4 gap-6">
+      {/* 🔹 Top Summary Row */}
+      <div className="flex flex-col md:flex-row border border-gray-700 rounded-lg gap-6 p-4">
         <div className="flex-1 flex items-center">
           <TopWorstPerformer holdings={holdings} />
         </div>
-        <div className="flex flex-wrap md:flex-nowrap gap-4 justify-end flex-1">
+        <div className="flex flex-col sm:flex-row md:flex-nowrap gap-4 justify-end flex-1">
           <InvestedVsCurrent
             totalInvested={totalInvested}
             currentValue={currentValue}
@@ -102,20 +102,18 @@ export default function Holdings() {
         </div>
       </div>
 
-      {/* Main Content: Table + Chart */}
-      <div className="flex flex-col lg:flex-row flex-1 gap-4 min-h-[500px]">
+      {/* 🔹 Main Content: Table + Chart */}
+      <div className="flex flex-col lg:flex-row min-h-[30rem]  bg-gray-900/60 rounded-lg overflow-auto shadow-inner">
         {/* Table Section */}
-        <div className="flex-1 bg-gray-900/60 rounded-lg overflow-auto shadow-inner max-h-[400px] md:max-h-full">
           <HoldingsTable
             holdings={holdings}
             loading={loading}
             onRowClick={setSelectedSymbol}
           />
-        </div>
-
+       
         {/* Chart Section */}
         {selectedSymbol && (
-          <div className="bg-gray-900/60 backdrop-blur rounded-lg p-4 w-full lg:w-2/5 min-h-[300px] flex flex-col justify-center">
+          <div className="bg-gray-900/60 flex-0 backdrop-blur rounded-lg p-2 w-full lg:w-2/5 min-h-[20rem] flex flex-col justify-center">
             {priceLoading ? (
               <p className="text-gray-400 text-center">
                 Loading price history...
@@ -136,12 +134,12 @@ export default function Holdings() {
         )}
       </div>
 
-      {/* Bottom Pie and Sector Allocation */}
-      <div className="flex flex-col xl:flex-row items-center align-center justify-between gap-4 ">
-        <div className="w-[40%] ">
+      {/* 🔹 Bottom Pie and Sector Allocation */}
+      <div className="flex flex-col xl:flex-row items-stretch justify-between ">
+        <div className="w-full xl:w-1/2  rounded-lg ">
           <HoldingsPieChart holdings={holdings} loading={loading} />
         </div>
-        <div className="w-[40%]">
+        <div className="w-full xl:w-1/2 rounded-lg ">
           <SectorAllocation holdings={holdings} />
         </div>
       </div>

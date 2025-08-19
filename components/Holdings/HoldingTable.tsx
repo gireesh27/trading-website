@@ -84,15 +84,15 @@ export default function HoldingsTable({
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mx-auto max-w-full"
+        className="mx-auto max-w-full w-full"
       >
-        <Card className="bg-white/5 border border-white/10 backdrop-blur-xl shadow-xl overflow-x-auto rounded-lg">
+        <Card className="shadow-xl p-2 overflow-x-hidden relative rounded-2xl border border-white/10 bg-black/50 pt-2 backdrop-blur-xl">
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-center bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-              📊 My Holdings
+              Your Holdings
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="p-2">
             {loading ? (
               <div className="text-center py-10 animate-pulse text-gray-400">
                 Loading holdings...

@@ -6,11 +6,25 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogClose,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { 
+    Package, 
+    ArrowUpRight, 
+    ArrowDownLeft, 
+    Hash, 
+    Tag, 
+    CheckCircle, 
+    Clock, 
+    Calendar, 
+    Info,
+    X 
+} from "lucide-react";
 import type { Order } from "@/types/Order-types";
+
+// NOTE: You'll need to install lucide-react
+// npm install lucide-react
 
 interface OrderDetailsModalProps {
   open: boolean;
@@ -22,62 +36,102 @@ export const OrderDetailsModal = ({ open, onClose, order }: OrderDetailsModalPro
   if (!order) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-gray-900 text-white border-gray-700">
-        <DialogHeader>
-          <DialogTitle className="text-xl">Order Details</DialogTitle>
-          <DialogDescription className="text-gray-400">
-            Order ID: <span className="break-all">{order._id}</span>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="bg-neutral-950 text-neutral-200 border-neutral-800 shadow-2xl shadow-cyan-500/10 sm:rounded-2xl">
+        <DialogHeader className="text-left">
+          <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+            <Package className="h-6 w-6 text-cyan-400" />
+            Order Details
+          </DialogTitle>
+          <DialogDescription className="text-neutral-500 pt-1">
+            Order ID: <span className="font-mono break-all">{order._id}</span>
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-2 text-sm font-mono">
-          <Detail label="Symbol" value={order.symbol} />
-          <Detail
-            label="Type"
-            value={
-              <Badge
-                variant={order.type === "buy" ? "default" : "destructive"}
-              >
-                {order.type.toUpperCase()}
-              </Badge>
-            }
-          />
-          <Detail label="Order Type" value={order.orderType} />
-          <Detail label="Status" value={order.status} />
-          <Detail label="Quantity" value={order.quantity} />
-          <Detail label="Price" value={order.price ? `$${order.price}` : "Market"} />
-          
-          <Detail
-            label="Created At"
-            value={new Date(order.createdAt).toLocaleString()}
-          />
-          <Detail
-            label="Updated At"
-            value={new Date(order.updatedAt).toLocaleString()}
-          />
+        {/* Details Section */}
+        <div className="py-4 space-y-4">
+          <div className="bg-neutral-900/70 p-4 border border-neutral-800 rounded-lg space-y-3">
+            <Detail icon={<Tag className="text-cyan-400"/>} label="Symbol" value={order.symbol} />
+            <Detail 
+                icon={order.type === "buy" ? <ArrowUpRight className="text-green-400" /> : <ArrowDownLeft className="text-red-400" />}
+                label="Type" 
+                value={<TypeBadge type={order.type} />} 
+            />
+            <Detail icon={<Info className="text-cyan-400"/>} label="Order Type" value={order.orderType} />
+            <Detail 
+                icon={<CheckCircle className="text-cyan-400"/>} 
+                label="Status" 
+                value={<StatusBadge status={order.status} />} 
+            />
+          </div>
+          <div className="bg-neutral-900/70 p-4 border border-neutral-800 rounded-lg space-y-3">
+            <Detail icon={<Hash className="text-cyan-400"/>} label="Quantity" value={order.quantity} />
+            <Detail icon={<Tag className="text-cyan-400"/>} label="Price" value={order.price ? `$${order.price.toFixed(2)}` : "Market"} />
+            <Detail
+              icon={<Calendar className="text-cyan-400"/>}
+              label="Created At"
+              value={new Date(order.createdAt).toLocaleString()}
+            />
+            <Detail
+              icon={<Clock className="text-cyan-400"/>}
+              label="Updated At"
+              value={new Date(order.updatedAt).toLocaleString()}
+            />
+          </div>
         </div>
 
-        <DialogClose asChild>
-          <Button variant="secondary" className="w-full mt-4">
-            Close
-          </Button>
-        </DialogClose>
+        {/* Close Button */}
+        <div className="pt-2">
+            <Button 
+                variant="outline" 
+                onClick={onClose}
+                className="w-full bg-neutral-900/50 border-neutral-700 hover:bg-neutral-800 hover:text-white transition-all duration-300 group"
+            >
+                <X className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:rotate-90"/>
+                Close
+            </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
 };
 
+// --- Styled Sub-components ---
 
-const Detail = ({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) => (
-  <div className="flex justify-between gap-4">
-    <span className="text-gray-400">{label}</span>
-    <span className="text-right text-white">{value}</span>
+const Detail = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) => (
+  <div className="flex items-center justify-between text-sm">
+    <div className="flex items-center gap-3">
+      <div className="w-5 h-5 flex-shrink-0">{icon}</div>
+      <span className="text-neutral-400">{label}</span>
+    </div>
+    <span className="font-semibold text-right text-neutral-100">{value}</span>
   </div>
 );
+
+const TypeBadge = ({ type }: { type: "buy" | "sell" }) => (
+  <Badge
+    className={`font-bold text-xs uppercase tracking-wider border ${
+      type === "buy"
+        ? "bg-green-500/10 text-green-400 border-green-500/20"
+        : "bg-red-500/10 text-red-400 border-red-500/20"
+    }`}
+  >
+    {type}
+  </Badge>
+);
+
+const StatusBadge = ({ status }: { status: string }) => {
+  const statusStyles: { [key: string]: string } = {
+    pending: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+    completed: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    failed: "bg-red-500/10 text-red-400 border-red-500/20",
+    default: "bg-neutral-700/20 text-neutral-400 border-neutral-700/30",
+  };
+  const style = statusStyles[status.toLowerCase()] || statusStyles.default;
+
+  return (
+    <Badge className={`font-semibold text-xs capitalize tracking-wide border ${style}`}>
+      {status}
+    </Badge>
+  );
+};

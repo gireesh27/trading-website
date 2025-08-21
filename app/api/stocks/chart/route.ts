@@ -22,8 +22,8 @@ export async function GET(req: Request) {
 
     const data = await stockApi.getFullChartData(symbol, range, interval);
 
-    // Cache for 20 minutes (1200 seconds)
-    await redis.set(cacheKey, JSON.stringify(data), { EX: 1200 });
+    // Cache for 5 minutes (300 seconds)
+    await redis.set(cacheKey, JSON.stringify(data), { EX: 300 });
 
     return NextResponse.json(data);
   } catch (err: any) {

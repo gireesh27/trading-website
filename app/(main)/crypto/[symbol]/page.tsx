@@ -25,49 +25,64 @@ export default function CryptoSymbolPage() {
 
   const range = "1y";
   const interval = "1d";
-
-  const loadChartData = useCallback(
-    async (symbol: string, range: string = "1mo", interval: string = "1h") => {
-      try {
-        // Call your own API route with query parameters
-        const url = `/api/stocks/chart?symbol=${encodeURIComponent(
-          symbol
+const handleChartDataFetch = useCallback(
+  async (fetchSymbol: string, range: string, interval: string) => {
+    try {
+      const res = await fetch(
+        `/api/stocks/chart?symbol=${encodeURIComponent(
+          fetchSymbol
         )}&range=${encodeURIComponent(range)}&interval=${encodeURIComponent(
           interval
-        )}`;
+        )}`
+      );
 
-        const response = await fetch(url);
-
-        if (!response.ok) {
-          throw new Error(`Failed to load chart data: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-
-        // Assuming your API returns the raw chartData array directly
-        if (Array.isArray(data)) {
-          const transformed: CandlestickPoint[] = data.map((item: any) => ({
-            time: item.time,
-            open: item.open,
-            high: item.high,
-            low: item.low,
-            close: item.close,
-            volume: item.volume,
-            timestamp: new Date(item.time).getTime() / 1000,
-          }));
-
-          setChartCandlestickData(transformed);
-        } else {
-          throw new Error("Invalid chart data format");
-        }
-      } catch (err) {
-        console.error("❌ Error loading chart data:", err);
-        setError("Error loading chart data");
+      if (!res.ok) {
+        throw new Error(`Failed to fetch chart data (${res.status})`);
       }
-    },
-    []
-  );
 
+      const { chartData } = await res.json();
+
+      if (Array.isArray(chartData)) {
+        const converted = convertToCandlestickPoints(chartData);
+        return converted; // ✅ return the converted data
+      } else {
+        throw new Error("Invalid chart data format.");
+      }
+    } catch (err: any) {
+      setError(err?.message || "Failed to update chart data.");
+      return [];
+    } 
+  },
+  []
+);
+
+// ✅ reuse conversion helper
+const convertToCandlestickPoints = (data: any[]): CandlestickPoint[] => {
+  return data.map((d) => ({
+    timestamp: new Date(d.time).getTime(),
+    time: d.time,
+    open: d.open,
+    high: d.high,
+    low: d.low,
+    close: d.close,
+    volume: d.volume,
+  }));
+};
+ const loadChartData = useCallback(
+  async (symbol: string, range: string = "1mo", interval: string = "1h") => {
+    try {
+      const data = await handleChartDataFetch(symbol, range, interval);
+
+      if (data.length > 0) {
+        setChartCandlestickData(data);
+      }
+    } catch (err) {
+      console.error("❌ Error loading chart data:", err);
+      setError("Error loading chart data");
+    }
+  },
+  [handleChartDataFetch]
+);
   const fetchSelectedCrypto = useCallback(async (symbol: string) => {
     setLoadingPage(true);
     setError(null);
@@ -163,13 +178,13 @@ export default function CryptoSymbolPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#131722] p-6 text-white rounded-2xl pt-20">
+    <div className="min-h-screen  bg-gray-900 px-4 text-white pt-20">
       {selectedStock && (
         <div className="flex flex-col lg:flex-row mt-6 gap-6">
           {/* Left side: Chart + News */}
           <div className="w-full flex flex-col gap-6 lg:w-3/4">
             {/* AdvancedTradingChart */}
-            <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md shadow-md ">
+            <div className="w-full rounded-2xl backdrop-blur-md shadow-md ">
               <AdvancedTradingChart
                 symbol={selectedStock.symbol}
                 selectedStock={selectedStock}
@@ -182,7 +197,7 @@ export default function CryptoSymbolPage() {
             </div>
 
             {/* CryptoNewsFeed */}
-            <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md shadow-md">
+            <div className="w-full backdrop-blur-md shadow-md">
               <CryptoNewsFeed symbol={symbol} />
             </div>
           </div>

@@ -215,7 +215,7 @@ const fetchOrders = async () => {
                   <Loader2 className="animate-spin h-5 w-5 text-muted-foreground" />
                 </div>
               ) : orders.filter((o) => o.status === "pending").length === 0 ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground text-center my-2 md:my-4 lg:my-6">
                   No pending orders.
                 </p>
               ) : (
@@ -231,7 +231,7 @@ const fetchOrders = async () => {
 
             <TabsContent value="completed" className="h-full">
               {orders.filter((o) => o.status === "completed").length === 0 ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground text-center my-2 md:my-4 lg:my-6">
                   No completed orders.
                 </p>
               ) : (
@@ -247,7 +247,7 @@ const fetchOrders = async () => {
 
             <TabsContent value="cancelled" className="h-full">
               {orders.filter((o) => o.status === "cancelled").length === 0 ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground text-cnter my-2 md:my-4 lg:my-6">
                   No cancelled orders.
                 </p>
               ) : (

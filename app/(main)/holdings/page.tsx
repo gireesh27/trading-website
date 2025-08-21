@@ -86,7 +86,7 @@ export default function Holdings() {
   return (
     <div className="flex flex-col bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white min-h-screen pt-20 px-4 gap-6">
       {/* 🔹 Top Summary Row */}
-      <div className="flex flex-col md:flex-row border border-gray-700 rounded-lg gap-6 p-4">
+      <div className="flex flex-col md:flex-row border border-gray-700 rounded-lg gap-6 p-1 md:p-2">
         <div className="flex-1 flex items-center">
           <TopWorstPerformer holdings={holdings} />
         </div>

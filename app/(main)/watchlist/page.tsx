@@ -11,57 +11,55 @@ import { CreateWatchlistDialog } from "@/components/watchlist/create-watchlist-d
 import { motion } from "framer-motion";
 import Loader from "@/components/loader";
 import { useAuth } from "@/contexts/auth-context";
-import VantaNetBackground from "@/components/ui/VantaNetBackground";
-import { TextGenerateEffect } from "@/components/ui/Text-Generate-Effect";
 import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
+import { TextGenerateSameColour } from "@/components/ui/TextGenerateSameColour";
 export default function WatchlistPage() {
   const { isLoading, watchlists, activeWatchlist } = useWatchlist();
   const { user } = useAuth();
   if (isLoading || !user) {
     return (
-      <div className="bg-[#131722] flex flex-col items-center justify-center pt-20">
+      <div className="bg-[#131722] flex flex-col items-center justify-center ">
         <Loader />
       </div>
     );
   }
   return (
-    <main className="relative min-h-screen  bg-[#0e0f1a] flex items-center justify-center mx-auto overflow-hidden">
-       {/* Optional: Original background (blurred circles or gradient beams) */}
-            <BackgroundBeamsWithCollision className=" fixed inset-0 z-0 w-full h-full pointer-events-none bg-gradient-to-br from-[#1a1c2b]/90 via-[#2a2c3d]/70 to-[#1a1c2b]/90">
-              <div className="w-96 h-96 bg-purple-500 opacity-30 blur-3xl rounded-full" />
-              <div className="w-96 h-96 bg-blue-500 opacity-30 blur-2xl rounded-full" />
-              <div className="w-96 h-96 bg-pink-500 opacity-30 blur-xl rounded-full" />
-              <div className="w-96 h-96 bg-red-500 opacity-30 blur-2xl rounded-full" />
-              <div className="w-96 h-96 bg-yellow-500 opacity-30 blur-3xl rounded-full" />
-            </BackgroundBeamsWithCollision>
+    <main className="w-full h-full bg-gray-900 relative   flex items-center justify-center px-4">
+      <BackgroundBeamsWithCollision className=" fixed inset-0 z-0  pointer-events-none bg-gradient-to-br from-[#1a1c2b]/90 via-[#2a2c3d]/70 to-[#1a1c2b]/90">
+        <div className=" bg-purple-500  " />
+        <div className=" bg-blue-500  " />
+        <div className=" bg-pink-500 " />
+        <div className=" bg-red-500  " />
+        <div className=" bg-yellow-500  " />
+      </BackgroundBeamsWithCollision>
       {/* Foreground content */}
-      <div className="relative z-10 px-4 pt-20">
+      <div className=" z-10 ">
         {/* Page Header */}
         <motion.header
-          className="flex flex-col items-center justify-center text-center space-y-3 mb-6"
+          className="flex flex-col items-start justify-center  space-y-3 mb-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
           <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500 animate-gradient-x">
-            📈 Your Watchlists
+            Your Watchlists
           </h1>
           <div className="flex flex-wrap justify-center gap-1 font-semibold text-center">
-            <TextGenerateEffect words=" Track your Favourite stocks and Crypto assets in Real Time" />
+            <TextGenerateSameColour words=" Track your Favourite stocks and Crypto assets in Real Time" />
           </div>
         </motion.header>
 
         {/* Top Quick Add Widget */}
-        <section>
+        <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-white">Quick Add</h2>
           </div>
           <WatchlistWidget />
-        </section>
+        </div>
 
         {/* Full Watchlist Management */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
+        <div>
+          <div className="flex items-center justify-between my-4">
             <h2 className="text-xl font-semibold text-white">
               Manage Watchlists
             </h2>
@@ -69,10 +67,10 @@ export default function WatchlistPage() {
           <div className="rounded-lg border border-gray-700 bg-gray-900/80 backdrop-blur-sm p-4">
             <WatchlistDisplay />
           </div>
-        </section>
+        </div>
 
         {/* Main Panel */}
-        <section>
+        <div>
           {isLoading ? (
             <div className="text-center py-16 text-gray-300">
               Loading your watchlists...
@@ -105,7 +103,7 @@ export default function WatchlistPage() {
               </div>
             </div>
           )}
-        </section>
+        </div>
       </div>
     </main>
   );

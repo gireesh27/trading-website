@@ -12,6 +12,9 @@ export const metadata = {
   title: "TradeView - Professional Trading Platform",
   description:
     "Complete stock trading platform with real-time data, advanced charting, and portfolio management",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({

@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
 import { NewsWidget } from "@/components/newsWidget";
 import { useMarketData } from "@/contexts/enhanced-market-data-context";
 import { useAuth } from "@/contexts/auth-context";
-import { TextGenerateEffect } from "@/components/ui/Text-Generate-Effect";
 import Loader from "@/components/loader";
 import { SparklesText } from "@/components/ui/TextSparkle";
 import CryptoTicker from "@/components/slide-crypto";
@@ -15,10 +13,7 @@ import { Vortex } from "@/components/ui/vortex";
 import { TextGenerateSameColour } from "@/components/ui/TextGenerateSameColour";
 import HoldingsList from "@/components/Holdings/HoldingsList";
 import OrdersListWidget from "@/components/Orders/OrderListWidget";
-import { EnhancedTradingInterface } from "@/components/enhanced-trading-interface";
 import { QuickTrade } from "@/components/quicktrade";
-import AddMoneyButton from "@/components/razorpay/handleAddMoney";
-import PaymentForm from "@/components/razorpay/payuAdd";
 import PayuForm from "@/components/payuMoney";
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -52,13 +47,13 @@ export default function DashboardPage() {
   }, []);
   if (authLoading || !user)
     return (
-      <div className="bg-[#131722] flex flex-col items-center justify-center relative mx-auto pt-12">
+      <div className="bg-[#131722] flex flex-col items-center justify-center relative mx-auto ">
         <Loader />
       </div>
     );
 
   return (
-    <div className="relative bg-[#131722] flex flex-col items-center justify-center pt-12 mx-auto">
+    <div className="relative bg-[#131722] flex flex-col items-center justify-center  mx-auto">
       {/* Vortex Background */}
       <div className="absolute inset-0 w-full h-full z-0">
         <Vortex

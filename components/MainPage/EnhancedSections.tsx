@@ -173,9 +173,9 @@ export function EnhancedSections() {
         </div>
       </section>
       {/* CTA Section */}
-      <section className="relative py-24 overflow-hidden bg-gradient-to-r from-blue-600 to-blue-800 text-white text-center">
+      <section className="relative py-24 overflow-hidden bg-gradient-to-br from-gray-900 via-purple-700 to-blue-800 text-white text-center">
         {/* Animated background boxes */}
-        <BoxesCore className="absolute inset-0 z-0" />
+        <BoxesCore className="absolute inset-0 z-0 opacity-40" />
 
         {/* Content */}
         <div className="container mx-auto px-4 relative z-10">
@@ -185,9 +185,9 @@ export function EnhancedSections() {
             viewport={{ once: true }}
             variants={fadeInUp}
             custom={0}
-            className="text-4xl font-extrabold mb-4"
+            className="text-4xl md:text-5xl font-extrabold mb-6 drop-shadow-lg"
           >
-            Ready to Start Trading?
+            Ready to <span className="text-pink-300">Start Trading?</span>
           </motion.h2>
 
           <motion.p
@@ -196,10 +196,11 @@ export function EnhancedSections() {
             viewport={{ once: true }}
             variants={fadeInUp}
             custom={1}
-            className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto"
+            className="text-lg md:text-xl text-blue-100 mb-10 max-w-2xl mx-auto opacity-90"
           >
-            Join thousands of traders who trust TradeView for their investment
-            journey
+            Join thousands of traders who trust{" "}
+            <span className="font-semibold">TradeView</span>
+            for their investment journey.
           </motion.p>
 
           <motion.div
@@ -211,7 +212,7 @@ export function EnhancedSections() {
             <Link href="/auth">
               <Button
                 size="lg"
-                className="bg-white text-blue-700 hover:bg-gray-100 text-lg px-8 py-3 font-semibold shadow-md"
+                className="px-8 py-3 text-lg font-semibold rounded-full shadow-lg bg-gradient-to-r from-sky-500 to-indigo-600 text-white hover:shadow-sky-500/40 hover:scale-105 transition-transform"
               >
                 Create Free Account
               </Button>
@@ -219,6 +220,7 @@ export function EnhancedSections() {
           </motion.div>
         </div>
       </section>
+
       {/* Footer */}
       <footer className="bg-black text-gray-300 py-12 md:py-16 border-t border-white/10">
         <div className="container mx-auto px-4">

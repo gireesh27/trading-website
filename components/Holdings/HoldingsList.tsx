@@ -51,17 +51,17 @@ export default function HoldingsList({ holdings }: { holdings: Holding[] }) {
                   </span>
                   <div className="flex items-center gap-2 text-sm text-slate-300">
                     <Package size={14} className="text-slate-400" />
-                    <span>Qty: {h.quantity.toFixed(2)}</span>
+                    <span>Qty: {Number(h.quantity)?.toFixed(4)}</span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                <div className="flex justify-between items-center  mb-4">
                   <div className="flex items-center gap-2 text-slate-400">
                     <IndianRupee size={14} />
                     <div>
-                      Avg:{" "}
+                      Purchased At:{" "}
                       <span className="font-medium text-slate-200">
-                        ₹{h.avgPrice.toFixed(2)}
+                        ₹{Number(h.avgPrice).toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -70,7 +70,7 @@ export default function HoldingsList({ holdings }: { holdings: Holding[] }) {
                     <div>
                       Current:{" "}
                       <span className="font-medium text-slate-200">
-                        ₹{h.currentPrice.toFixed(2)}
+                        ₹{Number(h.currentPrice).toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -89,10 +89,10 @@ export default function HoldingsList({ holdings }: { holdings: Holding[] }) {
                     }`}
                   >
                     <div>
-                      {h.profitLoss >= 0 ? "+" : ""}₹{h.profitLoss.toFixed(2)}
+                      {h.profitLoss >= 0 ? "+" : ""}₹{Number(h.profitLoss).toFixed(2)}
                     </div>
                     <div className="text-xs font-medium">
-                      ({h.profitLossPercent.toFixed(2)}%)
+                      ({Number(h.profitLossPercent).toFixed(2)}%)
                     </div>
                   </div>
                 </div>

@@ -6,10 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
-import {Tabs} from "@/components/ui/tabs2";
 import RedditImageFeed from "@/components/Community/Images";
 import StockTwitsTrendingFeed from "@/components/Community/Stock-Twits";
 import Loader from "@/components/loader";
+import Link from "next/link";
 
 interface RedditPost {
   image: any;
@@ -133,9 +133,9 @@ export default function CommunityPage() {
       {/* Tabs */}
       <div className="flex flex-wrap gap-3 justify-center md:justify-start mb-6">
         {[
-          { id: "community", label: "Community" },
-          { id: "images", label: "Images" },
-          { id: "stocktwits", label: "StockTwits" },
+          { id: "community", label: "Reddit Posts" },
+          { id: "images", label: "Latest News" },
+          { id: "stocktwits", label: "Stock-Twits" },
         ].map((tab) => (
           <Button
             key={tab.id}
@@ -230,14 +230,14 @@ export default function CommunityPage() {
                       </p>
                     )}
 
-                    <a
+                    <Link
                       href={post.permalink}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-blue-500 hover:text-blue-400 transition-colors duration-200 font-medium text-sm"
                     >
                       🔗 Read More on Reddit →
-                    </a>
+                    </Link>
                   </CardContent>
                 </Card>
               ))}

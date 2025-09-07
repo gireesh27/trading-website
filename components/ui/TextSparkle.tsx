@@ -92,6 +92,7 @@ export const SparklesText: React.FC<SparklesTextProps> = ({
   ...props
 }) => {
   const [sparkles, setSparkles] = useState<Sparkle[]>([]);
+  const [showSparkles, setShowSparkles] = useState(true);
 
   useEffect(() => {
     const generateStar = (): Sparkle => {
@@ -100,52 +101,41 @@ export const SparklesText: React.FC<SparklesTextProps> = ({
       const color = Math.random() > 0.5 ? colors.first : colors.second;
       const delay = Math.random() * 2;
       const scale = Math.random() * 1 + 0.3;
-      const lifespan = Math.random() * 10 + 5;
       const id = `${starX}-${starY}-${Date.now()}`;
-      return { id, x: starX, y: starY, color, delay, scale, lifespan };
+      return { id, x: starX, y: starY, color, delay, scale };
     };
 
-    const initializeStars = () => {
-      const newSparkles = Array.from({ length: sparklesCount }, generateStar);
-      setSparkles(newSparkles);
-    };
+    const newSparkles = Array.from({ length: sparklesCount }, generateStar);
+    setSparkles(newSparkles);
 
-    const updateStars = () => {
-      setSparkles((currentSparkles) =>
-        currentSparkles.map((star) => {
-          if (star.lifespan <= 0) {
-            return generateStar();
-          } else {
-            return { ...star, lifespan: star.lifespan - 0.1 };
-          }
-        }),
-      );
-    };
+    // Stop sparkles after 2 seconds
+    const timeout = setTimeout(() => {
+      setShowSparkles(false);
+    }, 2000);
 
-    initializeStars();
-    const interval = setInterval(updateStars, 100);
-
-    return () => clearInterval(interval);
+    return () => clearTimeout(timeout);
   }, [colors.first, colors.second, sparklesCount]);
 
   return (
     <div
       className={cn("text-6xl font-bold", className)}
       {...props}
-      style={
-        {
-          "--sparkles-first-color": `${colors.first}`,
-          "--sparkles-second-color": `${colors.second}`,
-        } as CSSProperties
-      }
+      style={{
+        "--sparkles-first-color": colors.first,
+        "--sparkles-second-color": colors.second,
+      } as React.CSSProperties}
     >
       <span className="relative inline-block">
-        {sparkles.map((sparkle) => (
-          <Sparkle key={sparkle.id} {...sparkle} />
-        ))}
-        <strong className="inline-block text-4xl 
-             text-transparent bg-clip-text md:text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 animate-gradient-x">{children}</strong>
+        {showSparkles &&
+          sparkles.map((sparkle) => <Sparkle key={sparkle.id} {...sparkle} />)}
+        <strong
+          className="inline-block text-4xl md:text-3xl font-bold 
+            text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500 animate-gradient-x"
+        >
+          {children}
+        </strong>
       </span>
     </div>
   );
 };
+

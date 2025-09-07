@@ -9,20 +9,15 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
-import { FaGithub } from "react-icons/fa"; // <-- replaced Twitter with GitHub
+import { FaGithub } from "react-icons/fa";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
-import { TextGenerateEffect } from "@/components/ui/Text-Generate-Effect";
 import { ColourfulText } from "@/components/ui/colourful-text";
-
-const ErrorMessage = dynamic(() => import("./ErrorMessage"), { ssr: false });
 
 export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -79,12 +74,12 @@ export default function AuthPage() {
     if (res?.error) {
       alert(res.error || "Login failed");
     } else {
-      router.push("/dashboard");
+      router.push("/auth");
     }
   };
 
   const handleOAuth = (provider: "google" | "github") => {
-    signIn(provider, { callbackUrl: "/dashboard" });
+    signIn(provider, { callbackUrl: "/" });
   };
 
   return (
@@ -96,7 +91,6 @@ export default function AuthPage() {
         {/* Top points */}
         <div className="absolute top-0 left-1/4 w-48 h-48 bg-blue-500 opacity-50 blur-3xl rounded-full" />
         <div className="absolute top-0 right-1/4 w-48 h-48 bg-green-400 opacity-50 blur-3xl rounded-full" />
-
         {/* Bottom points */}
         <div className="absolute bottom-0 left-1/4 w-48 h-48 bg-blue-500 opacity-50 blur-3xl rounded-full" />
         <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-green-400 opacity-50 blur-3xl rounded-full" />
@@ -116,8 +110,6 @@ export default function AuthPage() {
         </CardHeader>
 
         <CardContent>
-          <ErrorMessage />
-
           <div className="flex justify-center gap-4 mb-4">
             <Button
               variant="outline"
@@ -128,7 +120,7 @@ export default function AuthPage() {
             </Button>
             <Button
               variant="outline"
-              onClick={() => handleOAuth("github")} // <-- GitHub
+              onClick={() => handleOAuth("github")}
               className="flex items-center justify-center border-white/30 bg-[#2a2c3d] hover:bg-[#3a3c5d] text-white transition-all duration-300"
             >
               <FaGithub className="h-5 w-5 mr-2" /> GitHub

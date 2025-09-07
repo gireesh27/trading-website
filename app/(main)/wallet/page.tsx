@@ -16,6 +16,8 @@ import { Wallet, RefreshCw, Plus, Minus } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import AddMoney from "@/components/wallet/AddMoney";
 import TestCards from "@/components/wallet/TestCards";
+import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
+import { TextGenerateSameColour } from "@/components/ui/TextGenerateSameColour";
 
 function WalletPageContent() {
   const { user, isLoading: authLoading } = useAuth();
@@ -50,8 +52,33 @@ function WalletPageContent() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-slate-900 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))] p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto pt-20">
+    <div className="min-h-screen w-full px-4 sm:px-6 lg:px-8">
+      <BackgroundBeamsWithCollision className=" fixed inset-0 z-0  pointer-events-none bg-gradient-to-br from-[#1a1c2b]/90 via-[#2a2c3d]/70 to-[#1a1c2b]/90">
+        <div className=" bg-purple-500  " />
+        <div className=" bg-blue-500  " />
+        <div className=" bg-pink-500 " />
+        <div className=" bg-red-500  " />
+        <div className=" bg-yellow-500  " />
+      </BackgroundBeamsWithCollision>
+      {/* Heading */}
+      <motion.header
+        className="flex flex-col items-start justify-center  space-y-3 mb-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
+        <motion.h1
+          className="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent 
+               bg-gradient-to-r from-green-400 via-cyan-400 to-blue-500 
+               animate-gradient-x drop-shadow-lg"
+        >
+          Your Transactions
+        </motion.h1>
+        <div className="flex flex-wrap justify-center gap-1 font-semibold text-center">
+          <TextGenerateSameColour words="Monitor and manage all your wallet transactions seamlessly with real-time updates and secure operations." />
+        </div>
+      </motion.header>
+      <div className=" mx-auto ">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Left Column - Compact Wallet Info */}
           <div className="flex flex-col gap-8 lg:w-[40%] flex-shrink-0">

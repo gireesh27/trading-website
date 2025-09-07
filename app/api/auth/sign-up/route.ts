@@ -30,7 +30,7 @@ export async function POST(req: Request) {
       emailPasswordHash: password,
       isOAuth: false,
       isVerified: true,
-      walletBalance: 1000, // initial wallet balance
+      walletBalance: 1000,
     });
 
     await newUser.save();

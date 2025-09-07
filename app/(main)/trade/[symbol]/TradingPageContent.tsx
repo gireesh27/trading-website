@@ -149,7 +149,7 @@ if (isLoading || !symbol) {
 
   if (error || !selectedStock) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-gray-900 text-white pt-20">
+      <div className="flex h-screen w-full items-center justify-center bg-gray-900 text-white ">
         <div className="text-center p-6 bg-gray-800 border border-red-500/50 rounded-lg max-w-md">
           <h1 className="text-2xl font-bold text-red-400">
             Failed to Load {symbol}
@@ -164,7 +164,7 @@ if (isLoading || !symbol) {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 bg-gray-900 p-4 min-h-screen pt-20">
+    <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 bg-gray-900 p-4 min-h-screen ">
       <div className="lg:col-span-2 xl:col-span-3">
         <AdvancedTradingChart
           symbol={symbol}

@@ -5,13 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { useNotifications } from "@/contexts/notification-context";
+import user from "@/public/images/user.png";
 import {
   FaHome,
   FaWallet,
-  FaUser,
-  FaShieldAlt,
-  FaCog,
-  FaBell,
   FaExclamationTriangle,
   FaClock,
   FaChartPie,
@@ -25,11 +22,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   Navbar,
@@ -82,19 +76,6 @@ export function MainNav() {
     >
       {/* Desktop Nav */}
       <NavBody className="hidden md:flex items-center px-4 gap-4">
-        {/* Left: Logo */}
-        <div
-          className={`flex items-center gap-2 shrink-0 min-w-[60px] transition-all duration-300 ${
-            visible
-              ? "opacity-100 scale-100"
-              : "opacity-0 scale-0 pointer-events-none"
-          }`}
-        >
-          <Link href="/dashboard">
-            <FaRocket className="h-5 w-5 text-blue-500 drop-shadow-md" />
-          </Link>
-        </div>
-
         {/* Center: Nav Items */}
         <div className="flex-1 flex justify-center overflow-hidden">
           <NavItems
@@ -106,48 +87,6 @@ export function MainNav() {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-3 shrink-0 min-w-[120px] justify-end transition-all duration-300">
-          {/* Notifications */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <div
-                className={`relative transition-all duration-300 ${
-                  visible ? "opacity-100 scale-100" : "opacity-0 scale-0"
-                }`}
-              >
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="hover:bg-blue-500/20"
-                >
-                  <FaBell className="h-5 w-5 text-white" />
-                  {unreadCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px]">
-                      {unreadCount}
-                    </Badge>
-                  )}
-                </Button>
-              </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-72">
-              <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {notifications.slice(0, 5).map((n) => (
-                <DropdownMenuItem key={n.id}>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-semibold">{n.title}</span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {n.message}
-                    </span>
-                  </div>
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-blue-400 justify-center text-xs">
-                View All
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
           {/* User */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -157,33 +96,27 @@ export function MainNav() {
                 }`}
               >
                 <Avatar className="h-8 w-8 cursor-pointer ring-2 ring-blue-400">
-                  <AvatarImage src="/placeholder.svg" alt="User" />
+                  <AvatarImage
+                    src={user?.image || "/images/user.png"} // fallback if no image
+                    alt={user?.name || "User"}
+                  />
                   <AvatarFallback>
-                    {user?.name?.charAt(0).toUpperCase()}
+                    {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
                   </AvatarFallback>
                 </Avatar>
               </div>
             </DropdownMenuTrigger>
+
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuLabel>
                 <div>
-                  <span className="text-xs">{user?.name}</span>
+                  <span className="text-xs">{user?.name || "Guest"}</span>
                   <p className="text-[10px] text-muted-foreground">
-                    {user?.email}
+                    {user?.email || "guest@example.com"}
                   </p>
                 </div>
               </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-xs">
-                <FaUser className="mr-2 h-3 w-3" /> Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-xs">
-                <FaCog className="mr-2 h-3 w-3" /> Settings
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-xs">
-                <FaShieldAlt className="mr-2 h-3 w-3" /> Security
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
+
               <DropdownMenuItem
                 onClick={handleLogout}
                 className="text-red-500 text-xs"

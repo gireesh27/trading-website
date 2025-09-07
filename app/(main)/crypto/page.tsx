@@ -217,42 +217,31 @@ export default function CryptoPage() {
   const { user, isLoading: authLoading } = useAuth();
   if (authLoading || !user) {
     return (
-      <div className="bg-[#131722] flex flex-col items-center justify-center pt-20">
+      <div className="bg-[#131722] flex flex-col items-center justify-center">
         <Loader />
       </div>
     );
   }
 
   return (
-    <div className="text-white pt-20 relative min-h-screen bg-[#0e0f1a] flex items-center justify-center p-4 overflow-hidden">
+    <div className="text-white  relative min-h-screen bg-[#0e0f1a] flex items-center justify-center px-4 overflow-hidden">
       {/* Optional: Original background (blurred circles or gradient beams) */}
       <BackgroundBeamsWithCollision className=" fixed inset-0 z-0 w-full h-full pointer-events-none bg-gradient-to-br from-[#1a1c2b]/90 via-[#2a2c3d]/70 to-[#1a1c2b]/90">
-        <div className="w-96 h-96 bg-purple-500 opacity-30 blur-3xl rounded-full" />
-        <div className="w-96 h-96 bg-blue-500 opacity-30 blur-2xl rounded-full" />
-        <div className="w-96 h-96 bg-pink-500 opacity-30 blur-xl rounded-full" />
-        <div className="w-96 h-96 bg-red-500 opacity-30 blur-2xl rounded-full" />
-        <div className="w-96 h-96 bg-yellow-500 opacity-30 blur-3xl rounded-full" />
+        <div className=" bg-purple-500 rounded-full" />
+        <div className=" bg-blue-500 rounded-full" />
+        <div className=" bg-pink-500  rounded-full" />
+        <div className=" bg-red-500 rounded-full" />
+        <div className=" bg-yellow-500 rounded-full" />
       </BackgroundBeamsWithCollision>
 
-      {/* Interactive grid as subtle overlay */}
-      <InteractiveGridPattern
-        width={window.innerWidth / 20} // full screen width
-        height={window.innerHeight / 10} // full screen height
-        squares={[
-          Math.ceil(window.innerWidth / 10),
-          Math.ceil(window.innerHeight / 10),
-        ]} // auto number of squares
-        className="absolute inset-0 z-0 pointer-events-none"
-        squaresClassName="bg-white/5"
-      />
       <div className="container mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 relative z-10">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-2">
-              <AuroraText>Cryptocurrency</AuroraText>
+            <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-500 animate-gradient-x">
+              Cryptocurrency
             </h1>
-            <p className="text-gray-300">Live crypto prices and market data</p>
+            <p className="mt-3 text-gray-300 text-lg md:text-xl mx-auto">Real-Time Crypto Prices, Charts & Market Analysis</p>
           </div>
           <div className="flex items-center space-x-4 mt-4 md:mt-0">
             <div className="relative">
@@ -275,17 +264,17 @@ export default function CryptoPage() {
               <Filter className="h-4 w-4 mr-2" />
               Sort {sortOrder === "desc" ? "↓" : "↑"}
             </Button>
-            <ShinyButton
+            <Button
               onClick={handleRefresh}
               disabled={loadingPage}
-              className="bg-gradient-to-r from-pink-500 via-violet-500 to-orange-400 text-white font-semibold py-2 px-6 rounded-lg hover:brightness-110 transition-all duration-300"
+              className="font-semibold py-2 px-6 rounded-lg hover:brightness-110 bg-blue-500 hover:bg-blue-800 transition-all duration-300"
             >
               {loadingPage ? (
                 <RefreshCw className="h-4 w-4 animate-spin" />
               ) : (
                 "Refresh"
               )}
-            </ShinyButton>
+            </Button>
           </div>
         </div>
 

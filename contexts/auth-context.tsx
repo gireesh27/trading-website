@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (res?.ok && res.url) {
       toast({ title: "Success", description: "Logged in successfully." })
-      router.push("/dashboard")
+      router.push("/")
     } else {
       toast({
         title: "Login failed",
@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithGoogle = async () => {
     const res = await signIn("google", {
-      callbackUrl: "/dashboard",
+      callbackUrl: "/",
       redirect: false,
     })
     if (res?.ok && res.url) {
@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithGithub = async () => {
     const res = await signIn("github", {
-      callbackUrl: "/dashboard",
+      callbackUrl: "/",
       redirect: false,
     })
     if (res?.ok && res.url) {
@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
   const logout = () => {
-    signOut({ callbackUrl: "/auth" })
+    signOut({ callbackUrl: "/" })
   }
 
   return (

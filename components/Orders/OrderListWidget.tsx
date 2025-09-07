@@ -99,17 +99,17 @@ export default function CompletedOrdersList() {
                   </Badge>
                 </div>
 
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm mb-4">
+                <div className="flex justify-between gap-y-2 text-sm mb-4">
                   <div className="flex items-center gap-2 text-slate-400">
                     <Package size={14} />
                     <div>
-                      Qty: <span className="font-medium text-slate-200">{order.quantity}</span>
+                      Qty: <span className="font-medium text-slate-200">{Number(order.quantity).toFixed(4)}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 text-slate-400">
                     <IndianRupee size={14} />
                     <div>
-                      Price: <span className="font-medium text-slate-200">₹{order.price?.toFixed(2) ?? '0.00'}</span>
+                      Price: <span className="font-medium text-slate-200">₹{Number(order.price)?.toFixed(2) ?? '0.00'}</span>
                     </div>
                   </div>
                 </div>

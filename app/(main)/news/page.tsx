@@ -101,7 +101,7 @@ export default function EnhancedNewsPage() {
   const { user, isLoading: authLoading } = useAuth();
   if (authLoading || !user) {
     return (
-      <div className="bg-[#131722] flex flex-col items-center justify-center pt-20">
+      <div className="bg-[#131722] flex flex-col items-center justify-center ">
         <Loader />
       </div>
     );

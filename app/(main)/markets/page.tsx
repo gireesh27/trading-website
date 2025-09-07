@@ -30,7 +30,6 @@ import { SymbolSearchBar } from "./Input_autocomplete";
 import { useAuth } from "@/contexts/auth-context";
 import Loader from "@/components/loader";
 import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
-import { ShinyButton } from "@/components/ui/Shiny";
 const ITEMS_PER_PAGE = 12;
 
 export default function MarketsPage() {
@@ -188,31 +187,26 @@ export default function MarketsPage() {
   });
   const { suggestions, handleSymbolChange } = useSearchContext();
 
-  const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    handleSymbolChange("global", value); // "global" can be a general ID for non-watchlist cases
-  };
   const { user, isLoading: authLoading } = useAuth();
   if (authLoading || !user) {
     return (
-      <div className="bg-[#131722] flex flex-col items-center justify-center pt-20">
+      <div className="bg-[#131722] flex flex-col items-center justify-center">
         <Loader />
       </div>
     );
   }
   return (
-    <div className=" text-white pt-20 relative min-h-screen bg-[#0e0f1a] flex items-center justify-center p-4 overflow-hidden">
+    <div className=" text-white  relative min-h-screen bg-[#0e0f1a] flex items-center justify-center px-4 overflow-hidden">
       {/* Optional: Original background (blurred circles or gradient beams) */}
       <BackgroundBeamsWithCollision className=" fixed inset-0 z-0 w-full h-full pointer-events-none bg-gradient-to-br from-[#1a1c2b]/90 via-[#2a2c3d]/70 to-[#1a1c2b]/90">
-        <div className="w-96 h-96 bg-purple-500 opacity-30 blur-3xl rounded-full" />
-        <div className="w-96 h-96 bg-blue-500 opacity-30 blur-2xl rounded-full" />
-        <div className="w-96 h-96 bg-pink-500 opacity-30 blur-xl rounded-full" />
-        <div className="w-96 h-96 bg-red-500 opacity-30 blur-2xl rounded-full" />
-        <div className="w-96 h-96 bg-yellow-500 opacity-30 blur-3xl rounded-full" />
+        <div className=" bg-purple-500   rounded-full" />
+        <div className=" bg-blue-500  rounded-full" />
+        <div className=" bg-pink-500   rounded-full" />
+        <div className=" bg-red-500   rounded-full" />
+        <div className=" bg-yellow-500   rounded-full" />
       </BackgroundBeamsWithCollision>
 
-      {/* Interactive grid as subtle overlay */}
+      {/* Interactive grid as subtle overlay
       <InteractiveGridPattern
         width={window.innerWidth / 20} // full screen width
         height={window.innerHeight / 10} // full screen height
@@ -222,14 +216,14 @@ export default function MarketsPage() {
         ]} // auto number of squares
         className="absolute inset-0 z-0 pointer-events-none"
         squaresClassName="bg-white/5"
-      />
+      /> */}
 
       {/* Main content */}
       <div className="relative z-10 container mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>
             <div className="text-left">
-              <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500 animate-gradient-x">
+              <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-500 animate-gradient-x">
                 Global Markets Dashboard
               </h1>
               <p className="mt-3 text-gray-300 text-lg md:text-xl mx-auto">
@@ -245,15 +239,12 @@ export default function MarketsPage() {
                 setSearchTerm(symbol);
               }}
             />
-            <ShinyButton
+            <Button
               onClick={handleRefresh}
-              className="bg-gradient-to-r from-pink-500 via-violet-500 to-orange-400
-             text-white font-semibold py-2 px-6 rounded-lg
-             hover:from-pink-400 hover:via-violet-400 hover:to-orange-300
-             transition-all duration-300"
+               className="font-semibold py-2 px-6 rounded-lg hover:brightness-110 bg-blue-500 hover:bg-blue-800 transition-all duration-300"
             >
               Refresh
-            </ShinyButton>
+            </Button>
           </div>
         </div>
         {/* Stats Section */}

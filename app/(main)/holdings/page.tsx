@@ -85,7 +85,7 @@ export default function Holdings() {
 
   return (
     <div className="flex flex-col bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white min-h-screen  px-4 gap-6">
-      {/* 🔹 Top Summary Row */}
+      {/*  Top Summary Row */}
       <div className="flex flex-col md:flex-row border border-gray-700 rounded-lg gap-6 p-1 md:p-2">
         <div className="flex-1 flex items-center">
           <TopWorstPerformer holdings={holdings} />
@@ -102,7 +102,7 @@ export default function Holdings() {
         </div>
       </div>
 
-      {/* 🔹 Main Content: Table + Chart */}
+      {/*  Main Content: Table + Chart */}
       <div className="flex flex-col lg:flex-row min-h-[30rem]  bg-gray-900/60 rounded-lg overflow-auto shadow-inner">
         {/* Table Section */}
           <HoldingsTable
@@ -134,7 +134,7 @@ export default function Holdings() {
         )}
       </div>
 
-      {/* 🔹 Bottom Pie and Sector Allocation */}
+      {/*  Bottom Pie and Sector Allocation */}
       <div className="flex flex-col xl:flex-row items-stretch justify-between ">
         <div className="w-full xl:w-1/2  rounded-lg ">
           <HoldingsPieChart holdings={holdings} loading={loading} />

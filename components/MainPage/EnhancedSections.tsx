@@ -102,10 +102,10 @@ export function EnhancedSections() {
             viewport={{ once: true, amount: 0.4 }}
             variants={fadeInUp}
             custom={0}
-            className="text-center mb-20"
+            className="flex flex-col items-center justify-center text-center mb-20"
           >
             {/* Main Heading */}
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 tracking-tight glow-text">
+            <h2 className="text-4xl md:text-3xl lg:text-4xl font-bold mb-6 tracking-tight glow-text">
               <TextRevealCard
                 text="Everything You Need to Trade — All in One Place"
                 revealText="From First Trade to Full Portfolio — We’ve Got You Covered"
@@ -120,6 +120,7 @@ export function EnhancedSections() {
               />
             </div>
           </motion.div>
+
           <motion.div
             initial="hidden"
             whileInView="visible"

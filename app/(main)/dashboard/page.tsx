@@ -21,14 +21,12 @@ export default function DashboardPage() {
   const { stocks: marketData, selectedStock, selectStock } = useMarketData();
   const [holdings, setHoldings] = useState([]);
   const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    if (!authLoading && !user) router.push("/");
-  }, [user, authLoading, router]);
 
   useEffect(() => {
     if (marketData.length > 0 && !selectedStock)
       selectStock(marketData[0].symbol);
   }, [marketData, selectedStock, selectStock]);
+  
   // Fetch holdings on mount
   useEffect(() => {
     async function fetchHoldings() {

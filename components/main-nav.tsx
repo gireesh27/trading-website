@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { useNotifications } from "@/contexts/notification-context";
-import user from "@/public/images/user.png";
 import {
   FaHome,
   FaWallet,
@@ -28,7 +27,6 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   Navbar,
   NavBody,
-  NavItems,
   MobileNav,
   MobileNavHeader,
   MobileNavMenu,
@@ -52,6 +50,7 @@ export function MainNav() {
   const { user, logout } = useAuth();
   const { notifications, unreadCount } = useNotifications();
   const router = useRouter();
+  const pathname = usePathname();
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [visible, setVisible] = useState(true);
@@ -78,11 +77,32 @@ export function MainNav() {
       <NavBody className="hidden md:flex items-center px-4 gap-4">
         {/* Center: Nav Items */}
         <div className="flex-1 flex justify-center overflow-hidden">
-          <NavItems
-            items={navItems}
-            showLabels={visible}
-            className="text-xs gap-1"
-          />
+          <div className={`flex items-center ${visible ? "gap-1" : "gap-0.5"}`}>
+            {navItems.map(({ name, link, icon: Icon }) => {
+              const isActive = pathname === link;
+              return (
+                <Link
+                  key={link}
+                  href={link}
+                  className={`group flex items-center gap-1 ${
+                    visible ? "px-3 py-2" : "px-2 py-1"
+                  } rounded-lg transition-all duration-300 ease-in-out text-xs font-medium transform hover:scale-105
+                    ${
+                      isActive
+                        ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg"
+                        : "text-gray-600 hover:text-indigo-600 hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-gray-400 dark:hover:text-indigo-400"
+                    }`}
+                >
+                  <Icon
+                    className={`h-4 w-4 transition-colors duration-300 ${
+                      isActive ? "text-white" : "group-hover:text-indigo-500"
+                    }`}
+                  />
+                  {visible && <span className="whitespace-nowrap">{name}</span>}
+                </Link>
+              );
+            })}
+          </div>
         </div>
 
         {/* Right: Actions */}
@@ -95,10 +115,10 @@ export function MainNav() {
                   visible ? "opacity-100 scale-100" : "opacity-0 scale-0"
                 }`}
               >
-                <Avatar className="h-8 w-8 cursor-pointer ring-2 ring-blue-400">
+                <Avatar className="h-8 w-8 cursor-pointer ring-2 ring-blue-400 hover:ring-indigo-400 transition-colors duration-200">
                   <AvatarImage
                     src={user?.image || "/images/user.png"} // fallback if no image
-                    alt={user?.name || "User"}
+                    alt={user?.name || "User "}
                   />
                   <AvatarFallback>
                     {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
@@ -119,7 +139,7 @@ export function MainNav() {
 
               <DropdownMenuItem
                 onClick={handleLogout}
-                className="text-red-500 text-xs"
+                className="text-red-500 text-xs focus:bg-red-50"
               >
                 <FaSignOutAlt className="mr-2 h-3 w-3" /> Log out
               </DropdownMenuItem>
@@ -145,17 +165,29 @@ export function MainNav() {
           />
         </MobileNavHeader>
         <MobileNavMenu isOpen={mobileOpen} onClose={() => setMobileOpen(false)}>
-          {navItems.map(({ name, link, icon: Icon }) => (
-            <Link
-              key={link}
-              href={link}
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:text-blue-400"
-            >
-              <Icon className="h-4 w-4" />
-              {name}
-            </Link>
-          ))}
+          {navItems.map(({ name, link, icon: Icon }) => {
+            const isActive = pathname === link;
+            return (
+              <Link
+                key={link}
+                href={link}
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-2 py-3 px-4 rounded-lg transition-all duration-300 ease-in-out text-sm font-medium transform hover:scale-105
+                  ${
+                    isActive
+                      ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md"
+                      : "text-zinc-700 dark:text-zinc-300 hover:text-indigo-500 hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:text-indigo-400"
+                  }`}
+              >
+                <Icon
+                  className={`h-4 w-4 transition-colors duration-300 flex-shrink-0 ${
+                    isActive ? "text-white" : ""
+                  }`}
+                />
+                <span>{name}</span>
+              </Link>
+            );
+          })}
         </MobileNavMenu>
       </MobileNav>
     </Navbar>

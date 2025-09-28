@@ -4,15 +4,13 @@ import { useState, useMemo, useEffect } from "react";
 import { useMarketData } from "@/contexts/enhanced-market-data-context";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import FooterTime from "./FooterTime";
-import { Search, RefreshCw } from "lucide-react";
+import {  RefreshCw } from "lucide-react";
 import CountUp from "react-countup";
 import { StockQuote } from "@/lib/api/stock-api";
 import { OverviewCard } from "./OverViewCard";
 import { useRouter } from "next/navigation";
-import { DotBackground } from "@/components/ui/DotBackgrounDemo";
 import {
   TableCell,
   TableHead,
@@ -20,10 +18,7 @@ import {
   Table,
   TableBody,
   TableHeader,
-  TableFooter,
 } from "@/components/ui/table";
-import { InteractiveGridPattern } from "@/components/ui/InteractiveGridPattern";
-
 import { formatNumber, formatCurrency } from "@/lib/utils/market";
 import { useSearchContext } from "@/contexts/Search-context";
 import { SymbolSearchBar } from "./Input_autocomplete";
@@ -205,18 +200,6 @@ export default function MarketsPage() {
         <div className=" bg-red-500   rounded-full" />
         <div className=" bg-yellow-500   rounded-full" />
       </BackgroundBeamsWithCollision>
-
-      {/* Interactive grid as subtle overlay
-      <InteractiveGridPattern
-        width={window.innerWidth / 20} // full screen width
-        height={window.innerHeight / 10} // full screen height
-        squares={[
-          Math.ceil(window.innerWidth / 10),
-          Math.ceil(window.innerHeight / 10),
-        ]} // auto number of squares
-        className="absolute inset-0 z-0 pointer-events-none"
-        squaresClassName="bg-white/5"
-      /> */}
 
       {/* Main content */}
       <div className="relative z-10 container mx-auto px-4 py-6">

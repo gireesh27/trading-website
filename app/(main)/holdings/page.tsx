@@ -15,6 +15,7 @@ export default function Holdings() {
   const [holdings, setHoldings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
+  const [selectedSector,setSelectedSector] = useState<string | null>(null);
   const [priceHistory, setPriceHistory] = useState([]);
   const [priceLoading, setPriceLoading] = useState(false);
 
@@ -108,7 +109,7 @@ export default function Holdings() {
           <HoldingsTable
             holdings={holdings}
             loading={loading}
-            onRowClick={setSelectedSymbol}
+            onRowClick={setSelectedSymbol || setSelectedSector }
           />
        
         {/* Chart Section */}
@@ -122,6 +123,7 @@ export default function Holdings() {
               <HoldingsChart
                 symbol={selectedSymbol}
                 priceHistory={priceHistory}
+                sector={selectedSector || undefined}
                 buyPrice={1000}
                 sellPrice={2000}
               />

@@ -22,7 +22,7 @@ interface RedditPost {
   permalink: string;
 }
 
-type TabId = "community" | "images" | "stocktwits" ;
+type TabId = "community" | "images" | "stocktwits";
 
 const SUBREDDITS = [
   "algotrading",
@@ -112,15 +112,18 @@ export default function CommunityPage() {
   const SearchSortBar = (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 max-w-xl mx-auto px-2">
       <Input
+        type="search"
         placeholder="Search posts..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className="bg-gray-900 border border-gray-700 text-white placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 transition-all duration-200 flex-grow"
+        aria-label="Search posts"
+        className="bg-gray-900 border border-gray-700 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 rounded-md transition-all duration-200 flex-grow px-4 py-2"
       />
       <select
         value={sortOrder}
         onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
-        className="bg-gray-900 border border-gray-700 text-white text-sm px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 max-w-[160px]"
+        aria-label="Sort posts"
+        className="bg-gray-900 border border-gray-700 text-white text-sm px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 max-w-[160px]"
       >
         <option value="desc">Newest First</option>
         <option value="asc">Oldest First</option>
@@ -129,7 +132,7 @@ export default function CommunityPage() {
   );
 
   return (
-    <div className=" text-white pb-8 px-4 min-h-screen bg-[rgb(19,23,34)] pt-20">
+    <div className=" text-white pb-8 px-4 min-h-screen bg-[rgb(19,23,34)] ">
       {/* Tabs */}
       <div className="flex flex-wrap gap-3 justify-center md:justify-start mb-6">
         {[
@@ -176,7 +179,7 @@ export default function CommunityPage() {
           </div>
 
           {loading ? (
-           <Loader/>
+            <Loader />
           ) : error ? (
             <p className="text-red-500 text-center py-20">Error: {error}</p>
           ) : filteredPosts.length === 0 ? (
@@ -248,10 +251,13 @@ export default function CommunityPage() {
 
       {/* For other tabs, just render the components with searchTerm and sortOrder passed if needed */}
 
-      {activeTab === "images" && <RedditImageFeed searchTerm={searchTerm} sortOrder={sortOrder} />}
+      {activeTab === "images" && (
+        <RedditImageFeed searchTerm={searchTerm} sortOrder={sortOrder} />
+      )}
 
-      {activeTab === "stocktwits" && <StockTwitsTrendingFeed searchTerm={searchTerm} sortOrder={sortOrder} />}
-
+      {activeTab === "stocktwits" && (
+        <StockTwitsTrendingFeed searchTerm={searchTerm} sortOrder={sortOrder} />
+      )}
     </div>
   );
 }

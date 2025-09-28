@@ -70,6 +70,7 @@ interface Props {
   symbol: string;
   priceHistory: PricePoint[];
   buyPrice?: number;
+  sector?: string;
   sellPrice?: number;
 }
 
@@ -98,7 +99,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         transition={{ duration: 0.15 }}
         className="rounded-xl border border-white/10 bg-black/50 p-4 shadow-2xl backdrop-blur-lg"
       >
-        <p className="text-sm font-semibold text-white">{`₹${data.close.toFixed(
+        <p className="text-sm font-semibold text-white">{`₹${data.close?.toFixed?.(
           2
         )}`}</p>
         <p className="mb-2 text-xs text-gray-400">{date}</p>
@@ -116,7 +117,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                 <span className="text-gray-300">{p.name}:</span>
               </div>
               <span className="font-mono font-semibold text-white">
-                {p.value.toFixed(2)}
+                {p.value?.toFixed ? p.value.toFixed(2) : "--"}
               </span>
             </div>
           ))}
@@ -214,6 +215,7 @@ function chartReducer(state: ChartState, action: ChartAction): ChartState {
 export default function HoldingsChart({
   symbol,
   priceHistory,
+  sector,
   buyPrice,
   sellPrice,
 }: Props) {
@@ -231,56 +233,80 @@ export default function HoldingsChart({
       `radial-gradient(400px at ${x}px ${y}px, rgba(0, 240, 255, 0.15), transparent 80%)`
   );
 
-  const chartData = useMemo(() => {
+const chartData = useMemo(() => {
     if (!priceHistory || priceHistory.length === 0) return [];
 
     const prices = priceHistory.map((p) => p.close);
-
     const sma = indicatorSettings.find((i) => i.id === "sma");
     const ema = indicatorSettings.find((i) => i.id === "ema");
 
     const smaValues = sma?.enabled ? calculateSMA(prices, sma.period) : [];
     const emaValues = ema?.enabled ? calculateEMA(prices, ema.period) : [];
 
-    return priceHistory
-      .map((p, index) => {
-        const shiftedDate = new Date(p.date);
-        shiftedDate.setHours(shiftedDate.getHours() + 15); // shift UTC → IST
+    const sorted = [...priceHistory].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
 
-        const hours = shiftedDate.getHours();
-        const minutes = shiftedDate.getMinutes();
+    const result: ChartData[] = [];
+    const SEPARATOR_GAP = 30 * 60 * 1000; // 30 min
 
-        // ✅ Only keep 9:30 AM – 5:30 PM
-        if (
-          hours < 9 ||
-          (hours === 9 && minutes < 30) ||
-          hours > 17 ||
-          (hours === 17 && minutes > 30)
-        ) {
-          return null;
-        }
+    let lastIncluded: number | null = null;
 
-        return {
+    sorted.forEach((p, idx) => {
+      const ts = new Date(p.date).getTime() + 330 * 60 * 1000; // UTC → IST
+      const d = new Date(ts);
+
+      let include = true;
+
+      if (sector === "markets") {
+        const h = d.getHours();
+        const m = d.getMinutes();
+        include =
+          (h > 9 && h < 17) ||
+          (h === 9 && m >= 30) ||
+          (h === 17 && m <= 30);
+      }
+
+      if (!include) return;
+
+      if (
+        sector === "markets" &&
+        lastIncluded !== null &&
+        ts - lastIncluded > SEPARATOR_GAP
+      ) {
+        result.push({
           ...p,
-          timestamp: shiftedDate.getTime(),
-          formattedDate: `${shiftedDate.toLocaleDateString("en-IN", {
-            day: "2-digit",
-            month: "short",
-            year: "2-digit",
-            timeZone: "Asia/Kolkata",
-          })} ${shiftedDate.toLocaleTimeString("en-IN", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-            timeZone: "Asia/Kolkata",
-          })}`,
-          sma: smaValues[index],
-          ema: emaValues[index],
-        };
-      })
-      .filter(Boolean);
-  }, [priceHistory, indicatorSettings]);
+          timestamp: lastIncluded + 1,
+          formattedDate: "",
+          close: (null as any) as number, // break line
+        });
+      }
 
+      result.push({
+        ...p,
+        timestamp: ts,
+        formattedDate: `${d.toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "2-digit",
+          timeZone: "Asia/Kolkata",
+        })} ${d.toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+          timeZone: "Asia/Kolkata",
+        })}`,
+        sma: smaValues[idx],
+        ema: emaValues[idx],
+      });
+
+      lastIncluded = ts;
+    });
+
+    return result;
+  }, [priceHistory, indicatorSettings, sector]);
+
+  // X Axis formatting
   const formatXAxis = (timestamp: number): string => {
     const date = dayjs(timestamp);
     if (!chartData || chartData.length === 0)
@@ -290,15 +316,20 @@ export default function HoldingsChart({
     const end = chartData[chartData.length - 1]?.timestamp;
     const daysDiff = dayjs(end).diff(dayjs(start), "days");
 
-    // If showing less than 2 days of data, show hours:minutes
     if (daysDiff < 2) return date.format("HH:mm");
-
-    // If showing multiple days but less than ~3 months
     if (daysDiff <= 90) return date.format("DD MMM HH:mm");
-
-    // Long ranges fallback to month-year
     return date.format("MMM 'YY");
   };
+
+  if (!chartData || chartData.length === 0) {
+    return (
+      <Card className="mt-4 flex h-[600px] items-center justify-center border-white/10 bg-black/50 shadow-2xl backdrop-blur-xl">
+        <h3 className="text-gray-500">
+          No price history available for {symbol}.
+        </h3>
+      </Card>
+    );
+  }
   const {
     latestPrice,
     firstPrice,
@@ -348,328 +379,341 @@ export default function HoldingsChart({
     );
   }
 
-  // --- RENDER ---
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+ // --- RENDER ---
+return (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5 }}
+  >
+    <Card
+      ref={cardRef}
+      className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/50 pt-2 shadow-2xl backdrop-blur-xl"
     >
-      <Card
-        ref={cardRef}
-        className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/50 pt-2 shadow-2xl backdrop-blur-xl"
-      >
-        <motion.div
-          className="pointer-events-none absolute -inset-px rounded-2xl"
-          style={{ background: backgroundGradient }}
-        />
-        <div className="flex flex-col justify-between gap-4 p-4 sm:flex-row sm:items-center">
-          <div>
-            <h2 className="bg-gradient-to-r from-cyan-300 to-blue-400 bg-clip-text text-2xl font-bold text-transparent">
-              {symbol} Performance
-            </h2>
-            <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2">
-              <h3 className="text-3xl font-bold text-white">
-                ₹{latestPrice.toFixed(2)}
-              </h3>
-              <div
-                className={`flex items-center gap-1.5 text-sm font-semibold ${
-                  isPositive ? "text-emerald-400" : "text-rose-400"
-                }`}
-              >
-                {isPositive ? (
-                  <TrendingUp className="h-4 w-4" />
-                ) : (
-                  <TrendingDown className="h-4 w-4" />
-                )}
-                <span>
-                  {priceChange.toFixed(2)} ({priceChangePercent.toFixed(2)}%)
-                </span>
-              </div>
-            </div>
-          </div>
+      {/* Aurora gradient */}
+      <motion.div
+        className="pointer-events-none absolute -inset-px rounded-2xl"
+        style={{ background: backgroundGradient }}
+      />
 
-          {/* --- Sleek Segmented Control for Chart Type --- */}
-          <div className="flex space-x-1 rounded-lg bg-gray-800/60 p-1">
-            {["line", "area"].map((item) => (
-              <button
-                key={item}
-                onClick={() =>
-                  dispatch({
-                    type: "SET_CHART_TYPE",
-                    payload: item as "line" | "area",
-                  })
-                }
-                className={`relative rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  chartType === item
-                    ? "text-cyan-300"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                {chartType === item && (
-                  <motion.div
-                    layoutId="chartTypePill"
-                    className="absolute inset-0 z-0 rounded-md bg-gray-700/50"
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
-                )}
-                <span className="relative z-10 flex items-center gap-1.5 capitalize">
-                  {item === "line" ? (
-                    <LineChartIcon className="h-4 w-4" />
-                  ) : (
-                    <AreaChart className="h-4 w-4" />
-                  )}
-                  {item}
-                </span>
-              </button>
-            ))}
+      {/* --- Header --- */}
+      <div className="flex flex-col justify-between gap-4 p-4 sm:flex-row sm:items-center">
+        <div>
+          <h2 className="bg-gradient-to-r from-cyan-300 to-blue-400 bg-clip-text text-2xl font-bold text-transparent">
+            {symbol} {sector === "crypto" ? "24/7" : "Market"} Performance
+          </h2>
+          <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2">
+            <h3 className="text-3xl font-bold text-white">
+              ₹{latestPrice.toFixed(2)}
+            </h3>
+            <div
+              className={`flex items-center gap-1.5 text-sm font-semibold ${
+                isPositive ? "text-emerald-400" : "text-rose-400"
+              }`}
+            >
+              {isPositive ? (
+                <TrendingUp className="h-4 w-4" />
+              ) : (
+                <TrendingDown className="h-4 w-4" />
+              )}
+              <span>
+                {priceChange.toFixed(2)} ({priceChangePercent.toFixed(2)}%)
+              </span>
+            </div>
           </div>
         </div>
 
-        <CardContent className="p-0 pt-4 sm:p-4">
-          <div className="h-[55vh] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={chartData}
-                margin={{ top: 5, right: 20, left: -10, bottom: 20 }}
-              >
-                <defs>
-                  <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor={THEME.primary}
-                      stopOpacity={0.4}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor={THEME.primary}
-                      stopOpacity={0}
-                    />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="rgba(255, 255, 255, 0.05)"
+        {/* --- Segmented Control --- */}
+        <div className="flex space-x-1 rounded-lg bg-gray-800/60 p-1">
+          {["line", "area"].map((item) => (
+            <button
+              key={item}
+              onClick={() =>
+                dispatch({
+                  type: "SET_CHART_TYPE",
+                  payload: item as "line" | "area",
+                })
+              }
+              className={`relative rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                chartType === item
+                  ? "text-cyan-300"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              {chartType === item && (
+                <motion.div
+                  layoutId="chartTypePill"
+                  className="absolute inset-0 z-0 rounded-md bg-gray-700/50"
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 />
-                <XAxis
-                  dataKey="timestamp"
-                  type="number"
-                  domain={["dataMin", "dataMax"]}
-                  tickFormatter={formatXAxis}
-                  stroke="#6b7280"
-                  fontSize={12}
-                  tickLine={{ stroke: "rgba(255, 255, 255, 0.1)" }}
-                  axisLine={{ stroke: "rgba(255, 255, 255, 0.1)" }}
-                />
-                <YAxis
-                  stroke="#6b7280"
-                  fontSize={12}
-                  orientation="left"
-                  domain={["auto", "auto"]}
-                  tickFormatter={(v: number) => `₹ ${v.toFixed(2)}`} // note: "₹ " with a non-breaking space
-                  tickLine={{ stroke: "rgba(255, 255, 255, 0.1)" }}
-                  axisLine={{ stroke: "rgba(255, 255, 255, 0.1)" }}
-                />
-                <ChartTooltip
-                  content={<CustomTooltip />}
-                  cursor={{
-                    stroke: THEME.primary,
-                    strokeDasharray: "3 3",
-                    strokeWidth: 1,
+              )}
+              <span className="relative z-10 flex items-center gap-1.5 capitalize">
+                {item === "line" ? (
+                  <LineChartIcon className="h-4 w-4" />
+                ) : (
+                  <AreaChart className="h-4 w-4" />
+                )}
+                {item}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* --- Chart --- */}
+      <CardContent className="p-0 pt-4 sm:p-4">
+        <div className="h-[55vh] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart
+              data={chartData}
+              margin={{ top: 5, right: 20, left: -10, bottom: 20 }}
+            >
+              <defs>
+                <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset="5%"
+                    stopColor={THEME.primary}
+                    stopOpacity={0.4}
+                  />
+                  <stop
+                    offset="95%"
+                    stopColor={THEME.primary}
+                    stopOpacity={0}
+                  />
+                </linearGradient>
+              </defs>
+
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="rgba(255, 255, 255, 0.05)"
+              />
+
+              <XAxis
+                dataKey="timestamp"
+                type="number"
+                domain={["dataMin", "dataMax"]}
+                tickFormatter={formatXAxis}
+                stroke="#6b7280"
+                fontSize={12}
+                tickLine={{ stroke: "rgba(255, 255, 255, 0.1)" }}
+                axisLine={{ stroke: "rgba(255, 255, 255, 0.1)" }}
+              />
+
+              <YAxis
+                stroke="#6b7280"
+                fontSize={12}
+                orientation="left"
+                domain={["auto", "auto"]}
+                tickFormatter={(v: number) => `₹ ${v.toFixed(2)}`}
+                tickLine={{ stroke: "rgba(255, 255, 255, 0.1)" }}
+                axisLine={{ stroke: "rgba(255, 255, 255, 0.1)" }}
+              />
+
+              <ChartTooltip
+                content={<CustomTooltip />}
+                cursor={{
+                  stroke: THEME.primary,
+                  strokeDasharray: "3 3",
+                  strokeWidth: 1,
+                }}
+              />
+
+              {buyPrice && (
+                <ReferenceLine
+                  y={buyPrice}
+                  stroke={THEME.positive}
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                  label={{
+                    value: `Buy @ ₹${buyPrice}`,
+                    position: "insideTopRight",
+                    fill: THEME.positive,
+                    fontSize: 12,
+                    fontWeight: "bold",
                   }}
                 />
+              )}
 
-                {buyPrice && (
-                  <ReferenceLine
-                    y={buyPrice}
-                    stroke={THEME.positive}
-                    strokeDasharray="4 4"
-                    strokeWidth={1.5}
-                    label={{
-                      value: `Buy @ ₹${buyPrice}`,
-                      position: "insideTopRight",
-                      fill: THEME.positive,
-                      fontSize: 12,
-                      fontWeight: "bold",
-                    }}
-                  />
-                )}
+              {sellPrice && (
+                <ReferenceLine
+                  y={sellPrice}
+                  stroke={THEME.negative}
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                  label={{
+                    value: `Sell @ ₹${sellPrice}`,
+                    position: "insideTopRight",
+                    fill: THEME.negative,
+                    fontSize: 12,
+                    fontWeight: "bold",
+                  }}
+                />
+              )}
 
-                {sellPrice && (
-                  <ReferenceLine
-                    y={sellPrice}
-                    stroke={THEME.negative}
-                    strokeDasharray="4 4"
-                    strokeWidth={1.5}
-                    label={{
-                      value: `Sell @ ₹${sellPrice}`,
-                      position: "insideTopRight",
-                      fill: THEME.negative,
-                      fontSize: 12,
-                      fontWeight: "bold",
-                    }}
-                  />
-                )}
-
-                {indicatorSettings.map(
-                  (ind) =>
-                    ind.enabled && (
-                      <Line
-                        key={ind.id}
-                        type="monotone"
-                        dataKey={ind.id}
-                        stroke={ind.color}
-                        dot={false}
-                        strokeWidth={1.5}
-                        name={ind.name}
-                      />
-                    )
-                )}
-
-                {chartType === "area" ? (
-                  <Area
-                    type="monotone"
-                    dataKey="close"
-                    name="Price"
-                    stroke={THEME.primary}
-                    strokeWidth={2.5}
-                    fill="url(#areaGradient)"
-                    activeDot={{
-                      r: 6,
-                      fill: THEME.primary,
-                      stroke: "#000",
-                      strokeWidth: 2,
-                    }}
-                  />
-                ) : (
-                  <Line
-                    type="monotone"
-                    dataKey="close"
-                    name="Price"
-                    stroke={THEME.primary}
-                    strokeWidth={2.5}
-                    dot={false}
-                    activeDot={{
-                      r: 6,
-                      fill: THEME.primary,
-                      stroke: "#000",
-                      strokeWidth: 2,
-                    }}
-                  />
-                )}
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* --- Technical Indicators & Stats --- */}
-          <div className="mt-6 border-t border-white/10 pt-4">
-            <div className="flex flex-wrap items-center gap-4">
-              <span className="text-sm font-semibold text-gray-300">
-                Indicators:
-              </span>
-              {indicatorSettings.map((ind) => (
-                <div key={ind.id} className="relative">
-                  <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-gray-800/60 p-1.5 pr-2.5">
-                    <input
-                      type="checkbox"
-                      id={ind.id}
-                      checked={ind.enabled}
-                      onChange={() =>
-                        dispatch({ type: "TOGGLE_INDICATOR", payload: ind.id })
-                      }
-                      className="peer h-4 w-4 shrink-0 cursor-pointer appearance-none rounded-sm border border-cyan-400 bg-transparent checked:border-0 checked:bg-cyan-400 focus:outline-none"
+              {indicatorSettings.map(
+                (ind) =>
+                  ind.enabled && (
+                    <Line
+                      key={ind.id}
+                      type="monotone"
+                      dataKey={ind.id}
+                      stroke={ind.color}
+                      dot={false}
+                      strokeWidth={1.5}
+                      name={ind.name}
                     />
-                    <label
-                      htmlFor={ind.id}
-                      className="cursor-pointer text-sm text-gray-200 peer-checked:text-white"
-                    >
-                      {ind.name}
+                  )
+              )}
+
+              {chartType === "area" ? (
+                <Area
+                  type="monotone"
+                  dataKey="close"
+                  name="Price"
+                  stroke={THEME.primary}
+                  strokeWidth={2.5}
+                  fill="url(#areaGradient)"
+                  activeDot={{
+                    r: 6,
+                    fill: THEME.primary,
+                    stroke: "#000",
+                    strokeWidth: 2,
+                  }}
+                  isAnimationActive={false}
+                  connectNulls={false}
+                />
+              ) : (
+                <Line
+                  type="monotone"
+                  dataKey="close"
+                  name="Price"
+                  stroke={THEME.primary}
+                  strokeWidth={2.5}
+                  dot={false}
+                  activeDot={{
+                    r: 6,
+                    fill: THEME.primary,
+                    stroke: "#000",
+                    strokeWidth: 2,
+                  }}
+                  isAnimationActive={false}
+                  connectNulls={false}
+                />
+              )}
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* --- Indicators & Stats --- */}
+        <div className="mt-6 border-t border-white/10 pt-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="text-sm font-semibold text-gray-300">
+              Indicators:
+            </span>
+            {indicatorSettings.map((ind) => (
+              <div key={ind.id} className="relative">
+                <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-gray-800/60 p-1.5 pr-2.5">
+                  <input
+                    type="checkbox"
+                    id={ind.id}
+                    checked={ind.enabled}
+                    onChange={() =>
+                      dispatch({ type: "TOGGLE_INDICATOR", payload: ind.id })
+                    }
+                    className="peer h-4 w-4 shrink-0 cursor-pointer appearance-none rounded-sm border border-cyan-400 bg-transparent checked:border-0 checked:bg-cyan-400 focus:outline-none"
+                  />
+                  <label
+                    htmlFor={ind.id}
+                    className="cursor-pointer text-sm text-gray-200 peer-checked:text-white"
+                  >
+                    {ind.name}
+                  </label>
+                  <button
+                    onClick={() =>
+                      dispatch({
+                        type: "SET_ACTIVE_SETTINGS",
+                        payload: activeSettings === ind.id ? null : ind.id,
+                      })
+                    }
+                    className="ml-1 text-gray-400 transition-colors hover:text-cyan-300"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {activeSettings === ind.id && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute left-0 top-full z-20 mt-2 w-40 rounded-lg border border-white/10 bg-black/80 p-3 shadow-xl backdrop-blur-md"
+                  >
+                    <label className="mb-1 block text-xs font-semibold text-gray-400">
+                      Period ({ind.period})
                     </label>
-                    <button
-                      onClick={() =>
+                    <input
+                      type="range"
+                      min="2"
+                      max="200"
+                      value={ind.period}
+                      onChange={(e) =>
                         dispatch({
-                          type: "SET_ACTIVE_SETTINGS",
-                          payload: activeSettings === ind.id ? null : ind.id,
+                          type: "UPDATE_INDICATOR_PERIOD",
+                          payload: {
+                            id: ind.id,
+                            period: parseInt(e.target.value) || 1,
+                          },
                         })
                       }
-                      className="ml-1 text-gray-400 transition-colors hover:text-cyan-300"
-                    >
-                      <Settings className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  {activeSettings === ind.id && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="absolute left-0 top-full z-20 mt-2 w-40 rounded-lg border border-white/10 bg-black/80 p-3 shadow-xl backdrop-blur-md"
-                    >
-                      <label className="mb-1 block text-xs font-semibold text-gray-400">
-                        Period ({ind.period})
-                      </label>
-                      <input
-                        type="range"
-                        min="2"
-                        max="200"
-                        value={ind.period}
-                        onChange={(e) =>
-                          dispatch({
-                            type: "UPDATE_INDICATOR_PERIOD",
-                            payload: {
-                              id: ind.id,
-                              period: parseInt(e.target.value) || 1,
-                            },
-                          })
-                        }
-                        className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-700 accent-cyan-400"
-                      />
-                    </motion.div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Summary Stats */}
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-4 text-center">
-              {[
-                {
-                  label: "Highest",
-                  value: `₹${Math.max(
-                    ...priceHistory.map((p) => p.high)
-                  ).toFixed(2)}`,
-                },
-                {
-                  label: "Lowest",
-                  value: `₹${Math.min(
-                    ...priceHistory.map((p) => p.low)
-                  ).toFixed(2)}`,
-                },
-                {
-                  label: "Total Change",
-                  value: `${isPositive ? "+" : ""}${priceChangePercent.toFixed(
-                    2
-                  )}%`,
-                  color: isPositive ? "text-emerald-400" : "text-rose-400",
-                },
-                { label: "Data Points", value: priceHistory.length },
-              ].map((stat) => (
-                <div key={stat.label} className="flex flex-col items-start">
-                  <div className="text-xs uppercase font-semibold tracking-wide text-gray-400">
-                    {stat.label}
-                  </div>
-                  <div
-                    className={`text-sm font-semibold ${
-                      stat.color || "text-white"
-                    }`}
-                  >
-                    {stat.value}
-                  </div>
-                </div>
-              ))}
-            </div>
+                      className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-700 accent-cyan-400"
+                    />
+                  </motion.div>
+                )}
+              </div>
+            ))}
           </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
+
+          {/* --- Summary Stats --- */}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-4 text-center">
+            {[
+              {
+                label: "Highest",
+                value: `₹${Math.max(
+                  ...priceHistory.map((p) => p.high)
+                ).toFixed(2)}`,
+              },
+              {
+                label: "Lowest",
+                value: `₹${Math.min(
+                  ...priceHistory.map((p) => p.low)
+                ).toFixed(2)}`,
+              },
+              {
+                label: "Total Change",
+                value: `${isPositive ? "+" : ""}${priceChangePercent.toFixed(
+                  2
+                )}%`,
+                color: isPositive ? "text-emerald-400" : "text-rose-400",
+              },
+              { label: "Data Points", value: priceHistory.length },
+            ].map((stat) => (
+              <div key={stat.label} className="flex flex-col items-start">
+                <div className="text-xs uppercase font-semibold tracking-wide text-gray-400">
+                  {stat.label}
+                </div>
+                <div
+                  className={`text-sm font-semibold ${
+                    stat.color || "text-white"
+                  }`}
+                >
+                  {stat.value}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  </motion.div>
+);
+
 }

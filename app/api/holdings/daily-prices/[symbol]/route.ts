@@ -10,15 +10,9 @@ export async function GET(
   context: { params: { symbol: string } }
 ) {
   try {
-    let { symbol } = context.params;
+    let { symbol } = await context.params;
     if (!symbol) {
       return NextResponse.json([], { status: 400 });
-    }
-
-    // Normalize symbol
-    symbol = symbol.toUpperCase();
-    if (!symbol.endsWith("-USD")) {
-      symbol = `${symbol}-USD`;
     }
 
     const cacheKey = `daily-prices:${symbol}`;

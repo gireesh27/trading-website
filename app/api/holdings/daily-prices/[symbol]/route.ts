@@ -11,12 +11,11 @@ export async function GET(
 ) {
   try {
     let { symbol } = context.params;
-
     if (!symbol) {
-      return NextResponse.json({ success: false, error: "Symbol is required" }, { status: 400 });
+      return NextResponse.json([], { status: 400 });
     }
 
-    // Normalize symbol for crypto (append -USD)
+    // Normalize symbol
     symbol = symbol.toUpperCase();
     if (!symbol.endsWith("-USD")) {
       symbol = `${symbol}-USD`;
@@ -24,24 +23,24 @@ export async function GET(
 
     const cacheKey = `daily-prices:${symbol}`;
 
-    // 1️⃣ Try cache first
+    // Try cache
     const cachedData = await redis.get(cacheKey);
     if (cachedData) {
       return NextResponse.json(JSON.parse(cachedData));
     }
 
-    // 2️⃣ Query DB if no cache
+    // Query DB
     await connectToDatabase();
-    const data = await DailyPrice.find({ symbol })
-      .sort({ date: 1 })
-      .lean();
+    const data = await DailyPrice.find({ symbol }).sort({ date: 1 }).lean();
 
-    // 3️⃣ Cache the result with expiration
+    // Cache result
     await redis.set(cacheKey, JSON.stringify(data), { EX: CACHE_TTL });
 
-    return NextResponse.json({ success: true, data });
+    // Always return array
+    return NextResponse.json(data || []);
   } catch (err: any) {
     console.error("Error fetching daily prices:", err);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    return NextResponse.json([], { status: 500 });
   }
 }
+

@@ -49,7 +49,6 @@ export async function GET(req: NextRequest) {
                   : 0,
             };
           } else {
-            // fallback to stockApi if sector unknown
             quote = await stockApi.getQuote(h.symbol);
           }
 

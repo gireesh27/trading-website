@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/Database/mongodb";
 import { Holding } from "@/lib/Database/Models/Holding";
 import { DailyPrice } from "@/lib/Database/Models/DailyPrice";
 import { stockApi } from "@/lib/api/stock-api";
+import { cryptoApi } from "@/lib/api/crypto-api";
 
 export async function POST() {
   await connectToDatabase();
@@ -26,22 +27,52 @@ export async function POST() {
     // Insert a new price record per holding
     const results = await Promise.all(
       holdings.map(async ({ symbol, sector }) => {
-        const quote = await stockApi.getQuote(symbol);
+        let quote;
 
-        return DailyPrice.create({
-          symbol,
-          sector: sector || "Unknown", // fallback
-          date: now,
-          close: quote.price,
-          change: quote.change,
-          changePercent: quote.changePercent,
-          high: quote.high,
-          low: quote.low,
-          open: quote.open,
-          previousClose: quote.previousClose,
-          volume: quote.volume,
-          marketCap: quote.marketCap
-        });
+        if (sector === "crypto") {
+          // Get crypto quote
+          quote = await cryptoApi.getCryptoQuote(symbol);
+
+          // Calculate previousClose using formula
+          const previousClose = quote.changePercent
+            ? quote.price / (1 + quote.changePercent / 100)
+            : quote.price;
+
+          // Set open price if missing
+          const open = quote.price ?? previousClose;
+
+          return DailyPrice.create({
+            symbol: `${quote.symbol}-USD`,
+            sector: sector || "crypto",
+            date: now,
+            close: quote.price,
+            change: quote.change,
+            changePercent: quote.changePercent,
+            high: quote.high ?? 0,
+            low: quote.low ?? 0,
+            open: open,
+            previousClose: previousClose,
+            volume: quote.volume ?? 0,
+            marketCap: quote.marketCap ?? 0
+          });
+        } else {
+          // Stock quote
+          quote = await stockApi.getQuote(symbol);
+          return DailyPrice.create({
+            symbol,
+            sector: sector || "Unknown",
+            date: now,
+            close: quote.price,
+            change: quote.change,
+            changePercent: quote.changePercent,
+            high: quote.high,
+            low: quote.low,
+            open: quote.open,
+            previousClose: quote.previousClose,
+            volume: quote.volume,
+            marketCap: quote.marketCap
+          });
+        }
       })
     );
 
@@ -55,4 +86,3 @@ export async function POST() {
     return NextResponse.json({ success: false, error: err.message });
   }
 }
-

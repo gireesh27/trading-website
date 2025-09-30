@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatNumber, formatCurrency } from "@/lib/utils/market"; // Assume you have these helpers
+import { formatNumber, formatCurrency } from "@/lib/utils/market";
 import { StockQuote } from "@/types/trading-types";
 import { cn } from "@/lib/utils/cn";
 

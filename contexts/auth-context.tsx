@@ -1,10 +1,9 @@
-// auth-context.tsx
 "use client"
 
 import { createContext, useContext } from "react"
 import { signIn, signOut, useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "react-toastify";
 
 interface AuthContextType {
   user: {
@@ -27,7 +26,6 @@ const AuthContext = createContext<AuthContextType | null>(null)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const { toast } = useToast()
 
   const login = async (email: string, password: string) => {
     const res = await signIn("credentials", {
@@ -37,14 +35,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     if (res?.ok && res.url) {
-      toast({ title: "Success", description: "Logged in successfully." })
+      toast.success("Logged in successfully")
       router.push("/")
     } else {
-      toast({
-        title: "Login failed",
-        description: res?.error || "Invalid credentials",
-        variant: "destructive",
-      })
+      toast.error("Login failed");
     }
   }
 
@@ -57,14 +51,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const data = await res.json()
     if (data.success) {
-      toast({ title: "Account created", description: "Logging in..." })
+      toast.success("Account Created successfully");
       await login(email, password)
     } else {
-      toast({
-        title: "Signup failed",
-        description: data.message || "Something went wrong",
-        variant: "destructive",
-      })
+     toast.error(data.message || "Signup failed")
     }
   }
 
@@ -76,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (res?.ok && res.url) {
       router.push(res.url)
     } else {
-      toast({ title: "Google sign-in failed", variant: "destructive" })
+     toast.error("Google sign-in failed");
     }
   }
 
@@ -88,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (res?.ok && res.url) {
       router.push(res.url)
     } else {
-      toast({ title: "GitHub sign-in failed", variant: "destructive" })
+     toast.error("Github sign-in failed")
     }
   }
 

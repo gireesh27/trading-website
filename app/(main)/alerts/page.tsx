@@ -1,19 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AlertsManager } from "@/components/Alerts/AlertManager";
 import { AlertsProvider } from "@/contexts/alerts-context";
-import { Skeleton } from "@/components/ui/skeleton";
 import Loader from "@/components/loader";
 
 export default function AlertsPage() {
   const [loading, setLoading] = useState(true);
-
-  // Simulate loading delay (optional - replace with real loading trigger if needed)
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1000);
-    return () => clearTimeout(timer);
-  }, []);
 
   if (loading) {
     return (

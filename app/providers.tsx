@@ -1,6 +1,5 @@
 "use client";
 
-import { ClerkProvider } from "@clerk/nextjs";
 import { SessionProvider } from "next-auth/react";
 import { AuthProvider } from "@/contexts/auth-context";
 import { WalletProvider } from "@/contexts/wallet-context";
@@ -14,7 +13,6 @@ import RazorpayLoader from "@/components/razorpay/RazorpayLoader";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
       <SessionProvider>
         <AuthProvider>
           <WalletProvider>
@@ -34,6 +32,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
           </WalletProvider>
         </AuthProvider>
       </SessionProvider>
-    </ClerkProvider>
+
   );
 }

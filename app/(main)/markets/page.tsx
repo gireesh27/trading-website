@@ -5,8 +5,8 @@ import { useMarketData } from "@/contexts/enhanced-market-data-context";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import FooterTime from "./FooterTime";
-import {  RefreshCw } from "lucide-react";
+import FooterTime from "@/components/FooterTime";
+import { RefreshCw } from "lucide-react";
 import CountUp from "react-countup";
 import { StockQuote } from "@/lib/api/stock-api";
 import { OverviewCard } from "./OverViewCard";
@@ -203,6 +203,7 @@ export default function MarketsPage() {
 
       {/* Main content */}
       <div className="relative z-10 container mx-auto px-4 py-6">
+        {/* Title Section */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>
             <div className="text-left">
@@ -223,8 +224,9 @@ export default function MarketsPage() {
               }}
             />
             <Button
+              variant="ghost"
+              className="bg-gradient-to-br from-blue-500 to-purple-600 text-white py-2 px-5 rounded-xl hover:opacity-90 transition shadow-md text-sm font-semibold"
               onClick={handleRefresh}
-               className="font-semibold py-2 px-6 rounded-lg hover:brightness-110 bg-blue-500 hover:bg-blue-800 transition-all duration-300"
             >
               Refresh
             </Button>

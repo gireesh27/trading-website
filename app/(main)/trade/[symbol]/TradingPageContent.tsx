@@ -10,8 +10,6 @@ import {
 } from "@/components/advanced-trading-chart";
 import Loading from "@/components/loader";
 import { EnhancedTradingInterface } from "@/components/enhanced-trading-interface";
-import { Activity } from "lucide-react";
-import { stockApi } from "@/lib/api/stock-api";
 import StockMetricsDisplay from "@/components/Market-Metrics";
 import StockFinancialsReportDisplay from "@/components/Financial_Report";
 import { CompanyNewsFeed } from "@/components/CompanyNewsFeed";

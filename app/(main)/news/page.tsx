@@ -1,6 +1,5 @@
 "use client";
 
-import { MainNav } from "@/components/main-nav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,6 @@ import {
   TrendingUp,
   ExternalLink,
   RefreshCw,
-  Filter,
 } from "lucide-react";
 import { useState } from "react";
 import { useMarketData } from "@/contexts/enhanced-market-data-context";
@@ -89,7 +87,7 @@ export default function EnhancedNewsPage() {
   const getCategoryColor = (category: string) => {
     const colors: { [key: string]: string } = {
       general: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-      forex: "bg-purple-500/20 text-purple-400 border-purple-500/30", // This line is fine, category is a string
+      forex: "bg-purple-500/20 text-purple-400 border-purple-500/30",
       crypto: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
       merger: "bg-pink-500/20 text-pink-400 border-pink-500/30",
     };

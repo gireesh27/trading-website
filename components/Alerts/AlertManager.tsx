@@ -8,7 +8,6 @@ import { AlertForm } from "./AlertForm";
 import { AlertsList } from "./AlertsList";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Alert } from "@/types/alerts-types";
-import AlertsListener from "./AlertsClient";
 export function AlertsManager() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAlert, setEditingAlert] = useState<Alert | null>(null);

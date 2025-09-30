@@ -43,12 +43,7 @@ export default function DashboardPage() {
     }
     fetchHoldings();
   }, []);
-  if (authLoading || !user)
-    return (
-      <div className="bg-[#131722] flex flex-col items-center justify-center relative mx-auto ">
-        <Loader />
-      </div>
-    );
+  
 
   return (
     <div className="relative bg-[#131722] flex flex-col items-center justify-center  mx-auto">
@@ -79,7 +74,7 @@ export default function DashboardPage() {
         {/* Welcome Text */}
         <h1 className="flex items-end text-lg font-semibold text-white gap-2 mt-4">
           <span>Welcome back,</span>
-          <SparklesText>{user.name}</SparklesText>
+          <SparklesText>{user?.name}</SparklesText>
         </h1>
         <div className="text-lg mt-2">
           <TextGenerateSameColour

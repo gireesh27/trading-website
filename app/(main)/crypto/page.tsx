@@ -1,14 +1,12 @@
 "use client";
-import FooterTime from "./FooterTime";
+import FooterTime from "@/components/FooterTime";
 import { useMarketData } from "@/contexts/enhanced-market-data-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cryptoApi } from "@/lib/api/crypto-api"; // ensure correct path
 import type { CryptoData } from "@/types/crypto-types";
-import { AuroraText } from "@/components/ui/AuoraText";
 import {
   Search,
   Filter,
@@ -20,14 +18,10 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import CountUp from "react-countup";
-import { CandlestickPoint } from "@/components/advanced-trading-chart";
 import { useRouter } from "next/navigation";
-import Loader from "@/components/loader";
-import { useAuth } from "@/contexts/auth-context";
 import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
-import { InteractiveGridPattern } from "@/components/ui/InteractiveGridPattern";
 import { cn } from "@/lib/utils/cn";
-import { ShinyButton } from "@/components/ui/Shiny";
+import Header from "./Header";
 export interface CryptoQuote {
   symbol: string;
   sector?: string;
@@ -39,8 +33,8 @@ export interface CryptoQuote {
   marketCap?: number;
   high?: number;
   low?: number;
-  rank?: number; // ✅ Add this
-  dominance?: number; // ✅ And this (if you use it)
+  rank?: number;
+  dominance?: number;
 }
 const getCleanSymbol = (raw: string): string =>
   raw.replace("-USD", "").toUpperCase();
@@ -54,9 +48,6 @@ export default function CryptoPage() {
     "price" | "change" | "volume" | "marketCap"
   >("marketCap");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [chartCandlestickData, setChartCandlestickData] = useState<
-    CandlestickPoint[]
-  >([]);
   const ITEMS_PER_PAGE = 12;
   const [overviewPage, setOverviewPage] = useState(1);
   const [tablePage, setTablePage] = useState(1);
@@ -214,18 +205,8 @@ export default function CryptoPage() {
       setTablePage(1);
     }
   }, [searchTerm, sortBy, sortOrder, activeTab]);
-  const { user, isLoading: authLoading } = useAuth();
-  if (authLoading || !user) {
-    return (
-      <div className="bg-[#131722] flex flex-col items-center justify-center">
-        <Loader />
-      </div>
-    );
-  }
-
   return (
     <div className="text-white  relative min-h-screen bg-[#0e0f1a] flex items-center justify-center px-4 overflow-hidden">
-      {/* Optional: Original background (blurred circles or gradient beams) */}
       <BackgroundBeamsWithCollision className=" fixed inset-0 z-0 w-full h-full pointer-events-none bg-gradient-to-br from-[#1a1c2b]/90 via-[#2a2c3d]/70 to-[#1a1c2b]/90">
         <div className=" bg-purple-500 rounded-full" />
         <div className=" bg-blue-500 rounded-full" />
@@ -234,49 +215,16 @@ export default function CryptoPage() {
         <div className=" bg-yellow-500 rounded-full" />
       </BackgroundBeamsWithCollision>
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 relative z-10">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-500 animate-gradient-x">
-              Cryptocurrency
-            </h1>
-            <p className="mt-3 text-gray-300 text-lg md:text-xl mx-auto">Real-Time Crypto Prices, Charts & Market Analysis</p>
-          </div>
-          <div className="flex items-center space-x-4 mt-4 md:mt-0">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search crypto..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-gray-900/70 backdrop-blur-sm border border-gray-700 text-white placeholder-gray-400 focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-            <Button
-              variant="outline"
-              className="border-gray-700 text-gray-300 bg-gray-900/50 backdrop-blur-sm hover:bg-gray-800/60"
-              onClick={() => {
-                const newOrder = sortOrder === "desc" ? "asc" : "desc";
-                setSortOrder(newOrder);
-              }}
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              Sort {sortOrder === "desc" ? "↓" : "↑"}
-            </Button>
-            <Button
-              onClick={handleRefresh}
-              disabled={loadingPage}
-              className="font-semibold py-2 px-6 rounded-lg hover:brightness-110 bg-blue-500 hover:bg-blue-800 transition-all duration-300"
-            >
-              {loadingPage ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                "Refresh"
-              )}
-            </Button>
-          </div>
-        </div>
+        <Header
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          sortOrder={sortOrder}
+          setSortOrder={setSortOrder}
+          handleRefresh={handleRefresh}
+          loadingPage={loadingPage}
+        />
 
         {/* Market Overview Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 relative z-10">

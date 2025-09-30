@@ -1,4 +1,3 @@
-"use client";
 
 import React, {
   createContext,
@@ -8,14 +7,13 @@ import React, {
   useCallback,
   ReactNode,
 } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "react-toastify";
 import type { Alert, AlertContextType } from "@/types/alerts-types";
 import { useSession } from "next-auth/react";
 
 const AlertsContext = createContext<AlertContextType | undefined>(undefined);
 
 export function AlertsProvider({ children }: { children: ReactNode }) {
-  const { toast } = useToast();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { data: session } = useSession();
@@ -23,11 +21,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
   const userId = session?.user?.id;
 
   const showError = (message: string) =>
-    toast({
-      title: "❌ Error",
-      description: message,
-      variant: "destructive",
-    });
+   toast.error(message);
 
   // Normalize alert so it always has id
   const normalizeAlert = (alert: any): Alert => ({
@@ -35,7 +29,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
     id: alert.id || alert._id,
   });
 
-  // ✅ Fetch alerts for the current user
+  //  Fetch alerts for the current user
   const fetchAlerts = useCallback(async () => {
     if (!userId) return;
     setIsLoading(true);
@@ -53,14 +47,14 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
     }
   }, [userId]);
 
-  // ✅ Fetch alerts when user session is ready
+  //  Fetch alerts when user session is ready
   useEffect(() => {
     if (userId) {
       fetchAlerts();
     }
   }, [userId, fetchAlerts]);
 
-  // ✅ Add new alert
+  //  Add new alert
   const addAlert: AlertContextType["addAlert"] = async (alertData) => {
     try {
       const res = await fetch("/api/alerts", {
@@ -73,13 +67,13 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
       if (!res.ok) throw new Error(json.error || json.message || "Failed to create alert");
 
       setAlerts((prev) => [...prev, normalizeAlert(json.data)]);
-      toast({ title: "✅ Alert Created", description: `${json.data.symbol}` });
+     toast.success("Alert Created Successfully")
     } catch (err: any) {
       showError(err.message || "Unknown error");
     }
   };
 
-  // ✅ Update alert
+  //  Update alert
   const updateAlert: AlertContextType["updateAlert"] = async (alert) => {
     try {
       const res = await fetch(`/api/alerts/${alert.id}`, {
@@ -93,13 +87,13 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
 
       const updated = normalizeAlert(json.alert || json.data);
       setAlerts((prev) => prev.map((a) => (a.id === alert.id ? updated : a)));
-      toast({ title: "✅ Alert Updated", description: `${updated.symbol}` });
+     toast.success("Alert Updated Successfully");
     } catch (err: any) {
       showError(err.message || "Update failed");
     }
   };
 
-  // ✅ Delete alert
+  //  Delete alert
   const deleteAlert: AlertContextType["deleteAlert"] = async (alertId) => {
     try {
       const res = await fetch(`/api/alerts/${alertId}`, {
@@ -110,7 +104,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
       if (!res.ok) throw new Error(json.error || json.message || "Failed to delete alert");
 
       setAlerts((prev) => prev.filter((a) => a.id !== alertId));
-      toast({ title: "🗑️ Alert Deleted", description: json.message || "" });
+    toast.success("Alert Deleted Successfully");
     } catch (err: any) {
       showError(err.message || "Delete failed");
     }

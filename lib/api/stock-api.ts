@@ -110,7 +110,7 @@ export class StockAPI {
 
       // Handle Rate Limit (429)
       if (response.status === 429 && retries > 0) {
-        console.warn(`⚠️ RapidAPI rate limit hit. Retrying in ${backoff}ms...`);
+        console.warn(` RapidAPI rate limit hit. Retrying in ${backoff}ms...`);
         await new Promise((res) => setTimeout(res, backoff));
         return this.fetchFromRapidApi<T>(url, options, retries - 1, backoff * 2);
       }
@@ -130,7 +130,7 @@ export class StockAPI {
       }
 
     } catch (err: any) {
-      console.error("❌ fetchFromRapidApi error:", err.message || err);
+      console.error(" fetchFromRapidApi error:", err.message || err);
       throw err;
     }
   }
@@ -260,7 +260,7 @@ export class StockAPI {
 
       return {
         symbol,
-        name: symbol, // No separate fetch for company name
+        name: symbol, 
         price: quoteData.c,
         change: quoteData.d,
         changePercent: quoteData.dp,
@@ -344,7 +344,7 @@ export class StockAPI {
     }
   }
 
-  // 🔁 Batch via Promise.all (client-side throttled)
+  //  Batch via Promise.all (client-side throttled)
   public async getMultipleQuotes_polygon(symbols: string[]): Promise<StockQuote[]> {
     const results = await Promise.all(
       symbols.map((symbol) => this.getSingleQuote(symbol))

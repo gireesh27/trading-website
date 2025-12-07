@@ -84,7 +84,7 @@ export default function TradingPageContent() {
         throw new Error("Invalid chart data format.");
       }
     } catch (err: any) {
-      console.error("❌ Error fetching stock data:", err);
+      console.error(" Error fetching stock data:", err);
       setError(err?.message || "Failed to load stock data.");
     } finally {
       setIsLoading(false);

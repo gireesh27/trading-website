@@ -132,7 +132,7 @@ export interface AdvancedTradingChartProps {
     range: Range,
     interval: Interval
   ) => void;
-  range: Range; // ✅ New prop
+  range: Range; //  New prop
 }
 
 /**
@@ -818,7 +818,7 @@ export function AdvancedTradingChart({
     return candles.map((c, i) => {
       const x = i * candleSpacing;
       const y = chartHeight - ((c.close - minPrice) / priceRange) * chartHeight;
-      return { ...c, x, y }; // ✅ now has both x and y
+      return { ...c, x, y }; //  now has both x and y
     });
   }
   const pixelCandles = getPixelCandles(candles, chartWidth, chartHeight);
@@ -916,7 +916,7 @@ export function AdvancedTradingChart({
       drawingRef.current = initial;
       dispatch({ type: "SET_CURRENT_DRAWING", payload: initial });
     } else {
-      // ✅ Second click: finalize drawing
+      //  Second click: finalize drawing
       const final = {
         ...drawingRef.current,
         end: coords,

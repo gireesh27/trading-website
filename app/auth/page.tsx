@@ -4,12 +4,7 @@ import { useState, useRef } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
@@ -191,7 +186,11 @@ export default function AuthPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/70"
+                  className="
+    absolute right-3 top-1/2 -translate-y-1/2
+    text-gray-600 hover:text-gray-900
+    dark:text-gray-300 dark:hover:text-white
+  "
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -221,19 +220,38 @@ export default function AuthPage() {
               {isLoading
                 ? "Please wait..."
                 : isLogin
-                ? "Sign In"
-                : "Create Account"}
+                  ? "Sign In"
+                  : "Create Account"}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-sm">
             <button
               onClick={() => setIsLogin(!isLogin)}
-              className="text-blue-400 hover:underline transition-all"
+              className="
+      group inline-flex items-center gap-1
+      font-semibold
+      text-gray-200
+      hover:text-blue-400
+      transition-colors duration-200
+    "
             >
-              {isLogin
-                ? "Don't have an account? Sign up"
-                : "Already have an account? Sign in"}
+              <span className="text-gray-300">
+                {isLogin
+                  ? "Don't have an account?"
+                  : "Already have an account?"}
+              </span>
+
+              <span className="relative text-blue-400">
+                {isLogin ? "Sign up" : "Sign in"}
+                <span
+                  className="
+          absolute left-0 -bottom-0.5
+          h-[2px] w-full
+          bg-blue-400
+        "
+                />
+              </span>
             </button>
           </div>
         </CardContent>

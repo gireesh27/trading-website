@@ -8,7 +8,6 @@ import { TrendingUpIcon, LayoutDashboard } from "lucide-react";
 import HeroSection from "@/components/MainPage/Hero";
 import { EnhancedSections } from "@/components/MainPage/EnhancedSections";
 import Loader from "@/components/loader";
-import { Button } from "@/components/ui/button";
 
 export default function HomePage() {
   const { user, isLoading } = useAuth();

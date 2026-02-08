@@ -7,168 +7,187 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
+import { useSession } from "next-auth/react";
 import type { Order, OrderContextType } from "@/types/Order-types";
 import { toast } from "react-toastify";
+
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
 
 export function OrderProvider({ children }: { children: ReactNode }) {
+  const { status } = useSession();
+
   const [orders, setOrders] = useState<Order[]>([]);
-
   const [isLoading, setIsLoading] = useState(false);
+
+  /* --------------------------------------------------
+     Fetch all orders (ONLY after authentication)
+  -------------------------------------------------- */
+  const fetchOrders = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/trading/orders", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      if (res.status === 401) {
+        setOrders([]);
+        return;
+      }
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to fetch orders");
+      }
+
+      setOrders(data.orders || []);
+    } catch (err: any) {
+      console.error("Error fetching orders:", err);
+      toast.error(err.message || "Failed to load orders");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /* --------------------------------------------------
+     Auto-fetch when user becomes authenticated
+  -------------------------------------------------- */
   useEffect(() => {
-    fetchOrders();
-  }, []);
-
-const fetchOrders = async () => {
-  setIsLoading(true);
-  try {
-    const res = await fetch("/api/trading/orders", {
-      method: "GET",
-      credentials: "include",
-    });
-
-    if (res.status === 401) {
-      setOrders([]);
-      return;
-    }
-
-    const data = await res.json();
-
-    if (res.ok && data.success) {
-      setOrders(data.orders);
+    if (status === "authenticated") {
+      fetchOrders();
     } else {
-      toast.error(
-        <div>
-          <strong>Failed to load orders</strong>
-          <div>{data.error || "Unknown error"}</div>
-        </div>
-      );
+      setOrders([]);
     }
-  } catch (err) {
-    console.error("Error fetching orders:", err);
-    toast.error("Error fetching orders");
-  } finally {
-    setIsLoading(false);
-  }
-};
+  }, [status]);
 
-  const placeOrder = async (orderData: Partial<Order>): Promise<boolean> => {
+  /* --------------------------------------------------
+     Place order
+  -------------------------------------------------- */
+  const placeOrder = async (
+    orderData: Partial<Order>
+  ): Promise<boolean> => {
     setIsLoading(true);
     try {
       const res = await fetch("/api/trading/orders", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderData),
       });
+
       const data = await res.json();
-      if (data.success) {
-        setOrders((prev) => [data.order, ...prev]);
-        toast.success(
-          `Order Placed: ${orderData.type?.toUpperCase()} order for ${
-            orderData.quantity
-          } ${orderData.symbol} placed.`
-        );
-        return true;
-      } else {
-        toast.error(
-          <div>
-            <strong>Order Failed</strong>
-            <div>{data.error || "Unknown error"}</div>
-          </div>
-        );
-        return false;
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Order failed");
       }
-    } catch (error) {
-      console.error("Place order error:", error);
-      toast.info("Network error");
+
+      setOrders((prev) => [data.order, ...prev]);
+
+      toast.success(
+        `Order placed: ${orderData.type?.toUpperCase()} ${orderData.quantity} ${orderData.symbol}`
+      );
+
+      return true;
+    } catch (err: any) {
+      console.error("Place order error:", err);
+      toast.error(err.message || "Order failed");
       return false;
     } finally {
       setIsLoading(false);
     }
   };
 
+  /* --------------------------------------------------
+     Cancel order
+  -------------------------------------------------- */
   const cancelOrder = async (orderId: string): Promise<boolean> => {
     setIsLoading(true);
     try {
       const res = await fetch(`/api/trading/orders/${orderId}`, {
         method: "DELETE",
+        credentials: "include",
       });
+
       const data = await res.json();
-      if (data.success) {
-        setOrders((prev) =>
-          prev.map((order) =>
-            order._id === orderId ? { ...order, status: "cancelled" } : order
-          )
-        );
-        toast("Order Cancelled");
-        return true;
-      } else {
-        toast.error(
-          <div>
-            <strong>Cancel Failed</strong>
-            <div>{data.error || "Unknown error"}</div>
-          </div>
-        );
-        return false;
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Cancel failed");
       }
-    } catch (err) {
+
+      setOrders((prev) =>
+        prev.map((order) =>
+          order._id === orderId
+            ? { ...order, status: "cancelled" }
+            : order
+        )
+      );
+
+      toast.success("Order cancelled");
+      return true;
+    } catch (err: any) {
       console.error("Cancel order error:", err);
-      toast.error("Network error");
+      toast.error(err.message || "Cancel failed");
       return false;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getOrderHistory = () => {
-    return orders
-      .filter((order) => ["cancelled", "completed"].includes(order.status))
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-  };
-
-  const getOpenOrders = () => {
-    return orders.filter((order) => ["pending"].includes(order.status));
-  };
+  /* --------------------------------------------------
+     Get single order (on-demand)
+  -------------------------------------------------- */
   const getOrder = async (orderId: string): Promise<Order | null> => {
     setIsLoading(true);
-
     try {
       const res = await fetch(`/api/trading/orders/${orderId}`, {
         method: "GET",
+        credentials: "include",
         cache: "no-store",
       });
 
       const data = await res.json();
 
-      if (!res.ok) {
-        console.error("Order fetch failed:", data.error || res.statusText);
-        return null;
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to fetch order");
       }
 
-      console.log("Fetched order:", data.order);
       return data.order as Order;
     } catch (err) {
-      console.error("Failed to fetch order:", err);
+      console.error("Get order error:", err);
       return null;
     } finally {
       setIsLoading(false);
     }
   };
 
+  /* --------------------------------------------------
+     Derived selectors
+  -------------------------------------------------- */
+  const getOrderHistory = () =>
+    orders
+      .filter((o) => o.status === "cancelled" || o.status === "completed")
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() -
+          new Date(a.createdAt).getTime()
+      );
+
+  const getOpenOrders = () =>
+    orders.filter((o) => o.status === "pending");
+
   return (
     <OrderContext.Provider
       value={{
         orders,
         isLoading,
+        fetchOrders,
         placeOrder,
         cancelOrder,
+        getOrder,
         getOrderHistory,
         getOpenOrders,
-        fetchOrders,
-        getOrder,
       }}
     >
       {children}
@@ -179,7 +198,7 @@ const fetchOrders = async () => {
 export function useOrders() {
   const context = useContext(OrderContext);
   if (!context) {
-    throw new Error("useOrders must be used within an OrderProvider");
+    throw new Error("useOrders must be used within OrderProvider");
   }
   return context;
 }

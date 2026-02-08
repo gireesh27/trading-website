@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/Database/mongodb";
 import { Order } from "@/lib/Database/Models/Order";
 import { User } from "@/lib/Database/Models/User";
-import { getServerSession } from "next-auth/next";
+import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 
 const BROKERAGE_PERCENT = 0.005;
@@ -11,9 +11,6 @@ const CONVENIENCE_FEE = 20;
 // Place a new order
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   await connectToDatabase();
 
@@ -25,7 +22,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session?.user.email });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     if (user.walletBalance === undefined) user.walletBalance = 1000;

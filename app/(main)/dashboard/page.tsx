@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { NewsWidget } from "@/components/newsWidget";
 import { useMarketData } from "@/contexts/enhanced-market-data-context";
 import { useAuth } from "@/contexts/auth-context";
-import Loader from "@/components/loader";
 import { SparklesText } from "@/components/ui/TextSparkle";
 import CryptoTicker from "@/components/slide-crypto";
 import { WatchlistItems } from "@/components/watchlist/WatchlistItems";

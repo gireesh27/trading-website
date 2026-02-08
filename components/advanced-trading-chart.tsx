@@ -1332,12 +1332,11 @@ export function AdvancedTradingChart({
                   <ChartTooltip
                     content={
                       <CustomTooltip
-                        drawingTool={drawingTool}
-                        active={false}
-                        payload={[]}
-                        coordinate={{ x: 0, y: 0 }}
-                        accessibilityLayer={false}
-                      />
+                          drawingTool={drawingTool}
+                          active={false}
+                          payload={[]}
+                          coordinate={{ x: 0, y: 0 }}
+                          accessibilityLayer={false} activeIndex={undefined}                      />
                     }
                     cursor={
                       drawingTool

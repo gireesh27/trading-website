@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
@@ -60,7 +59,7 @@ export default function HeroSection() {
       opacity: 1,
       y: 0,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         damping: 12,
         stiffness: 100,
       },
@@ -69,12 +68,12 @@ export default function HeroSection() {
       opacity: 0,
       y: 20,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         damping: 12,
         stiffness: 100,
       },
     },
-  };
+  } as const;
     const { user, isLoading } = useAuth();
   return (
     <section className="relative w-full h-screen flex items-center justify-center overflow-hidden">
@@ -120,7 +119,7 @@ export default function HeroSection() {
         >
           {/* Recreating "TailwindcssButtons" (Lit up borders) */}
           {user ? (
-            // If signed in → Go to Dashboard
+            // If signed in  Go to Dashboard
             <Link href="/dashboard">
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -131,7 +130,7 @@ export default function HeroSection() {
               </motion.button>
             </Link>
           ) : (
-            // If not signed in → Go to Auth
+            // If not signed in  Go to Auth
             <Link href="/auth">
               <motion.button
                 whileHover={{ scale: 1.05 }}

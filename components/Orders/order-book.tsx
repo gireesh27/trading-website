@@ -1,13 +1,12 @@
 "use client";
 
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import clsx from "clsx";
 import type { Order } from "@/types/Order-types";
 import { OrderDatePicker } from "../DatePicker";
-import Loading from "@/components/loader";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "react-toastify";
 import {
@@ -17,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useSession } from "next-auth/react";
 
 interface OrderBookEntry {
   price: number;
@@ -47,11 +47,10 @@ export function OrderBook() {
   const [bids, setBids] = useState<OrderBookEntry[]>([]);
   const [asks, setAsks] = useState<OrderBookEntry[]>([]);
   const [depth, setDepth] = useState(10);
-
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastPrice, setLastPrice] = useState<number | null>(null);
   const [priceFlash, setPriceFlash] = useState<"up" | "down" | null>(null);
-
+  const { data: session } = useSession();
   const [showHistory, setShowHistory] = useState(false);
   const [orderHistory, setOrderHistory] = useState<HistoryEntry[]>([]);
   const [allOrders, setAllOrders] = useState<HistoryEntry[]>([]);
@@ -59,7 +58,7 @@ export function OrderBook() {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
-  // 🔎 Filter orders by status/date
+  //  Filter orders by status/date
   const filterOrders = (status: string, date?: Date) => {
     let filtered = allOrders;
 
@@ -70,40 +69,50 @@ export function OrderBook() {
     if (date) {
       filtered = filtered.filter(
         (order) =>
-          new Date(order.createdAt).toDateString() === date.toDateString()
+          new Date(order.createdAt).toDateString() === date.toDateString(),
       );
     }
 
     setOrderHistory(filtered);
   };
 
-  // 📡 Fetch orders from API
+  // Fetch orders from API
   const fetchOrderHistory = async () => {
-    if (!isRefreshing) setIsRefreshing(true);
+    if (isRefreshing) return;
+  
+    setIsRefreshing(true);
 
     try {
       const res = await fetch("/api/trading/orders", {
-        credentials: "include", // ✅ Send cookies/session
+        credentials: "include",
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to fetch");
+      if (res.status === 401) return;
 
-      setAllOrders(data.orders || []);
-      setOrderHistory(data.orders || []);
-    } catch (error) {
+      const data = await res.json();
+      if (!res.ok) throw new Error();
+
+      setAllOrders(data.orders ?? []);
+      setOrderHistory(data.orders ?? []);
+    } catch {
       toast.error("Failed to fetch orders");
     } finally {
       setIsRefreshing(false);
     }
   };
 
-  // 👀 Fetch when toggling "Order History"
-  useEffect(() => {
-    if (showHistory) fetchOrderHistory();
-  }, [showHistory]);
+  const hasFetchedRef = useRef(false);
 
-  // 💡 Price flash animation when selectedStock changes
+  useEffect(() => {
+    if (!showHistory) return;
+    if (!session) return;
+    if (hasFetchedRef.current) return;
+
+    hasFetchedRef.current = true;
+    fetchOrderHistory();
+  }, [showHistory,session]);
+
+  //  Price flash animation when selectedStock changes
   useEffect(() => {
     const price = selectedStock?.price;
     if (!price || price === lastPrice) return;
@@ -115,13 +124,13 @@ export function OrderBook() {
     return () => clearTimeout(timeout);
   }, [selectedStock?.price]);
 
-  // 📊 Max depth calc
+  //  Max depth calc
   const maxTotal = useMemo(() => {
     const all = [...bids, ...asks];
     return all.length ? Math.max(...all.map((e) => e.total)) : 1;
   }, [bids, asks]);
 
-  // 🟢 Render Order Book row
+  //  Render Order Book row
   const renderOrderRow = (order: OrderBookEntry, type: "bid" | "ask") => {
     const barWidth = (order.total / maxTotal) * 100;
     const colorClass = type === "bid" ? "bg-green-500/20" : "bg-red-500/20";
@@ -149,7 +158,7 @@ export function OrderBook() {
     );
   };
 
-  // 📜 Render History row
+  //  Render History row
   const renderHistoryRow = (order: HistoryEntry) => {
     const createdDate = new Date(order.createdAt);
     const completedDate = order.updatedAt ? new Date(order.updatedAt) : null;
@@ -157,7 +166,7 @@ export function OrderBook() {
     const holdingPeriod = completedDate
       ? Math.ceil(
           (completedDate.getTime() - createdDate.getTime()) /
-            (1000 * 3600 * 24)
+            (1000 * 3600 * 24),
         )
       : "N/A";
 
@@ -170,8 +179,8 @@ export function OrderBook() {
       order.status === "completed"
         ? "text-green-400"
         : order.status === "pending"
-        ? "text-yellow-400"
-        : "text-red-400";
+          ? "text-yellow-400"
+          : "text-red-400";
 
     return (
       <div
@@ -182,14 +191,17 @@ export function OrderBook() {
         <span
           className={clsx(
             isBuy ? "text-green-400" : "text-red-400",
-            "font-semibold"
+            "font-semibold",
           )}
         >
           {order.type.toUpperCase()}
         </span>
         <span className="text-right">{order.quantity}</span>
         <span
-          className={clsx("text-right", isBuy ? "text-green-400" : "text-red-400")}
+          className={clsx(
+            "text-right",
+            isBuy ? "text-green-400" : "text-red-400",
+          )}
         >
           {priceFormatted}
         </span>
@@ -233,9 +245,10 @@ export function OrderBook() {
           <Button
             size="icon"
             variant="ghost"
-            onClick={() =>
-              showHistory ? fetchOrderHistory() : setIsRefreshing(true)
-            }
+            onClick={() => {
+              if (!showHistory) return;
+              fetchOrderHistory();
+            }}
             className="text-white hover:text-white"
           >
             <RefreshCcw
@@ -281,7 +294,7 @@ export function OrderBook() {
         </Select>
       </div>
 
-      {/* 📊 Main Content */}
+      {/*  Main Content */}
       <CardContent className="pb-6">
         {showHistory ? (
           <ScrollArea className="max-h-[400px] px-6">
@@ -319,7 +332,10 @@ export function OrderBook() {
             </div>
 
             {asks.length ? (
-              [...asks].reverse().slice(0, depth).map((ask) => renderOrderRow(ask, "ask"))
+              [...asks]
+                .reverse()
+                .slice(0, depth)
+                .map((ask) => renderOrderRow(ask, "ask"))
             ) : (
               <div className="text-center text-white py-4 text-sm">
                 No sell orders
@@ -333,7 +349,7 @@ export function OrderBook() {
                   "text-2xl font-bold tracking-tight",
                   priceFlash === "up" && "text-green-400 animate-pulse",
                   priceFlash === "down" && "text-red-400 animate-pulse",
-                  !priceFlash && "text-white"
+                  !priceFlash && "text-white",
                 )}
               >
                 ${selectedStock?.price?.toFixed(2) || "0.00"}

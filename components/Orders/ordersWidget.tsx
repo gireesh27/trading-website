@@ -20,6 +20,7 @@ export default function OrdersWidget() {
   const [selectedViewOrder, setSelectedViewOrder] = useState<Order | null>(
     null
   );
+  
   const [cancel, setCancel] = useState(false);
   const [complete, setComplete] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -56,11 +57,11 @@ const fetchOrders = async () => {
   }
 };
 
-  useEffect(() => {
-    if (status === "authenticated") {
-      fetchOrders();
-    }
-  }, [status]);
+useEffect(() => {
+  if (!session?.user) return;
+  fetchOrders();
+}, [session]);
+
   const handleComplete = (order: Order) => {
     setSelectedOrder(order);
     setModalOpen(true);

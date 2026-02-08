@@ -18,32 +18,37 @@ interface Order {
 }
 
 export default function CompletedOrdersList() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(false);
-  const { data: session, status } = useSession();
+const [orders, setOrders] = useState<Order[]>([]);
+const [loading, setLoading] = useState(false);
+const { data: session } = useSession();
 
-  const fetchOrders = async () => {
-    if (!session?.user) return;
-    setLoading(true);
-    try {
-      const res = await fetch("/api/trading/orders", {
-        method: "GET",
-        cache: "no-store",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-      const data = await res.json();
-      setOrders(data.orders || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchOrders = async () => {
+  if (!session?.user) return;
 
-  useEffect(() => {
-    if (status === "authenticated") fetchOrders();
-  }, [status]);
+  setLoading(true);
+  try {
+    const res = await fetch("/api/trading/orders", {
+      method: "GET",
+      cache: "no-store",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!res.ok) return;
+
+    const data = await res.json();
+    setOrders(data.orders ?? []);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
+
+useEffect(() => {
+  if (!session?.user) return;
+  fetchOrders();
+}, [session]);
 
   const completedOrders = orders.filter((o) => o.status === "completed");
   const remainingItems = completedOrders;

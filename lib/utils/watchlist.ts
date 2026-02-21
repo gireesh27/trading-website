@@ -17,11 +17,13 @@ export function normalizeWatchlists(data: IWatchlist[]): Watchlist[] {
       addedAt: new Date(s.addedAt),
       alerts: s.alerts?.map((a) => ({
         id: a.id,
-        type: a.type,
-        price: a.price,
+        symbol: s.symbol,
+        type: "price" as const,
+        condition: a.type as "above" | "below",
+        value: a.price,
         isActive: a.isActive,
-        createdAt: new Date(a.createdAt),
-        toggledAt: new Date(a.toggledAt),
+        status: (a.isActive ? "active" : "inactive") as "active" | "triggered" | "inactive",
+        createdAt: new Date(a.createdAt).toISOString(),
       })) ?? [],
     })),
   }));

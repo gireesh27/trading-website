@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const AlertSchema = new mongoose.Schema(
   {
     userId: {
-      type: String, // <-- Fix: userId as string for OAuth (e.g. Google user id)
+      type: String,
       required: true,
     },
     symbol: {

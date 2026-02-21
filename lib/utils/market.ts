@@ -1,4 +1,3 @@
-// utils.ts
 export const formatCurrency = (value: number, currency = "USD") =>
   new Intl.NumberFormat("en-US", {
     style: "currency",

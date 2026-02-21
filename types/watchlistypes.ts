@@ -42,7 +42,7 @@ export interface WatchlistContextType {
   createWatchlist: (name: string) => void;
   deleteWatchlist: (id: string) => void;
   setActiveWatchlist: (id: string | null) => void;
-  addToWatchlist: (watchlistId: string, symbol: string,sector:string) => Promise<void>;
+  addToWatchlist: (watchlistId: string, symbol: string, sector: string) => Promise<void>;
   removeFromWatchlist: (watchlistId: string, symbol: string) => void;
   moveItem: (watchlistId: string, fromIndex: number, toIndex: number) => void;
   createAlert: (symbol: string, type: "above" | "below", price: number) => void;
@@ -52,4 +52,5 @@ export interface WatchlistContextType {
   importWatchlist: (data: any) => void;
   toggleAlert: (alertId: string, symbol: string) => Promise<void>;
   updateWatchlistName: (id: string, newName: string) => void;
+  searchSymbols: (query: string) => Promise<any[]>;
 }

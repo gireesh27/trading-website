@@ -1,4 +1,4 @@
-
+"use client"
 import React, {
   createContext,
   useContext,
@@ -21,7 +21,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
   const userId = session?.user?.id;
 
   const showError = (message: string) =>
-   toast.error(message);
+    toast.error(message);
 
   // Normalize alert so it always has id
   const normalizeAlert = (alert: any): Alert => ({
@@ -67,7 +67,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
       if (!res.ok) throw new Error(json.error || json.message || "Failed to create alert");
 
       setAlerts((prev) => [...prev, normalizeAlert(json.data)]);
-     toast.success("Alert Created Successfully")
+      toast.success("Alert Created Successfully")
     } catch (err: any) {
       showError(err.message || "Unknown error");
     }
@@ -87,7 +87,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
 
       const updated = normalizeAlert(json.alert || json.data);
       setAlerts((prev) => prev.map((a) => (a.id === alert.id ? updated : a)));
-     toast.success("Alert Updated Successfully");
+      toast.success("Alert Updated Successfully");
     } catch (err: any) {
       showError(err.message || "Update failed");
     }
@@ -104,7 +104,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
       if (!res.ok) throw new Error(json.error || json.message || "Failed to delete alert");
 
       setAlerts((prev) => prev.filter((a) => a.id !== alertId));
-    toast.success("Alert Deleted Successfully");
+      toast.success("Alert Deleted Successfully");
     } catch (err: any) {
       showError(err.message || "Delete failed");
     }

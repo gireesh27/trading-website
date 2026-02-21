@@ -20,7 +20,7 @@ export default function OrdersWidget() {
   const [selectedViewOrder, setSelectedViewOrder] = useState<Order | null>(
     null
   );
-  
+
   const [cancel, setCancel] = useState(false);
   const [complete, setComplete] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -28,39 +28,39 @@ export default function OrdersWidget() {
   const { getOrder } = useOrders();
   const { data: session, status } = useSession();
 
-const fetchOrders = async () => {
-  if (!session?.user) return;
+  const fetchOrders = async () => {
+    if (!session?.user) return;
 
-  setLoading(true);
-  try {
-    const res = await fetch("/api/trading/orders", {
-      method: "GET",
-      cache: "no-store",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    setLoading(true);
+    try {
+      const res = await fetch("/api/trading/orders", {
+        method: "GET",
+        cache: "no-store",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to fetch orders");
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to fetch orders");
+      }
+
+      setOrders(data.orders || []);
+    } catch (error: any) {
+      console.error("Error fetching orders:", error);
+      toast.error(`Failed to fetch orders: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    setOrders(data.orders || []);
-  } catch (error: any) {
-    console.error("Error fetching orders:", error);
-    toast.error(`Failed to fetch orders: ${error.message}`);
-  } finally {
-    setLoading(false);
-  }
-};
-
-useEffect(() => {
-  if (!session?.user) return;
-  fetchOrders();
-}, [session]);
+  useEffect(() => {
+    if (!session?.user) return;
+    fetchOrders();
+  }, [session]);
 
   const handleComplete = (order: Order) => {
     setSelectedOrder(order);
@@ -131,13 +131,12 @@ useEffect(() => {
 
           <p className="text-muted-foreground">Status:</p>
           <p
-            className={`font-semibold ${
-              order.status === "completed"
+            className={`font-semibold ${order.status === "completed"
                 ? "text-green-400"
                 : order.status === "cancelled"
-                ? "text-yellow-400"
-                : "text-white"
-            }`}
+                  ? "text-yellow-400"
+                  : "text-white"
+              }`}
           >
             {order.status}
           </p>
@@ -209,7 +208,7 @@ useEffect(() => {
             </TabsTrigger>
           </TabsList>
 
-          <div className="h-[480px] overflow-hidden">
+          <div className="relative h-[33vw] overflow-hidden">
             <TabsContent value="pending" className="h-full">
               {loading ? (
                 <div className="flex justify-center items-center h-full">

@@ -12,7 +12,7 @@ export interface ITransaction extends Document {
   executedAt?: Date;
   source?: 'wallet' | 'bank' | 'external';
   orderId?: string;
-  transferId?: string; 
+  transferId?: string;
   remarks?: string;
   feeBreakdown?: {
     brokerage?: number;
@@ -70,7 +70,7 @@ const TransactionSchema = new Schema<ITransaction>(
     transferId: {
       type: String,
       unique: true,
-      sparse: true, // only indexes when present
+      sparse: true,
     },
     remarks: {
       type: String,

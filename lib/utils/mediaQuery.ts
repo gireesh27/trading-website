@@ -19,7 +19,7 @@ export default function useMediaQuery(query: string): boolean {
     // Add listener
     mediaQueryList.addEventListener
       ? mediaQueryList.addEventListener("change", listener)
-      : mediaQueryList.addListener(listener); // fallback for older browsers
+      : mediaQueryList.addListener(listener);
 
     // Cleanup
     return () => {

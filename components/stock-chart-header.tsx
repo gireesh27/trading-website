@@ -1,8 +1,7 @@
 "use client";
 
 import { useWatchlist } from "@/contexts/watchlist-context";
-import { Button } from "@/components/ui/button";
-import { Star, StarOff, ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import { toast } from "react-toastify";
 import { Stock } from "@/types/trading-types";
 import { WatchlistButton } from "./Button-animation";
@@ -38,7 +37,7 @@ export function StockChartHeader({ stock, sector }: StockChartHeaderProps) {
   const bgColor = isPositive ? "bg-emerald-500/10" : "bg-red-500/10";
   const ChangeIcon = isPositive ? ArrowUp : ArrowDown;
 
-  // ✅ Ensure it's a strict boolean, not undefined
+  //  Ensure it's a strict boolean, not undefined
   const isInWatchlist = !!activeWatchlist?.items?.some(
     (item) => item.symbol === stock.symbol
   );
@@ -71,7 +70,7 @@ export function StockChartHeader({ stock, sector }: StockChartHeaderProps) {
           </span>
         </h2>
 
-        {/* 🎉 Animated Watchlist Button */}
+        {/*  Animated Watchlist Button */}
         <WatchlistButton
           isInWatchlist={isInWatchlist}
           isLoading={isLoading}

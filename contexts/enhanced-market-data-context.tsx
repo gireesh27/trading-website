@@ -24,7 +24,7 @@ import { CryptoData } from "@/types/crypto-types";
 interface RefreshDataArgs {
   stockPage?: number;
   ITEMS_PER_PAGE?: number;
-  category?: string; 
+  category?: string;
 }
 
 type RefreshDataFn = (args?: RefreshDataArgs) => void;
@@ -58,7 +58,7 @@ interface MarketDataContextType {
   companyNews: Record<string, NewsItem[]>;
   loadingNews: boolean;
   loadingCryptoNews: boolean;
-  fetchCryptoNews:  (symbol: string) => void;
+  fetchCryptoNews: (symbol: string) => void;
   cryptoNews: NewsItem[];
 
 }
@@ -170,7 +170,7 @@ export const MarketDataProvider = ({ children }: { children: ReactNode }) => {
   ];
   const [loadingNews, setLoadingNews] = useState(false);
   const refreshData = useCallback(
-    ({ stockPage = 1, ITEMS_PER_PAGE = 6,category="general" }: RefreshDataArgs = {}) => {
+    ({ stockPage = 1, ITEMS_PER_PAGE = 6, category = "general" }: RefreshDataArgs = {}) => {
       if (refreshTimeout.current) clearTimeout(refreshTimeout.current);
 
       refreshTimeout.current = setTimeout(async () => {
@@ -221,11 +221,11 @@ export const MarketDataProvider = ({ children }: { children: ReactNode }) => {
       const newStocks = await stockApi.getMultipleQuotes(newSymbols);
       setStocks((prev) => [...prev, ...newStocks]);
       setStockPage(nextPage);
-      return newStocks; // ✅ RETURN for further use
+      return newStocks;
     } catch (err) {
       console.error("Failed to load more stocks:", err);
       setError("Failed to load more stocks.");
-      return []; // Return empty array on failure
+      return [];
     }
   };
 
@@ -317,19 +317,19 @@ export const MarketDataProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const fetchCryptoNews = useCallback(async (symbol: string) => {
-  setLoadingCryptoNews(true);
-  try {
-    const news = await newsAPI.getCryptoNews(symbol);
-    setCryptoNews((prev) => ({
-      ...prev,
-      [symbol]: news,
-    }));
-  } catch (err) {
-    console.error("Failed to fetch crypto news for", symbol, err);
-  } finally {
-    setLoadingCryptoNews(false);
-  }
-}, []);
+    setLoadingCryptoNews(true);
+    try {
+      const news = await newsAPI.getCryptoNews(symbol);
+      setCryptoNews((prev) => ({
+        ...prev,
+        [symbol]: news,
+      }));
+    } catch (err) {
+      console.error("Failed to fetch crypto news for", symbol, err);
+    } finally {
+      setLoadingCryptoNews(false);
+    }
+  }, []);
 
 
   useEffect(() => {
@@ -370,7 +370,7 @@ export const MarketDataProvider = ({ children }: { children: ReactNode }) => {
     loadingCryptoNews,
     fetchCryptoNews,
     cryptoNews,
-      };
+  };
 
   return (
     <MarketDataContext.Provider value={value}>

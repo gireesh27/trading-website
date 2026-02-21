@@ -8,7 +8,7 @@ export async function createRazorpayPayout({
   narration = "Wallet Withdrawal",
 }: {
   fund_account_id: string;
-  amount: number; // in paise
+  amount: number;
   mode: "UPI" | "IMPS";
   reference_id: string;
   narration?: string;
@@ -34,5 +34,5 @@ export async function createRazorpayPayout({
     }
   );
 
-  return response.data; // returns payout object
+  return response.data;
 }

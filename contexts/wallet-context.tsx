@@ -33,7 +33,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   });
 
 
-  // 📜 Fetch Wallet Transactions
+  //  Fetch Wallet Transactions
   const fetchTransactions = useCallback(
     async (filters?: {
       type?: string;
@@ -70,7 +70,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  // 🔐 Verify Wallet PIN
+  //  Verify Wallet PIN
   const verifyPin = async (pin: string): Promise<boolean> => {
     try {
       const res = await fetch("/api/wallet/verify-payment", {
@@ -100,7 +100,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // 💰 Add Money to Wallet
+  // Add Money to Wallet
   const addMoney = async (amount: number): Promise<boolean> => {
     try {
       const res = await fetch("/api/wallet/add-money", {
@@ -130,7 +130,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // 💸 Withdraw Funds from Wallet
+  //  Withdraw Funds from Wallet
   const withdraw = async (amount: number, pin: string): Promise<boolean> => {
     try {
       const res = await fetch("/api/wallet/withdraw", {

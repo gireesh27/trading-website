@@ -17,10 +17,10 @@ export async function createRazorpayContact({
       name,
       email,
       contact,
-      type: "customer", // Always use customer for withdrawals
+      type: "customer",
       reference_id,
       notes: {
-        purpose: "Wallet withdrawal", // Optional, for your own internal use
+        purpose: "Wallet withdrawal",
       },
     },
     {
@@ -31,5 +31,5 @@ export async function createRazorpayContact({
     }
   );
 
-  return response.data; // Contact object with id, name, email, etc.
+  return response.data;
 }

@@ -21,7 +21,7 @@ import { Loader2, XCircle, Zap } from "lucide-react";
 import { toast } from "react-toastify";
 // --- TYPES ---
 type OrderType = "market" | "limit" | "stop";
-type SectorType = "Markets" | "crypto" ;
+type SectorType = "Markets" | "crypto";
 interface SymbolSuggestion {
   symbol: string;
   name: string;
@@ -31,7 +31,7 @@ interface StockData {
   currentPrice: number;
   change: number;
   changePercent: number;
-  sector: SectorType; 
+  sector: SectorType;
 }
 
 // --- COMPONENT ---
@@ -52,54 +52,53 @@ export function QuickTrade() {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   // --- DATA FETCHING ---
+  const fetchStockData = useCallback(
+    async (selectedSymbol: string, selectedSector: SectorType) => {
+      if (!selectedSymbol) return;
 
-const fetchStockData = useCallback(
-  async (selectedSymbol: string, selectedSector: SectorType) => {
-    if (!selectedSymbol) return;
-
-    setIsFetchingPrice(true);
-    setStockData(null);
-
-    try {
-      let res;
-
-      // Fetch from the correct endpoint based on the selected sector
-      if (selectedSector === "Markets") {
-        res = await fetch(`/api/stocks/quote?symbol=${selectedSymbol}`);
-      } else if (selectedSector === "crypto") {
-        res = await fetch(`/api/crypto/quote?symbol=${selectedSymbol}`);
-      }
-
-      if (!res || !res.ok) {
-        throw new Error("Symbol not found or unavailable");
-      }
-
-      const data = await res.json();
-
-      setStockData({
-        name: data.name || selectedSymbol,
-        currentPrice: data.price,
-        change: data.change ?? (Math.random() - 0.5) * 20,
-        changePercent: data.changePercent ?? (Math.random() - 0.5) * 5,
-        sector: selectedSector,
-      });
-
-      setPrice(data.price.toString());
-
-      // Optional success/info toast
-      toast.success(`Loaded ${selectedSymbol} data successfully`);
-    } catch (err: any) {
-      console.error(err);
+      setIsFetchingPrice(true);
       setStockData(null);
-      setSymbol(null);
 
-      toast.error(`Failed to load data for ${selectedSymbol}: ${err.message}`);
-    } finally {
-      setIsFetchingPrice(false);
-    }
-  },
-  []
-);
+      try {
+        let res;
+
+        // Fetch from the correct endpoint based on the selected sector
+        if (selectedSector === "Markets") {
+          res = await fetch(`/api/stocks/quote?symbol=${selectedSymbol}`);
+        } else if (selectedSector === "crypto") {
+          res = await fetch(`/api/crypto/quote?symbol=${selectedSymbol}`);
+        }
+
+        if (!res || !res.ok) {
+          throw new Error("Symbol not found or unavailable");
+        }
+
+        const data = await res.json();
+
+        setStockData({
+          name: data.name || selectedSymbol,
+          currentPrice: data.price,
+          change: data.change ?? (Math.random() - 0.5) * 20,
+          changePercent: data.changePercent ?? (Math.random() - 0.5) * 5,
+          sector: selectedSector,
+        });
+
+        setPrice(data.price.toString());
+
+        // Optional success/info toast
+        toast.success(`Loaded ${selectedSymbol} data successfully`);
+      } catch (err: any) {
+        console.error(err);
+        setStockData(null);
+        setSymbol(null);
+
+        toast.error(`Failed to load data for ${selectedSymbol}: ${err.message}`);
+      } finally {
+        setIsFetchingPrice(false);
+      }
+    },
+    []
+  );
 
 
   // --- EFFECTS ---
@@ -134,38 +133,38 @@ const fetchStockData = useCallback(
     await fetchStockData(upperSymbol, sector);
   };
 
-const handleTrade = async (side: "buy" | "sell") => {
-  if (!symbol || !stockData) {
-    toast.error("No stock selected. Please choose a symbol before trading.");
-    return;
-  }
+  const handleTrade = async (side: "buy" | "sell") => {
+    if (!symbol || !stockData) {
+      toast.error("No stock selected. Please choose a symbol before trading.");
+      return;
+    }
 
-  const qty = Number(quantity);
-  if (qty <= 0) {
-    toast.error("Enter a valid quantity greater than 0.");
-    return;
-  }
+    const qty = Number(quantity);
+    if (qty <= 0) {
+      toast.error("Enter a valid quantity greater than 0.");
+      return;
+    }
 
-  try {
-    await placeOrder({
-      symbol,
-      sector: stockData.sector,
-      quantity: qty,
-      price: orderType === "market" ? stockData.currentPrice : Number(price),
-      type: side,
-      orderType,
-    });
+    try {
+      await placeOrder({
+        symbol,
+        sector: stockData.sector,
+        quantity: qty,
+        price: orderType === "market" ? stockData.currentPrice : Number(price),
+        type: side,
+        orderType,
+      });
 
-    toast.success(
-      `${side === "buy" ? "Buy" : "Sell"} order placed for ${qty} ${symbol}`
-    );
+      toast.success(
+        `${side === "buy" ? "Buy" : "Sell"} order placed for ${qty} ${symbol}`
+      );
 
-    setQuantity("");
-  } catch (err: any) {
-    console.error("Trade error:", err);
-    toast.error(`Failed to place order: ${err.message}`);
-  }
-};
+      setQuantity("");
+    } catch (err: any) {
+      console.error("Trade error:", err);
+      toast.error(`Failed to place order: ${err.message}`);
+    }
+  };
 
   // --- COMPUTED VALUES ---
   const calculateTotal = () => {
@@ -313,12 +312,12 @@ const handleTrade = async (side: "buy" | "sell") => {
                     <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="bg-slate-800/60 border-2 border-slate-700 rounded-lg focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/30 transition-all text-white" disabled={isTradeFormDisabled} />
                   </div>
                 )}
-                
+
                 <div className="flex justify-between items-center text-slate-300 pt-3 border-t border-slate-700/50">
                   <span className="font-medium">Estimated Total:</span>
                   <span className="font-bold text-lg text-white">₹{calculateTotal()}</span>
                 </div>
-              
+
                 <TabsContent value="buy" className="mt-0">
                   <Button onClick={() => handleTrade("buy")} disabled={isTradeFormDisabled || !quantity || isLoading} className="w-full h-12 text-lg bg-green-600 hover:bg-green-700 font-bold hover:scale-105 transition-transform transform">
                     {isLoading ? <Loader2 className="animate-spin" /> : `Buy ${symbol || ''}`}

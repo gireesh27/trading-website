@@ -1,9 +1,8 @@
 // lib/redis.ts
 import { createClient } from 'redis';
 
-const redisUrl = process.env.REDIS_URL!; // example: redis://default:password@host:port
+const redisUrl = process.env.REDIS_URL!;
 
-// Parse URL for explicit config (optional, but recommended)
 const parsedUrl = new URL(redisUrl);
 
 const redis = createClient({
@@ -12,7 +11,7 @@ const redis = createClient({
   socket: {
     host: parsedUrl.hostname,
     port: Number(parsedUrl.port),
-    // tls: parsedUrl.protocol === 'rediss:' ? {} : undefined, // Uncomment if using TLS
+
   },
 });
 

@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 export interface IUser extends Document {
   name: string;
   email: string;
-  emailPasswordHash?: string; // for email login only
+  emailPasswordHash?: string;
   walletPasswordHash?: string;
   isOAuth?: boolean;
   isVerified?: boolean;

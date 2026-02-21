@@ -29,7 +29,7 @@ const OrderSchema = new Schema<IOrder>(
     symbol: { type: String, required: true },
     sector: { type: String, required: true },
     quantity: { type: Number, required: true },
-    price: { type: Number }, // Optional for market orders
+    price: { type: Number },
     type: {
       type: String,
       enum: ["buy", "sell"],

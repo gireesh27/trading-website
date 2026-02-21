@@ -1,5 +1,3 @@
-// File: modules/crypto/components/CryptoOverviewGrid.tsx
-
 import { Card } from "@/components/ui/card";
 import { formatLargeNumber } from "./formatLargeNumber";
 import type { CryptoData } from "@/types/crypto-types";
@@ -34,9 +32,8 @@ export function CryptoOverviewGrid({
           <div className="flex justify-between items-center mb-2">
             <h2 className="text-white font-semibold">{crypto.name}</h2>
             <span
-              className={`text-sm font-medium ${
-                crypto.changePercent >= 0 ? "text-green-400" : "text-red-400"
-              }`}
+              className={`text-sm font-medium ${crypto.changePercent >= 0 ? "text-green-400" : "text-red-400"
+                }`}
             >
               {crypto.changePercent >= 0 ? "+" : ""}
               {crypto.changePercent.toFixed(2)}%

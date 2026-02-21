@@ -123,8 +123,8 @@ export interface CryptoData {
 }
 export interface AdvancedTradingChartProps {
   symbol: string;
-  sector: string ;
-  selectedStock: Stock | CryptoData |null;
+  sector: string;
+  selectedStock: Stock | CryptoData | null;
   chartCandlestickData: CandlestickPoint[];
   isChartLoading: boolean;
   getCandlestickData: (
@@ -377,10 +377,10 @@ function chartReducer(state: ChartState, action: ChartAction): ChartState {
         indicatorSettings: state.indicatorSettings.map((ind) =>
           ind.id === action.payload.id
             ? {
-                ...ind,
-                period: action.payload.period,
-                name: `${ind.type} (${action.payload.period})`,
-              }
+              ...ind,
+              period: action.payload.period,
+              name: `${ind.type} (${action.payload.period})`,
+            }
             : ind
         ),
       };
@@ -440,12 +440,12 @@ const calculateSMA = (
     i < period - 1
       ? { ...d }
       : {
-          ...d,
-          [key]:
-            data
-              .slice(i - period + 1, i + 1)
-              .reduce((acc, val) => acc + val.close, 0) / period,
-        }
+        ...d,
+        [key]:
+          data
+            .slice(i - period + 1, i + 1)
+            .reduce((acc, val) => acc + val.close, 0) / period,
+      }
   );
 
 const calculateEMA = (
@@ -1174,12 +1174,13 @@ export function AdvancedTradingChart({
 
   {
     isChartLoading ? (
-      <div className="h-[800px] flex flex-col items-center justify-center text-gray-400 animate-fadeIn">
+      <div className="min-h-[5rem] flex flex-col items-center justify-center text-gray-400 animate-fadeIn">
         <Activity className="h-10 w-10 animate-spin-slow mb-3 text-indigo-500" />
         <p className="text-lg font-medium tracking-wide">Loading chart...</p>
       </div>
     ) : !selectedStock ? (
-      <div className="h-[800px] flex flex-col items-center justify-center text-gray-500 animate-fadeIn">
+      <div className="h-[80vh] min-h-[500px] flex flex-col items-center justify-center text-gray-500 animate-fadeIn
+">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           className="h-12 w-12 text-gray-600 mb-3"
@@ -1212,11 +1213,10 @@ export function AdvancedTradingChart({
                 variant={range === r ? "secondary" : "ghost"}
                 size="sm"
                 onClick={() => dispatch({ type: "SET_RANGE", payload: r })}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
-                  range === r
-                    ? "bg-indigo-600 text-white shadow"
-                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                }`}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200 ${range === r
+                  ? "bg-indigo-600 text-white shadow"
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                  }`}
               >
                 {r.toUpperCase()}
               </Button>
@@ -1232,11 +1232,10 @@ export function AdvancedTradingChart({
                   variant={interval === i ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => dispatch({ type: "SET_INTERVAL", payload: i })}
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
-                    interval === i
-                      ? "bg-indigo-600 text-white shadow"
-                      : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                  }`}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200 ${interval === i
+                    ? "bg-indigo-600 text-white shadow"
+                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                    }`}
                 >
                   {i}
                 </Button>
@@ -1266,7 +1265,8 @@ export function AdvancedTradingChart({
           </div>
 
           {!visibleChartData.length ? (
-            <div className="h-[400px] flex items-center justify-center text-gray-500">
+            <div className="h-[28vw] flex items-center justify-center text-gray-500
+">
               <p>No data available.</p>
             </div>
           ) : (
@@ -1332,11 +1332,11 @@ export function AdvancedTradingChart({
                   <ChartTooltip
                     content={
                       <CustomTooltip
-                          drawingTool={drawingTool}
-                          active={false}
-                          payload={[]}
-                          coordinate={{ x: 0, y: 0 }}
-                          accessibilityLayer={false} activeIndex={undefined}                      />
+                        drawingTool={drawingTool}
+                        active={false}
+                        payload={[]}
+                        coordinate={{ x: 0, y: 0 }}
+                        accessibilityLayer={false} activeIndex={undefined} />
                     }
                     cursor={
                       drawingTool
@@ -1410,7 +1410,7 @@ export function AdvancedTradingChart({
                 setHistory={setHistory}
                 redoStack={redoStack}
                 setRedoStack={setRedoStack}
-                candles={pixelCandles} // ✅ Now includes .y
+                candles={pixelCandles} //
               />
             </>
           )}
@@ -1438,11 +1438,10 @@ export function AdvancedTradingChart({
                       drawingTool === tool ? null : (tool as DrawingTool),
                   })
                 }
-                className={`capitalize transition-all duration-200 ${
-                  drawingTool === tool
-                    ? "bg-indigo-600 text-white"
-                    : "text-gray-300 hover:bg-gray-700"
-                }`}
+                className={`capitalize transition-all duration-200 ${drawingTool === tool
+                  ? "bg-indigo-600 text-white"
+                  : "text-gray-300 hover:bg-gray-700"
+                  }`}
               >
                 {tool.replace("-", " ")}
               </Button>
@@ -1494,9 +1493,8 @@ export function AdvancedTradingChart({
                       : { opacity: 0, y: -8 }
                   }
                   transition={{ duration: 0.2 }}
-                  className={`absolute top-full left-0 mt-2 w-44 z-30 bg-gray-900 border border-gray-700 rounded-xl p-3 shadow-xl transition-all ${
-                    activeSettings === ind.id ? "block" : "hidden"
-                  }`}
+                  className={`absolute top-full left-0 mt-2 w-44 z-30 bg-gray-900 border border-gray-700 rounded-xl p-3 shadow-xl transition-all ${activeSettings === ind.id ? "block" : "hidden"
+                    }`}
                 >
                   <label className="text-xs font-semibold text-gray-400 mb-1 block">
                     Period

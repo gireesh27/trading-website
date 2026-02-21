@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils/cn"; // Assumes you have a utility function for merging Tailwind classes
+import { cn } from "@/lib/utils/cn";
 import { AtSign, CreditCard, FlaskConical, IndianRupee, Info, Loader2, Phone, User, AlertTriangle } from "lucide-react";
 import { toast } from "react-toastify";
 // --- TYPE DEFINITIONS ---
@@ -53,7 +53,7 @@ const PayuForm: React.FC = () => {
   // --- FORM VALIDATION ---
   const validateForm = (): boolean => {
     const newErrors: Partial<PaymentFormData> = {};
-    
+
     // Check each field for valid content.
     if (!formData.firstname.trim()) newErrors.firstname = "Full name is required";
     if (!/^\S+@\S+\.\S+$/.test(formData.email)) newErrors.email = "Please enter a valid email address";
@@ -85,55 +85,55 @@ const PayuForm: React.FC = () => {
     }
   };
 
-const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
-  e.preventDefault();
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+    e.preventDefault();
 
-  // Stop submission if validation fails.
-  if (!validateForm()) return;
+    // Stop submission if validation fails.
+    if (!validateForm()) return;
 
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    // Call backend API to get the hashed payment data.
-    const response = await fetch("/api/wallet/payu", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
-
-    const data: ApiResponse = await response.json();
-
-    if (data.success && data.paymentData) {
-      // Show a success toast for initiating payment
-      toast.success("Redirecting to PayU payment gateway...");
-
-      // Dynamically create a form and submit it to PayU
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = process.env.NEXT_PUBLIC_PAYU_BASE_URL || "https://test.payu.in/_payment";
-
-      Object.entries(data.paymentData).forEach(([key, value]) => {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = key;
-        input.value = String(value);
-        form.appendChild(input);
+    try {
+      // Call backend API to get the hashed payment data.
+      const response = await fetch("/api/wallet/payu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
       });
 
-      document.body.appendChild(form);
-      form.submit();
-    } else {
-      // Payment initiation failed
-      toast.error(data.message || "Payment initiation failed. Please try again.");
-      console.error("Payment initiation failed:", data.message);
+      const data: ApiResponse = await response.json();
+
+      if (data.success && data.paymentData) {
+        // Show a success toast for initiating payment
+        toast.success("Redirecting to PayU payment gateway...");
+
+        // Dynamically create a form and submit it to PayU
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = process.env.NEXT_PUBLIC_PAYU_BASE_URL || "https://test.payu.in/_payment";
+
+        Object.entries(data.paymentData).forEach(([key, value]) => {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = key;
+          input.value = String(value);
+          form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+      } else {
+        // Payment initiation failed
+        toast.error(data.message || "Payment initiation failed. Please try again.");
+        console.error("Payment initiation failed:", data.message);
+      }
+    } catch (error: any) {
+      toast.error("An unexpected error occurred. Please try again.");
+      console.error("Payment submission error:", error);
+    } finally {
+      setLoading(false);
     }
-  } catch (error: any) {
-    toast.error("An unexpected error occurred. Please try again.");
-    console.error("Payment submission error:", error);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // --- RENDER ---
   return (
@@ -145,7 +145,7 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     >
       <Card className="bg-slate-900/50 backdrop-blur-xl border border-cyan-400/20 shadow-2xl shadow-black/40 rounded-2xl relative overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-purple-500/10 to-pink-500/10 opacity-50 group-hover:opacity-80 transition-opacity duration-500 z-0" />
-        
+
         <div className="relative z-10">
           <CardHeader>
             <CardTitle className="flex justify-center items-center gap-3 text-3xl font-bold bg-gradient-to-r from-slate-100 to-cyan-300 bg-clip-text text-transparent drop-shadow-md">
@@ -185,7 +185,7 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
                   </div>
                   {errors[name] && (
                     <p className="text-red-400 text-sm flex items-center gap-1.5 pt-1">
-                       <AlertTriangle size={14} /> {errors[name]}
+                      <AlertTriangle size={14} /> {errors[name]}
                     </p>
                   )}
                 </div>
@@ -197,7 +197,7 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
                 className="w-full h-12 text-lg bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 hover:scale-105 disabled:hover:scale-100 text-white font-semibold shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 transition-all duration-300 transform"
               >
                 {loading ? (
-                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 ) : (
                   "Pay Now"
                 )}

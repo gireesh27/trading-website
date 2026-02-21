@@ -79,7 +79,7 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string; // Always valid ObjectId now
+        session.user.id = token.id as string;
         session.user.walletBalance = token.walletBalance as number;
         session.user.walletPasswordHash = token.walletPasswordHash as string | null;
       }

@@ -18,21 +18,21 @@ export async function createRazorpayFundAccount({
   const payload =
     account_type === "vpa"
       ? {
-          contact_id,
-          account_type,
-          vpa: {
-            address: upi!,
-          },
-        }
+        contact_id,
+        account_type,
+        vpa: {
+          address: upi!,
+        },
+      }
       : {
-          contact_id,
-          account_type,
-          bank_account: {
-            name: name!,
-            ifsc: ifsc!,
-            account_number: account_number!,
-          },
-        };
+        contact_id,
+        account_type,
+        bank_account: {
+          name: name!,
+          ifsc: ifsc!,
+          account_number: account_number!,
+        },
+      };
 
   const response = await axios.post(
     "https://api.razorpay.com/v1/fund_accounts",
@@ -45,5 +45,5 @@ export async function createRazorpayFundAccount({
     }
   );
 
-  return response.data; // returns fund_account object
+  return response.data;
 }

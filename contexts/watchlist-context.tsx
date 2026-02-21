@@ -5,7 +5,7 @@ import {
   useContext,
   useState,
   useEffect,
-  
+
   ReactNode,
 } from "react";
 import { stockApi } from "@/lib/api/stock-api";
@@ -33,41 +33,41 @@ export function WatchlistProvider({ children }: { children: ReactNode }) {
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-const fetchWatchlists = async () => {
-  const res = await fetch("/api/watchlist/get-all");
-  const data = await res.json();
-  if (data.success && Array.isArray(data.watchlists)) {
-    setWatchlists(data.watchlists);
-    setActiveWatchlistId(data.watchlists[0]?._id ?? null);
-  }
-};
+  const fetchWatchlists = async () => {
+    const res = await fetch("/api/watchlist/get-all");
+    const data = await res.json();
+    if (data.success && Array.isArray(data.watchlists)) {
+      setWatchlists(data.watchlists);
+      setActiveWatchlistId(data.watchlists[0]?._id ?? null);
+    }
+  };
 
   useEffect(() => {
     if (session) fetchWatchlists();
   }, [session]);
 
- const removeFromWatchlist = async (watchlistId: string, symbol: string) => {
-  try {
-    const res = await fetch("/api/watchlist/remove-stock", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ watchlistId, symbol }),
-    });
-    const data = await res.json();
-    if (data.success && data.updated) {
-      setWatchlists((prev) =>
-        prev.map((w) => (w._id === watchlistId ? data.updated : w))
-      );
-      toast({ title: "Removed", description: symbol });
+  const removeFromWatchlist = async (watchlistId: string, symbol: string) => {
+    try {
+      const res = await fetch("/api/watchlist/remove-stock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ watchlistId, symbol }),
+      });
+      const data = await res.json();
+      if (data.success && data.updated) {
+        setWatchlists((prev) =>
+          prev.map((w) => (w._id === watchlistId ? data.updated : w))
+        );
+        toast({ title: "Removed", description: symbol });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Could not remove stock.",
+        variant: "destructive",
+      });
     }
-  } catch (err) {
-    toast({
-      title: "Error",
-      description: "Could not remove stock.",
-      variant: "destructive",
-    });
-  }
-};
+  };
 
 
   const createWatchlist = async (name: string) => {
@@ -83,24 +83,24 @@ const fetchWatchlists = async () => {
     }
   };
 
- const deleteWatchlist = async (id: string) => {
-  try {
-    await fetch("/api/watchlist/delete-watchlist", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
-    const remaining = watchlists.filter((w) => w._id !== id);
-    setWatchlists(remaining);
-    setActiveWatchlistId(remaining[0]?._id ?? null);
-  } catch (e) {
-    toast({
-      title: "Delete Failed",
-      description: "Could not delete watchlist.",
-      variant: "destructive",
-    });
-  }
-};
+  const deleteWatchlist = async (id: string) => {
+    try {
+      await fetch("/api/watchlist/delete-watchlist", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const remaining = watchlists.filter((w) => w._id !== id);
+      setWatchlists(remaining);
+      setActiveWatchlistId(remaining[0]?._id ?? null);
+    } catch (e) {
+      toast({
+        title: "Delete Failed",
+        description: "Could not delete watchlist.",
+        variant: "destructive",
+      });
+    }
+  };
 
 
   const moveItem = (
@@ -203,79 +203,92 @@ const fetchWatchlists = async () => {
   };
 
 
-const addToWatchlist = async (watchlistId: string, symbol: string,sector:string) => {
-  const upper = symbol.toUpperCase();
-  const watchlist = watchlists.find((w) => w._id === watchlistId);
+  const addToWatchlist = async (watchlistId: string, symbol: string, sector: string) => {
+    const upper = symbol.toUpperCase();
+    const watchlist = watchlists.find((w) => w._id === watchlistId);
 
-  if (!watchlist || !Array.isArray(watchlist.items)) return;
+    if (!watchlist || !Array.isArray(watchlist.items)) return;
 
-  if (watchlist.items.some((item) => item.symbol === upper)) {
-    toast({
-      title: "Already in Watchlist",
-      description: `${upper} is already in your watchlist.`,
-      variant: "default",
-    });
-    return;
-  }
+    if (watchlist.items.some((item) => item.symbol === upper)) {
+      toast({
+        title: "Already in Watchlist",
+        description: `${upper} is already in your watchlist.`,
+        variant: "default",
+      });
+      return;
+    }
 
-  setIsLoading(true);
-  try {
-    const data = await stockApi.getQuote(upper);
+    setIsLoading(true);
+    try {
+      const data = await stockApi.getQuote(upper);
 
-    const newItem: WatchlistItem = {
-      symbol: upper,
-      sector,
-      name: data.name,
-      price: data.price,
-      change: data.change,
-      changePercent: data.changePercent,
-      addedAt: new Date(),
-    };
+      const newItem: WatchlistItem = {
+        symbol: upper,
+        sector,
+        name: data.name,
+        price: data.price,
+        change: data.change,
+        changePercent: data.changePercent,
+        addedAt: new Date(),
+      };
 
-    const res = await fetch("/api/watchlist/add", {
-      method: "POST",
+      const res = await fetch("/api/watchlist/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ watchlistId, ...newItem }),
+      });
+
+      const json = await res.json();
+      if (!json.success) throw new Error(json.message || "Failed to add");
+
+      setWatchlists((prev) =>
+        prev.map((w) => (w._id === watchlistId ? json.updated : w))
+      );
+
+      toast({
+        title: "✅ Added Successfully",
+        description: `${upper} has been added to your watchlist.`,
+      });
+    } catch (err: any) {
+      console.error("❌ Add to watchlist error:", err.message);
+      setError(err.message);
+
+      toast({
+        title: "❌ Failed to Add",
+        description: err.message || "Something went wrong.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateWatchlistName = async (watchlistId: string, newName: string) => {
+    await fetch(`/api/watchlist/${watchlistId}`, {
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ watchlistId, ...newItem }),
+      body: JSON.stringify({ name: newName }),
     });
 
-    const json = await res.json();
-    if (!json.success) throw new Error(json.message || "Failed to add");
-
+    // update local state
     setWatchlists((prev) =>
-      prev.map((w) => (w._id === watchlistId ? json.updated : w))
+      prev.map((w) => (w._id === watchlistId ? { ...w, name: newName } : w))
     );
+  };
 
-    toast({
-      title: "✅ Added Successfully",
-      description: `${upper} has been added to your watchlist.`,
-    });
-  } catch (err: any) {
-    console.error("❌ Add to watchlist error:", err.message);
-    setError(err.message);
 
-    toast({
-      title: "❌ Failed to Add",
-      description: err.message || "Something went wrong.",
-      variant: "destructive",
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-const updateWatchlistName = async (watchlistId: string, newName: string) => {
-  await fetch(`/api/watchlist/${watchlistId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: newName }),
-  });
-
-  // update local state
-  setWatchlists((prev) =>
-    prev.map((w) => (w._id === watchlistId ? { ...w, name: newName } : w))
-  );
-};
-
+  const searchSymbols = async (query: string): Promise<any[]> => {
+    try {
+      const res = await fetch(
+        `/api/search-symbols?query=${encodeURIComponent(query)}`
+      );
+      const data = await res.json();
+      return data.results ?? [];
+    } catch (err) {
+      console.error("searchSymbols error:", err);
+      return [];
+    }
+  };
 
   const toggleAlert = async (alertId: string, symbol: string) => {
     if (!activeWatchlistId) return;
@@ -310,7 +323,7 @@ const updateWatchlistName = async (watchlistId: string, newName: string) => {
     fetchWatchlists,
     exportWatchlist,
     importWatchlist,
-
+    searchSymbols,
   };
 
   return (

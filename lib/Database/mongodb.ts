@@ -1,25 +1,27 @@
-// lib/mongodb.ts
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI!
+const MONGODB_URI = process.env.MONGODB_URI;
 
-if (!MONGODB_URI) throw new Error("Please define MONGODB_URI in .env")
-
-let cached = global.mongoose || { conn: null, promise: null }
+let cached = global.mongoose || { conn: null, promise: null };
 
 export async function connectToDatabase() {
-  if (cached.conn) return cached.conn
+  if (!MONGODB_URI) {
+    throw new Error("Please define MONGODB_URI in .env");
+  }
+
+  if (cached.conn) return cached.conn;
 
   if (!cached.promise) {
     cached.promise = mongoose.connect(MONGODB_URI, {
       bufferCommands: false,
-    })
+    });
   }
 
-  cached.conn = await cached.promise
-  return cached.conn
+  cached.conn = await cached.promise;
+  return cached.conn;
 }
 
 declare global {
-  var mongoose: any
+  // eslint-disable-next-line no-var
+  var mongoose: any;
 }

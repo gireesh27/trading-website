@@ -54,8 +54,8 @@ export function LiveNews() {
               <div key={item.id} className="border-b border-gray-700 pb-3 last:border-b-0">
                 <div className="flex items-start justify-between mb-2">
                   <h4 className="text-white font-medium text-sm leading-tight flex-1 mr-2">{item.title}</h4>
-                  <Badge className={`text-xs ${getSentimentColor(item.sentiment)} flex items-center`}>
-                    {getSentimentIcon(item.sentiment)}
+                  <Badge className={`text-xs ${getSentimentColor(item.sentiment ?? "neutral")} flex items-center`}>
+                    {getSentimentIcon(item.sentiment ?? "neutral")}
                     <span className="ml-1 capitalize">{item.sentiment}</span>
                   </Badge>
                 </div>

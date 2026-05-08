@@ -1,25 +1,23 @@
-// lib/redis.ts
-import { createClient } from 'redis';
+import { createClient } from "redis";
 
-const redisUrl = process.env.REDIS_URL!;
-
-const parsedUrl = new URL(redisUrl);
+const redisUrl = process.env.REDIS_URL;
+const parsedUrl = new URL(redisUrl || "redis://localhost:6379");
 
 const redis = createClient({
   username: parsedUrl.username || undefined,
-  password: parsedUrl.password,
+  password: parsedUrl.password || undefined,
   socket: {
     host: parsedUrl.hostname,
-    port: Number(parsedUrl.port),
-
+    port: Number(parsedUrl.port || 6379),
   },
 });
 
-redis.on('error', (err) => console.error('Redis Client Error', err));
+redis.on("error", (err) => console.error("Redis Client Error", err));
 
-(async () => {
-  await redis.connect();
-  console.log('Redis client connected');
-})();
+if (redisUrl) {
+  redis.connect().catch((err) => {
+    console.error("Redis connection error", err);
+  });
+}
 
 export default redis;

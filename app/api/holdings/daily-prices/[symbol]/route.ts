@@ -7,7 +7,7 @@ const CACHE_TTL = 600; // 10 minutes
 
 export async function GET(
   req: Request,
-  context: { params: { symbol: string } }
+  context: { params: Promise<{ symbol: string }> }
 ) {
   try {
     let { symbol } = await context.params;

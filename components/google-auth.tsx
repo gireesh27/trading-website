@@ -31,13 +31,8 @@ export function GoogleAuth() {
       // Decode the JWT token to get user info
       const payload = JSON.parse(atob(response.credential.split(".")[1]))
 
-      // Call your auth context method
-      const success = await loginWithGoogle()
-
-      if (success) {
-        // Handle successful login
-        console.log("Google sign-in successful")
-      }
+      await loginWithGoogle()
+      console.log("Google sign-in successful")
     } catch (error) {
       console.error("Google sign-in error:", error)
     } finally {

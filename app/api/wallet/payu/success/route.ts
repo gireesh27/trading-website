@@ -1,67 +1,65 @@
-import { verifyPayUResponse, PayUResponse } from '@/lib/payu';
-import Transaction from '@/lib/Database/Models/Transaction';
-import { connectToDatabase as dbConnect } from '@/lib/Database/mongodb';
-import { NextApiRequest, NextApiResponse } from 'next';
-import { User } from '@/lib/Database/Models/User';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { verifyPayUResponse, PayUResponse } from "@/lib/payu";
+import Transaction from "@/lib/Database/Models/Transaction";
+import { connectToDatabase as dbConnect } from "@/lib/Database/mongodb";
+import { User } from "@/lib/Database/Models/User";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-interface PaymentSuccessRequest extends NextApiRequest {
-  body: PayUResponse;
+async function readPayUResponse(req: NextRequest): Promise<PayUResponse> {
+  const contentType = req.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    return (await req.json()) as PayUResponse;
+  }
+
+  const formData = await req.formData();
+  return Object.fromEntries(formData.entries()) as unknown as PayUResponse;
 }
 
-export default async function handler(req: PaymentSuccessRequest, res: NextApiResponse) {
+export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return res.redirect('/wallet/error?message=Unauthorized');
+      return NextResponse.redirect(new URL("/wallet/error?message=Unauthorized", req.url));
     }
 
     await dbConnect();
 
-    const payuResponse: PayUResponse = req.body;
-    const isValid = verifyPayUResponse(payuResponse, process.env.PAYU_SALT!);
+    const payuResponse = await readPayUResponse(req);
+    const isValid = verifyPayUResponse(payuResponse, process.env.PAYU_SALT || "");
 
     if (!isValid) {
-      return res.redirect('/wallet/error?message=Invalid payment response');
+      return NextResponse.redirect(new URL("/wallet/error?message=Invalid%20payment%20response", req.url));
     }
 
     const user = await User.findOne({ email: session.user.email });
     if (!user) {
-      return res.redirect('/wallet/error?message=User not found');
+      return NextResponse.redirect(new URL("/wallet/error?message=User%20not%20found", req.url));
     }
 
-    const amount = parseFloat(payuResponse.amount);
-
-    // Check for duplicate transaction before updating
+    const amount = Number.parseFloat(payuResponse.amount);
     const txn = await Transaction.findOneAndUpdate(
       { txnid: payuResponse.txnid },
       {
-        status: payuResponse.status === 'success' ? 'success' : 'failed',
-        payuResponse: payuResponse,
+        status: payuResponse.status === "success" ? "success" : "failed",
+        payuResponse,
         updatedAt: new Date(),
       }
     );
 
     if (!txn) {
-      return res.redirect('/wallet/error?message=Transaction not found');
+      return NextResponse.redirect(new URL("/wallet/error?message=Transaction%20not%20found", req.url));
     }
 
-    // Update wallet balance only if transaction was successful and not already deducted
-    if (payuResponse.status === 'success') {
-      // Ensure balance is sufficient
-      if (user.walletBalance < amount) {
-        return res.redirect('/wallet/error?message=Insufficient balance');
-      }
-
+    if (payuResponse.status === "success") {
       user.walletBalance += amount;
       await user.save();
-      console.log('Updated walletBalance:', user.walletBalance);
     }
 
-    res.redirect(`/wallet/success?txnid=${payuResponse.txnid}`);
+    return NextResponse.redirect(new URL(`/wallet/success?txnid=${payuResponse.txnid}`, req.url));
   } catch (error) {
-    console.error('Payment success handling error:', error);
-    res.redirect('/wallet/error?message=Payment processing failed');
+    console.error("Payment success handling error:", error);
+    return NextResponse.redirect(new URL("/wallet/error?message=Payment%20processing%20failed", req.url));
   }
 }

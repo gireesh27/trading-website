@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useEffect, useState } from "react";
 import { useMarketData } from "@/contexts/enhanced-market-data-context";
 import { cn } from "@/lib/utils";

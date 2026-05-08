@@ -9,13 +9,13 @@ import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 
 // GET: Fetch single order details
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   await connectDB();
 
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id } = params;
+  const { id } = await params;
   if (!id) return NextResponse.json({ error: "Order ID missing" }, { status: 400 });
   if (!mongoose.Types.ObjectId.isValid(id))
     return NextResponse.json({ error: "Invalid Order ID" }, { status: 400 });
@@ -57,12 +57,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   await connectDB();
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id } = params;
+  const { id } = await params;
   if (!id) return NextResponse.json({ error: "Order ID missing" }, { status: 400 });
   if (!mongoose.Types.ObjectId.isValid(id))
     return NextResponse.json({ error: "Invalid Order ID" }, { status: 400 });
@@ -103,7 +103,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   await connectDB();
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const isMatch = await bcrypt.compare(pin, user.walletPin);
   if (!isMatch) return NextResponse.json({ error: "Invalid PIN" }, { status: 403 });
 
-  const { id } = params;
+  const { id } = await params;
   if (!id || !mongoose.Types.ObjectId.isValid(id))
     return NextResponse.json({ error: "Invalid Order ID" }, { status: 400 });
 

@@ -6,16 +6,17 @@ import mongoose from "mongoose";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDatabase();
+    const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid watchlist ID" }, { status: 400 });
     }
 
-    const watchlist = await WatchlistModel.findById(params.id);
+    const watchlist = await WatchlistModel.findById(id);
     if (!watchlist) {
       return NextResponse.json({ error: "Watchlist not found" }, { status: 404 });
     }
@@ -31,16 +32,17 @@ export async function GET(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDatabase();
+    const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid watchlist ID" }, { status: 400 });
     }
 
-    const deleted = await WatchlistModel.findByIdAndDelete(params.id);
+    const deleted = await WatchlistModel.findByIdAndDelete(id);
     if (!deleted) {
       return NextResponse.json({ error: "Watchlist not found" }, { status: 404 });
     }
@@ -55,12 +57,13 @@ export async function DELETE(
 // ✅ FIXED: PATCH handler for updating watchlist name
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDatabase();
+    const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid watchlist ID" }, { status: 400 });
     }
 
@@ -70,7 +73,7 @@ export async function PATCH(
     }
 
     const updated = await WatchlistModel.findByIdAndUpdate(
-      params.id,
+      id,
       { name: name.trim() },
       { new: true }
     );

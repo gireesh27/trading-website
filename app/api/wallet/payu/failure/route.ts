@@ -1,35 +1,37 @@
-import { PayUResponse } from '@/lib/payu';
-import Transaction from '@/lib/Database/Models/Transaction';
-import { connectToDatabase as dbConnect } from '@/lib/Database/mongodb';
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from "next/server";
+import { PayUResponse } from "@/lib/payu";
+import Transaction from "@/lib/Database/Models/Transaction";
+import { connectToDatabase as dbConnect } from "@/lib/Database/mongodb";
 
-interface PaymentFailureRequest extends NextApiRequest {
-  body: PayUResponse;
+async function readPayUResponse(req: NextRequest): Promise<PayUResponse> {
+  const contentType = req.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    return (await req.json()) as PayUResponse;
+  }
+
+  const formData = await req.formData();
+  return Object.fromEntries(formData.entries()) as unknown as PayUResponse;
 }
 
-export default async function handler(
-  req: PaymentFailureRequest,
-  res: NextApiResponse
-) {
+export async function POST(req: NextRequest) {
   try {
     await dbConnect();
 
-    const payuResponse: PayUResponse = req.body;
-
-    console.log('PayU Failure Response:', payuResponse);
+    const payuResponse = await readPayUResponse(req);
 
     await Transaction.findOneAndUpdate(
       { txnid: payuResponse.txnid },
       {
-        status: 'failed',
-        payuResponse: payuResponse,
-        updatedAt: new Date()
+        status: "failed",
+        payuResponse,
+        updatedAt: new Date(),
       }
     );
 
-    res.redirect(`/wallet/failure?txnid=${payuResponse.txnid}`);
+    return NextResponse.redirect(new URL(`/wallet/failure?txnid=${payuResponse.txnid}`, req.url));
   } catch (error) {
-    console.error('Error in failure handler:', error);
-    res.redirect('/wallet/error?message=Payment processing failed');
+    console.error("Error in PayU failure handler:", error);
+    return NextResponse.redirect(new URL("/wallet/error?message=Payment%20processing%20failed", req.url));
   }
 }

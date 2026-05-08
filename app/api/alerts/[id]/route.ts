@@ -14,7 +14,7 @@ function formatAlert(alert: any) {
 // ✅ PATCH - Update alert
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDatabase();
@@ -44,7 +44,7 @@ export async function PATCH(
 // ✅ DELETE - Remove alert
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDatabase();
@@ -73,7 +73,7 @@ export async function DELETE(
 // ✅ GET - Get alert by ID
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDatabase();

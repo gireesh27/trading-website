@@ -102,7 +102,7 @@ export const SparklesText: React.FC<SparklesTextProps> = ({
       const delay = Math.random() * 2;
       const scale = Math.random() * 1 + 0.3;
       const id = `${starX}-${starY}-${Date.now()}`;
-      return { id, x: starX, y: starY, color, delay, scale };
+      return { id, x: starX, y: starY, color, delay, scale, lifespan: 1000 };
     };
 
     const newSparkles = Array.from({ length: sparklesCount }, generateStar);
